@@ -30,7 +30,7 @@ function amenitiesValues(amenityIds: readonly number[], ownAmenities: readonly O
  * links).
  */
 export function createSpaceAmenitiesService({ lookups, ...dependencies }: Dependencies) {
-  const editGroup = createGroupEdit(dependencies);
+  const editGroup = createGroupEdit({ ...dependencies, lookups });
   const amenities = createSpaceAmenitiesRepository();
   const ownAmenities = createOwnAmenitiesRepository();
 

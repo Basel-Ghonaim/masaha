@@ -46,7 +46,7 @@ describe('useAddAreaForm', () => {
     const { form, fill, requests, onSaved } = renderForm(() =>
       ok({ id: 10, governorateId: 2, nameAr: 'الدرج', nameEn: 'Ad-Daraj', isActive: true }, 201),
     );
-    expect(form().active).toBeUndefined();
+    expect(form()).not.toHaveProperty('active');
     await fill();
 
     act(() => {

@@ -10,7 +10,7 @@ import {
   createSubscription,
   createVisit,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { setWeek } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -187,35 +187,44 @@ describe('the auto check-out of visits', () => {
     ]);
   });
 
-  it('a manual check-out meanwhile wins: the job finds the visit closed and leaves it', async () => {
-    const { id } = await openVisit(sunday('15:46:00'));
+  it(
+    'a manual check-out meanwhile wins: the job finds the visit closed and leaves it',
+    async () => {
+      const { id } = await openVisit(sunday('15:46:00'));
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM visits WHERE id = ${id} FOR UPDATE`,
-      () =>
-        request(createTestApp({ jobsSecret: SECRET, clock: () => sunday('18:04:00') }))
-          .post('/api/v1/internal/jobs/run')
-          .set('Authorization', `Bearer ${SECRET}`),
-      (tx) =>
-        tx.visit.update({
-          where: { id },
-          data: { checkedOutAt: sunday('17:00:00'), checkoutMethod: 'MANUAL', chargeAgorot: 1_000 },
-        }),
-    );
+      const response = await whileHeld(
+        'visits',
+        (tx) => tx.$queryRaw`SELECT id FROM visits WHERE id = ${id} FOR UPDATE`,
+        () =>
+          request(createTestApp({ jobsSecret: SECRET, clock: () => sunday('18:04:00') }))
+            .post('/api/v1/internal/jobs/run')
+            .set('Authorization', `Bearer ${SECRET}`),
+        (tx) =>
+          tx.visit.update({
+            where: { id },
+            data: {
+              checkedOutAt: sunday('17:00:00'),
+              checkoutMethod: 'MANUAL',
+              chargeAgorot: 1_000,
+            },
+          }),
+      );
 
-    expect(response.status).toBe(200);
-    expect((dataOf(response) as { jobs: { done: unknown }[] }).jobs[0]?.done).toEqual({
-      visits: 0,
-      remaining: 0,
-      failed: 0,
-    });
-    expect(await stored(id)).toMatchObject({
-      checkedOutAt: sunday('17:00:00'),
-      checkoutMethod: 'MANUAL',
-      chargeAgorot: 1_000,
-    });
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(200);
+      expect((dataOf(response) as { jobs: { done: unknown }[] }).jobs[0]?.done).toEqual({
+        visits: 0,
+        remaining: 0,
+        failed: 0,
+      });
+      expect(await stored(id)).toMatchObject({
+        checkedOutAt: sunday('17:00:00'),
+        checkoutMethod: 'MANUAL',
+        chargeAgorot: 1_000,
+      });
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('audits visit.autoCheckedOut with no actor', async () => {
     const { id } = await openVisit(sunday('15:46:00'));

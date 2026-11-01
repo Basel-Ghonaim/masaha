@@ -4,6 +4,7 @@ import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -45,8 +46,10 @@ function renderCard(
   const focus = createRef<HTMLInputElement>();
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <input ref={focus} aria-label="Search" />
-      <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} menu={MENU} />
+      <MemoryRouter>
+        <input ref={focus} aria-label="Search" />
+        <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} menu={MENU} />
+      </MemoryRouter>
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );
@@ -115,7 +118,18 @@ describe('useSubscriberCheckIn', () => {
     const user = userEvent.setup();
     const expired = renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-10-21', status: 'EXPIRED' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-10-21',
+          status: 'EXPIRED',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       () => ok(deskCheckIn(), 201),
     );
@@ -130,7 +144,7 @@ describe('useSubscriberCheckIn', () => {
     expect(bodyOf(posts(expired.requests)[0])).toEqual({ subscriptionId: 1 });
   });
 
-  it('checks one with no subscription in as a visit by their name, its own intent', async () => {
+  it('checks one with no subscription in as their visit, by their id and name, its own intent', async () => {
     const user = userEvent.setup();
     const { requests, done } = renderCard(customerRow({ current: null }), () =>
       ok(deskVisit({ visitorName: 'Sara Khalid' }), 201),
@@ -139,12 +153,18 @@ describe('useSubscriberCheckIn', () => {
     await user.click(screen.getByRole('button', { name: heard('Check in Sara Khalid') }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('No subscription.');
+    // The visit is the customer's now: no line says it stays out of the file (finding 160).
+    expect(dialog).not.toHaveTextContent('isn’t added to their file');
     expect(screen.queryByRole('button', { name: 'Check in anyway' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Check in as a visit' }));
 
     await findToast(heard('Sara Khalid checked in'));
     expect(posts(requests).map(({ url }) => url)).toEqual(['/manage/spaces/7/visits']);
-    expect(bodyOf(posts(requests)[0])).toEqual({ visitorName: 'Sara Khalid', audience: 'GENERAL' });
+    expect(bodyOf(posts(requests)[0])).toEqual({
+      visitorName: 'Sara Khalid',
+      audience: 'GENERAL',
+      customerId: 4,
+    });
     expect(done).toHaveBeenCalledTimes(1);
   });
 
@@ -152,7 +172,18 @@ describe('useSubscriberCheckIn', () => {
     const user = userEvent.setup();
     renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-11-30', status: 'UPCOMING' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-11-30',
+          status: 'UPCOMING',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       (request) =>
         request.method === 'get'
@@ -185,7 +216,18 @@ describe('useSubscriberCheckIn', () => {
     let fails = true;
     renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-11-30', status: 'UPCOMING' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-11-30',
+          status: 'UPCOMING',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       () =>
         fails

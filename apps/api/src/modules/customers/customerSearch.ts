@@ -12,8 +12,9 @@ export type SearchTerms =
 
 /**
  * A whole number, in any form the phone field takes, searches that phone as it is stored (E.164),
- * or its national digits with the trunk 0 at the end of a phone, so a number stored under the other
- * country code (`+970521234567`, typed `0521234567`) is still found. Else a term of digits only, at
+ * or its national digits without the trunk 0 (nine at least) at the end of a phone, so a number
+ * stored under the other country code is found either way (`+970521234567` typed `0521234567` or
+ * `+972521234567`, and `+972591234567` typed `0591234567`; finding 126). Else a term of digits only, at
  * least two once a phone's separators (spaces, `+`, `-`, `.`, parentheses) are removed, searches the
  * end of a phone (a customer is told by the last digits of their number); anything else searches
  * the name.
@@ -21,7 +22,7 @@ export type SearchTerms =
 export function searchTermsOf(q: string): SearchTerms {
   const phone = normalisePhone(q);
   // E.164 here is `+970` or `+972`, then the national digits.
-  if (phone) return { phone, phoneDigits: `0${phone.slice(4)}` };
+  if (phone) return { phone, phoneDigits: phone.slice(4) };
   const digits = q.replace(/[\s+\-.()]/g, '');
   return /^\d{2,}$/.test(digits) ? { phoneDigits: digits } : { name: q };
 }

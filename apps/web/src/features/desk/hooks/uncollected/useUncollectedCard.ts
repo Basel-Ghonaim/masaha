@@ -89,6 +89,8 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
     return {
       key: String(visit.id),
       name: item.name,
+      // A customer's visit leads to their file (G13.5).
+      customerId: visit.customer?.id ?? null,
       how: visit.checkoutMethod === 'AUTO' ? words.how(when) : words.howManual(when),
       amount: balanceAgorot === null ? words.unpriced : isolate(priceText(balanceAgorot, language)),
       collect: balanceAgorot === null ? null : { label: words.collect, run: open('collect') },
@@ -116,12 +118,15 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
   return {
     id: UNCOLLECTED_ID,
     arrivedAtCard,
-    title: words.title({ count: total }),
+    // With none, the card keeps its name and says so once, in its line (G13.3).
+    title: total === 0 ? words.heading : words.title({ count: total }),
     state:
       query.isPending || pastLast
         ? ('loading' as const)
         : answer === undefined
-          ? ('failed' as const)
+          ? query.error.type === 'network' || query.error.type === 'timeout'
+            ? ('offline' as const)
+            : ('failed' as const)
           : total === 0
             ? ('empty' as const)
             : ('ready' as const),
@@ -146,6 +151,8 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
         })
       : null,
     empty: words.none,
+    // No answer at all: the connection's state (P7), not a refusal.
+    offline: { title: copy.status.offline.title, text: copy.status.offline.description },
     failure: {
       title: words.loadFailed,
       message: view?.message,

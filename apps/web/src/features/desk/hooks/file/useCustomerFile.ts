@@ -1,30 +1,20 @@
 import { gazaClockOf } from '@masaha/shared/core';
-import type { SubscriptionWithMoney } from '@masaha/shared/desk';
+import { fillReminder } from '@masaha/shared/space-settings';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf, dayText, dayWord, priceText } from '@shared/lib';
+import { clockOf, dayText, dayWord, priceText, spaceNameOf, whatsappLink } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { balanceView } from '../../services/balanceView';
+import { currentOf } from '../../services/currentOf';
+import { paymentLines } from '../../services/paymentLines';
 import { payStatus } from '../../services/payStatus';
 import { progressLines } from '../../services/progressLines';
 import { statusView } from '../../services/statusView';
 import { termsLine } from '../../services/termsLine';
+import type { UncollectedItem } from '../../types/UncollectedItem';
 import type { PayTarget } from '../pay/usePayDialog';
 import { useCustomerFileQuery } from './useCustomerFileQuery';
-
-/**
- * The subscription the header's status speaks of: the one running, else the next, else the latest
- * (the file lists them the latest started first), as the customers list's row reads its current one.
- */
-function currentOf(subscriptions: SubscriptionWithMoney[]) {
-  return (
-    subscriptions.find(({ status }) => status === 'ACTIVE' || status === 'ENDING_SOON') ??
-    subscriptions.find(({ status }) => status === 'UPCOMING') ??
-    subscriptions[0] ??
-    null
-  );
-}
 
 /**
  * A customer's file (screen 15), ready to render: the header — the phone, who is here now, the
@@ -33,9 +23,16 @@ function currentOf(subscriptions: SubscriptionWithMoney[]) {
  * subscription's card (DI-42): its name and «سعر يدوي», its dates, its terms in one line, its status
  * and payment badges, its progress, its due, paid and left — the server's, never computed —, and
  * «استلام المتبقي» while it owes (DI-44). A customer the space does not hold is its own state. One
- * payment dialog at a time, opened on the item the control named.
+ * payment dialog at a time, opened on the item the control named. While they owe and have a phone,
+ * «تذكير على واتساب» — a link to WhatsApp with the space's reminder (`reminderTemplate`, else the
+ * catalogue's) filled with what they owe, their first name and `spaceName` (D8.2). The owner's
+ * unpaid visit offers «لن يُحصَّل…» in its «⋯», the desk's write-off (D8.6).
  */
-export function useCustomerFile(spaceId: number, customerId: number) {
+export function useCustomerFile(
+  spaceId: number,
+  customerId: number,
+  { spaceName, owner }: { spaceName: { nameAr: string | null; nameEn: string }; owner: boolean },
+) {
   const copy = useCopy();
   const words = copy.desk.file;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
@@ -48,6 +45,8 @@ export function useCustomerFile(spaceId: number, customerId: number) {
   // The payment dialog: closed, or the item it opens on; each opening a new intent (S4).
   const [pay, setPay] = useState<PayTarget | null>(null);
   const [payOpening, setPayOpening] = useState(0);
+  // The owner's write-off of an unpaid visit: closed, or the visit it is of.
+  const [writeOff, setWriteOff] = useState<UncollectedItem | null>(null);
   const receive = (itemKey: string) => {
     setPay({ customerId, itemKey });
     setPayOpening((count) => count + 1);
@@ -80,7 +79,10 @@ export function useCustomerFile(spaceId: number, customerId: number) {
               file.customer.phone === null
                 ? { text: copy.desk.customer.noPhone, number: false }
                 : { text: file.customer.phone, number: true },
-            here: file.present === null ? null : words.here,
+            here:
+              file.present === null
+                ? null
+                : words.hereSince({ time: isolate(timeOf(file.present.since)) }),
             status:
               current === null ? null : statusView(current.status, copy.desk.customer.statuses),
             balance: {
@@ -88,13 +90,38 @@ export function useCustomerFile(spaceId: number, customerId: number) {
               view: balanceView(file, copy.desk.customer, price),
             },
             archived: file.customer.archivedAt === null ? null : words.archived,
+            reminder:
+              file.debtAgorot > 0 && file.customer.phone !== null
+                ? {
+                    label: words.reminder.label,
+                    caption: words.reminder.caption,
+                    href: whatsappLink(
+                      file.customer.phone,
+                      fillReminder(
+                        file.reminderTemplate ?? copy.spaceSettings.reminder.defaultText,
+                        {
+                          // The customer is greeted by their first name.
+                          name: file.customer.name.trim().split(/\s+/u)[0] ?? file.customer.name,
+                          amount: priceText(file.debtAgorot, language),
+                          // One language a message: the English default names it in English.
+                          space: spaceNameOf(
+                            spaceName,
+                            file.reminderTemplate === null && language === 'en',
+                          ).text,
+                        },
+                      ),
+                    ),
+                  }
+                : null,
           },
     unpaid:
       file === undefined || file.unpaidVisits.length === 0
         ? null
         : {
             title: words.unpaid.title,
-            rows: file.unpaidVisits.map(({ visit, balanceAgorot }) => {
+            description: words.unpaid.counts,
+            rows: file.unpaidVisits.map((unpaidVisit) => {
+              const { visit, balanceAgorot, payments } = unpaidVisit;
               const closed = visit.checkedOutAt ?? visit.checkedInAt;
               const when = {
                 day: dayWord(closed, now, language, copy.desk.uncollected),
@@ -104,6 +131,8 @@ export function useCustomerFile(spaceId: number, customerId: number) {
               return {
                 key,
                 name: copy.desk.pay.itemVisit({ day: when.day }),
+                // The file is theirs already: the row names the visit, not a way to the file.
+                customerId: null,
                 how:
                   visit.checkoutMethod === 'AUTO'
                     ? copy.desk.uncollected.how(when)
@@ -119,7 +148,35 @@ export function useCustomerFile(spaceId: number, customerId: number) {
                         },
                       },
                 debt: null,
-                more: null,
+                // The write-off is of a priced visit's rest, the owner's (S5: the server decides).
+                more:
+                  owner && balanceAgorot !== null
+                    ? {
+                        label: copy.desk.uncollected.more({
+                          name: isolate(`${file.customer.name} · ${when.day}`),
+                        }),
+                        writeOff: {
+                          label: copy.desk.uncollected.writeOff,
+                          run: () => {
+                            setWriteOff({
+                              uncollected: unpaidVisit,
+                              name: file.customer.name,
+                              day: when.day,
+                            });
+                          },
+                        },
+                      }
+                    : null,
+                /** What was paid on it, each by whom, and a void by whom and why (finding 162). */
+                payments: payments.map((payment) => ({
+                  key: String(payment.id),
+                  amount: price(payment.amountAgorot),
+                  method: copy.desk.money.methods[payment.method],
+                  ...paymentLines(payment, {
+                    recordedBy: copy.desk.statement.recordedBy,
+                    voidedBy: copy.payments.ledger.voided.line,
+                  }),
+                })),
               };
             }),
           },
@@ -127,7 +184,11 @@ export function useCustomerFile(spaceId: number, customerId: number) {
       title: words.subscriptions.title,
       none:
         file !== undefined && file.subscriptions.length === 0
-          ? { title: words.subscriptions.none, text: words.subscriptions.onlyVisits }
+          ? {
+              title: words.subscriptions.none,
+              // Only visits: said only while none of them is left unpaid (G15.5).
+              text: file.unpaidVisits.length === 0 ? words.subscriptions.onlyVisits : null,
+            }
           : null,
       cards: (file?.subscriptions ?? []).map((subscription) => {
         const { startsOn, endsOn } = subscription;
@@ -194,6 +255,11 @@ export function useCustomerFile(spaceId: number, customerId: number) {
     payOpening,
     closePay: () => {
       setPay(null);
+    },
+    /** The owner's write-off, while it is open: the visit it is of. */
+    writeOff,
+    closeWriteOff: () => {
+      setWriteOff(null);
     },
   };
 }

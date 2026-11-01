@@ -90,10 +90,12 @@ export function createOccupancyService({
       ),
     ]);
     const people: PresentPerson[] = [
-      ...openVisits.map(({ id, visitorName, customerId, checkedInAt }) => ({
+      ...openVisits.map(({ id, visitorName, customerId, audience, checkedInAt }) => ({
         kind: 'VISIT' as const,
         id,
+        customerId,
         name: visitorName ?? (customerId === null ? '' : (names.get(customerId) ?? '')),
+        audience,
         since: checkedInAt.toISOString(),
         chargeNowAgorot: charges.get(id) ?? null,
       })),

@@ -2,8 +2,10 @@ import type {
   ChangePasswordRequest,
   HandoverRequest,
   IssuedTemporaryPassword,
+  MyAccount,
   PasswordChanged,
   SetSuspendedRequest,
+  UpdateMeRequest,
 } from '@masaha/shared/users';
 import { api } from '@shared/api';
 
@@ -12,6 +14,10 @@ import { api } from '@shared/api';
  * actions (docs/api/api-contract.md §5).
  */
 export interface UsersRepository {
+  /** The signed-in user's own account. */
+  me: () => Promise<MyAccount>;
+  /** Edits one's own name or language; answers the account as it now stands. */
+  updateMe: (request: UpdateMeRequest) => Promise<MyAccount>;
   /** Sets a new password; the session goes on with the access token it answers. */
   changePassword: (request: ChangePasswordRequest) => Promise<PasswordChanged>;
   /** Records how the temporary password just shown reached its person, while it is still pending. */
@@ -25,6 +31,8 @@ export interface UsersRepository {
 /** The users capability's calls, through the app's one client. */
 export function createUsersRepository(): UsersRepository {
   return {
+    me: () => api.get<MyAccount>('/me'),
+    updateMe: (request) => api.patch<MyAccount>('/me', request),
     changePassword: (request) => api.post<PasswordChanged>('/me/password', request),
     handOver: (userId, request) =>
       api.post<undefined>(`/admin/users/${String(userId)}/temporary-password/handover`, request),

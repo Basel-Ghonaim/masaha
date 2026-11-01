@@ -15,8 +15,13 @@ import { useGoogleSignIn } from './useGoogleSignIn';
 const REQUEST = { idToken: 'google-id-token', language: 'en' as const };
 
 /** Google's answer: the session, and whether the sign-in has just linked an existing account. */
-function googleSession(linked: boolean, language: 'ar' | 'en' = 'en', token = 'token-google') {
-  return { ...aSession({ language }, token), linked };
+function googleSession(
+  linked: boolean,
+  language: 'ar' | 'en' = 'en',
+  token = 'token-google',
+  created = false,
+) {
+  return { ...aSession({ language, name: 'Sara' }, token), linked, created };
 }
 
 /** Records how each session arrives while the test runs. */
@@ -31,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   restoreTransport();
   act(() => {
     toast.dismiss();
@@ -97,6 +103,32 @@ describe('useGoogleSignIn', () => {
 
     expect(await findToast('We linked your Google account to your account')).toBeVisible();
     expect(screen.getByText(/password was removed/)).toBeVisible();
+  });
+
+  it('keeps the linked toast until it is closed', async () => {
+    const success = vi.spyOn(toast, 'success');
+    fakeTransport(() => ok(googleSession(true)));
+    render(<Toaster label="Notifications" closeLabel="Close notification" />);
+    const { result } = renderHook(() => useGoogleSignIn(), { wrapper: queryWrapper() });
+
+    await act(() => result.current.mutateAsync(REQUEST));
+
+    expect(success).toHaveBeenCalledWith(
+      'We linked your Google account to your account',
+      expect.objectContaining({ duration: Infinity }),
+    );
+    expect(await findToast('We linked your Google account to your account')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Close notification' })).toBeInTheDocument();
+  });
+
+  it('welcomes an account a first Google sign-in made, by its name, as registration does', async () => {
+    fakeTransport(() => ok(googleSession(false, 'en', 'token-google', true)));
+    render(<Toaster label="Notifications" />);
+    const { result } = renderHook(() => useGoogleSignIn(), { wrapper: queryWrapper() });
+
+    await act(() => result.current.mutateAsync(REQUEST));
+
+    expect(await findToast(/^Welcome \S*Sara\S*, your account is ready$/)).toBeVisible();
   });
 
   it('says nothing when the account was already signing in with Google', async () => {

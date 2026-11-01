@@ -1,4 +1,4 @@
-import type { DomainErrorCode, FieldErrors } from '@masaha/shared/core';
+import type { DomainErrorCode, ErrorDetails, FieldErrors } from '@masaha/shared/core';
 import type { AppErrorType } from './errorTypes';
 
 type AppErrorFields = {
@@ -6,6 +6,7 @@ type AppErrorFields = {
   status: number;
   code?: DomainErrorCode | undefined;
   errors?: FieldErrors | undefined;
+  details?: ErrorDetails | undefined;
   requestId?: string | undefined;
   retryAfterSeconds?: number | undefined;
   /** For developers and logs only. */
@@ -27,6 +28,8 @@ export class AppError extends Error {
   readonly code: DomainErrorCode | undefined;
   /** Field → the codes of the rules it failed. */
   readonly errors: FieldErrors | undefined;
+  /** The record the refusal names (api-contract §2), such as the owner `ALREADY_OWNER` is about. */
+  readonly details: ErrorDetails | undefined;
   /** The server's id for the request, present whenever the server answered (api-contract §1). */
   readonly requestId: string | undefined;
   /** The wait the answer asked for in `Retry-After`, in whole seconds. */
@@ -38,6 +41,7 @@ export class AppError extends Error {
     this.status = fields.status;
     this.code = fields.code;
     this.errors = fields.errors;
+    this.details = fields.details;
     this.requestId = fields.requestId;
     this.retryAfterSeconds = fields.retryAfterSeconds;
   }

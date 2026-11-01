@@ -83,6 +83,21 @@ export const siteRoutes: RouteObject[] = [
                   };
                 },
               },
+              {
+                path: SITE_PATHS.mySettings,
+                handle: { title: (copy) => copy.users.settings.title } satisfies TitledHandle,
+                lazy: async () => {
+                  const { AccountSettingsPage } =
+                    await import('./account/settings/AccountSettingsPage');
+                  return {
+                    element: (
+                      <RequireAuth>
+                        <AccountSettingsPage />
+                      </RequireAuth>
+                    ),
+                  };
+                },
+              },
             ],
           },
           {

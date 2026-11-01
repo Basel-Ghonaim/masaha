@@ -12,7 +12,6 @@ export function useAddAmenityForm({ onSaved }: { onSaved: () => void }) {
   return useAmenityForm({
     schema: createAmenitySchema,
     defaultValues: { nameAr: '', nameEn: '' },
-    editing: false,
     save: (request) => add.mutateAsync(request),
     onSaved,
   });

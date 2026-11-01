@@ -16,6 +16,11 @@ export function customerRow(change: Partial<CustomerRow> = {}): CustomerRow {
       packageId: 4,
       endsOn: '2026-10-21',
       status: 'ACTIVE',
+      totalDays: null,
+      daysPerWeek: null,
+      hoursPerDay: null,
+      totalHours: null,
+      progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
     },
     ...change,
   };
@@ -40,12 +45,16 @@ export function customersPage(rows: CustomerRow[], total = rows.length) {
   };
 }
 
+/** When the fixtures' subscriptions were made, as a file's money says it. */
+export const SUBSCRIBED_AT = '2026-10-01T07:00:00.000Z';
+
 /** A subscription's state as the desk reads it: active, fixed ₪150, no limits. */
 export function subscriptionState(change: Partial<SubscriptionState> = {}): SubscriptionState {
   return {
     id: 1,
     customerId: 4,
     packageId: 4,
+    publishedPeriod: null,
     renewalOfId: null,
     name: 'Exams by the hour',
     startsOn: '2026-10-01',
@@ -96,8 +105,11 @@ export function customerFile(change: Partial<CustomerFile> = {}): CustomerFile {
     debtAgorot: 0,
     creditAgorot: 0,
     present: null,
-    subscriptions: [{ ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0 }],
+    subscriptions: [
+      { ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0, createdAt: SUBSCRIBED_AT },
+    ],
     unpaidVisits: [],
+    reminderTemplate: null,
     ...change,
   };
 }

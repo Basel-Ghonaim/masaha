@@ -7,6 +7,36 @@ type Dated = (values: { date: string }) => string;
 const hoursOf = (minutes: number) =>
   `${String(Math.floor(minutes / 60))}:${String(minutes % 60).padStart(2, '0')}`;
 
+/** A subscription's limits and what was used of them, the server's counts (`progress`). */
+type Limits = Pick<
+  SubscriptionState,
+  'totalDays' | 'daysPerWeek' | 'hoursPerDay' | 'totalHours' | 'progress'
+>;
+
+/**
+ * Each limit a subscription has — its days in all, this week's days, today's hours, its hours in
+ * all — with what was used of it, in that order: the progress a search card and the file say alike.
+ */
+export function limitLines(
+  { totalDays, daysPerWeek, hoursPerDay, totalHours, progress }: Limits,
+  words: { days: Counted; week: Counted; today: Counted; hours: Counted },
+): string[] {
+  const lines: string[] = [];
+  if (totalDays !== null) {
+    lines.push(words.days({ used: String(progress.daysUsed), total: String(totalDays) }));
+  }
+  if (daysPerWeek !== null) {
+    lines.push(words.week({ used: String(progress.daysThisWeek), total: String(daysPerWeek) }));
+  }
+  if (hoursPerDay !== null) {
+    lines.push(words.today({ used: hoursOf(progress.minutesToday), total: String(hoursPerDay) }));
+  }
+  if (totalHours !== null) {
+    lines.push(words.hours({ used: hoursOf(progress.minutesUsed), total: String(totalHours) }));
+  }
+  return lines;
+}
+
 /**
  * A subscription's progress as the desk and the file say it, in this order: each limit it has — its
  * days in all, this week's days, today's hours, its hours in all — with what was used of it; how a
@@ -14,7 +44,7 @@ const hoursOf = (minutes: number) =>
  * that it has no end. The counts are the server's (`progress`); `format` says amounts and dates.
  */
 export function progressLines(
-  { progress, ...subscription }: SubscriptionState,
+  subscription: SubscriptionState,
   words: {
     days: Counted;
     week: Counted;
@@ -29,21 +59,8 @@ export function progressLines(
   },
   format: { price: (agorot: number) => string; day: (date: string) => string },
 ): string[] {
-  const lines: string[] = [];
-  const { totalDays, daysPerWeek, hoursPerDay, totalHours, billing, endsOn, startsOn } =
-    subscription;
-  if (totalDays !== null) {
-    lines.push(words.days({ used: String(progress.daysUsed), total: String(totalDays) }));
-  }
-  if (daysPerWeek !== null) {
-    lines.push(words.week({ used: String(progress.daysThisWeek), total: String(daysPerWeek) }));
-  }
-  if (hoursPerDay !== null) {
-    lines.push(words.today({ used: hoursOf(progress.minutesToday), total: String(hoursPerDay) }));
-  }
-  if (totalHours !== null) {
-    lines.push(words.hours({ used: hoursOf(progress.minutesUsed), total: String(totalHours) }));
-  }
+  const lines = limitLines(subscription, words);
+  const { billing, endsOn, startsOn } = subscription;
   if (billing !== 'FIXED') {
     lines.push(
       words.billed({ rate: format.price(subscription.priceAgorot), unit: words.units[billing] }),

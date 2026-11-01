@@ -4,20 +4,38 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
+import { publicSpace } from '../../../test/publicSpace';
 import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
+import { warm } from '../../../test/warmLazy';
 import { siteRoutes } from '../routes';
 
-/** The site's routes, as the app mounts them, at `path`; returns the router. */
-function renderSite(path: string) {
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('../shell/FocusLayout'),
+      () => import('../shell/SiteLayout'),
+      () => import('./SignInPage'),
+      () => import('./RegisterPage'),
+      () => import('./ForgotPasswordPage'),
+      () => import('@features/users'),
+      () => import('../public/about/AboutPage'),
+      () => import('../public/directory/DirectoryPage'),
+    ),
+  60_000,
+);
+
+/** The site's routes, as the app mounts them, at `path`, over `client`; returns the router. */
+function renderSite(path: string, client = createQueryClient()) {
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
     initialEntries: [path],
   });
   render(
-    <QueryClientProvider client={createQueryClient()}>
+    <QueryClientProvider client={client}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
@@ -152,22 +170,59 @@ describe('the sign-in page', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
-  it('links to a forgotten password, to a new account carrying the return page, and to the spaces', async () => {
+  it('links to a forgotten password and to a new account, each carrying the return page', async () => {
     renderSite('/login?next=%2Fabout');
     const main = within(await screen.findByRole('main'));
 
     expect(await main.findByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
       'href',
-      '/forgot-password',
+      '/forgot-password?next=%2Fabout',
     );
     expect(main.getByRole('link', { name: 'Create account' })).toHaveAttribute(
       'href',
       '/register?next=%2Fabout',
     );
-    expect(main.getByRole('link', { name: 'Browse spaces without an account' })).toHaveAttribute(
+  });
+
+  it('speaks to the people who sign in: the ones who save and report, and the ones who run a space', async () => {
+    renderSite('/login');
+
+    expect(
+      await screen.findByText(
+        'Sign in to save your favourite spaces and follow your reports, or to run your space.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('names the way back to the space next points to, from the directory’s cached read', async () => {
+    const client = createQueryClient();
+    // The directory's key of a space's page (features/directory's directoryKeys.space).
+    client.setQueryData(['public', 'directory', 'space', 'noor-hub'], publicSpace());
+    renderSite('/login?next=%2Fspaces%2Fnoor-hub', client);
+    const main = within(await screen.findByRole('main'));
+
+    expect(await main.findByRole('link', { name: /^Back to .Noor Hub.$/ })).toHaveAttribute(
       'href',
-      '/spaces',
+      '/spaces/noor-hub',
     );
+  });
+
+  it('goes back to the previous page when the read of the space next points to is not held', async () => {
+    renderSite('/login?next=%2Fspaces%2Fnoor-hub');
+    const main = within(await screen.findByRole('main'));
+
+    expect(await main.findByRole('link', { name: 'Back to the previous page' })).toHaveAttribute(
+      'href',
+      '/spaces/noor-hub',
+    );
+  });
+
+  it('goes back home without a return page, or with one that would leave the site', async () => {
+    renderSite('/login?next=%2F%2Fevil.example');
+    const main = within(await screen.findByRole('main'));
+
+    expect(await main.findByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/');
+    expect(main.queryByRole('link', { name: /^Browse spaces/ })).not.toBeInTheDocument();
   });
 });
 
@@ -187,7 +242,17 @@ describe('the register page', () => {
     });
   });
 
-  it('links to sign in carrying the return page, and to contact for space owners', async () => {
+  it('offers the way back, as sign-in does', async () => {
+    renderSite('/register?next=%2Fabout');
+    const main = within(await screen.findByRole('main'));
+
+    expect(await main.findByRole('link', { name: 'Back to the previous page' })).toHaveAttribute(
+      'href',
+      '/about',
+    );
+  });
+
+  it('links to sign in carrying the return page, and space owners to the about page’s owners', async () => {
     renderSite('/register?next=%2Fabout');
     const main = within(await screen.findByRole('main'));
 
@@ -203,10 +268,7 @@ describe('the register page', () => {
         },
       ),
     ).toBeInTheDocument();
-    expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute(
-      'href',
-      '/about#contact',
-    );
+    expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', '/about#owners');
   });
 
   it('offers to sign in with a taken email, carrying the return page', async () => {

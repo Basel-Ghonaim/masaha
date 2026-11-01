@@ -1,5 +1,5 @@
 import { useCopy } from '@shared/copy';
-import { Card, CardContent, CircleCheckIcon } from '@shared/design-system';
+import { Card, CardContent, CardFooter, CircleCheckIcon } from '@shared/design-system';
 import type { ReactNode } from 'react';
 import { useResetPasswordFlow } from '../../hooks/reset-password/useResetPasswordFlow';
 import { CheckFailed } from './CheckFailed';
@@ -13,13 +13,23 @@ export type ResetPasswordCardProps = {
   requestLinkLink: ReactNode;
   /** To sign in, once the password is set. */
   signInLink: ReactNode;
+  /** Back to sign in, at the card's foot, until the password is set (C4). */
+  backLink: ReactNode;
+  /** Hears the password set, once the server has set it: the page's to act on. */
+  onPasswordSet?: () => void;
 };
 
 /**
  * The reset link, from `useResetPasswordFlow`: the new password once the link is open in this
- * browser, the link no longer valid, or the password set, and the way on from each.
+ * browser, the link no longer valid, or the password set, and the way on from each; the way back to
+ * sign in at its foot, except once the password is set, when signing in is the way on.
  */
-export function ResetPasswordCard({ requestLinkLink, signInLink }: ResetPasswordCardProps) {
+export function ResetPasswordCard({
+  requestLinkLink,
+  signInLink,
+  backLink,
+  onPasswordSet,
+}: ResetPasswordCardProps) {
   const copy = useCopy();
   const words = copy.auth.resetPassword;
   const view = useResetPasswordFlow();
@@ -48,7 +58,12 @@ export function ResetPasswordCard({ requestLinkLink, signInLink }: ResetPassword
         <>
           <StepHeader title={words.title} description={view.forAccount} />
           <CardContent>
-            <ResetPasswordForm saved={view.saved} />
+            <ResetPasswordForm
+              saved={() => {
+                view.saved();
+                onPasswordSet?.();
+              }}
+            />
           </CardContent>
         </>
       )}
@@ -68,6 +83,7 @@ export function ResetPasswordCard({ requestLinkLink, signInLink }: ResetPassword
           <CardContent>{signInLink}</CardContent>
         </>
       )}
+      {view.kind !== 'done' && <CardFooter className="justify-center">{backLink}</CardFooter>}
     </Card>
   );
 }

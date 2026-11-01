@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createVisit } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { addPrice, setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -344,26 +344,30 @@ describe('checking a visit out', () => {
     expect(await actionsAfterCheckIn()).toEqual([]);
   });
 
-  it('two check-outs of one visit at once record one payment; the other is refused, its cash unrecorded', async () => {
-    const visitId = await checkedIn();
-    const body = { payment: { amountAgorot: 1_500, method: 'CASH' } };
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock; the second finds the visit closed.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      pending.push(
-        Promise.resolve(checkOut(owner, visitId, body)),
-        Promise.resolve(checkOut(reception, visitId, body)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
+  it(
+    'two check-outs of one visit at once record one payment; the other is refused, its cash unrecorded',
+    async () => {
+      const visitId = await checkedIn();
+      const body = { payment: { amountAgorot: 1_500, method: 'CASH' } };
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock; the second finds the visit closed.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        pending.push(
+          Promise.resolve(checkOut(owner, visitId, body)),
+          Promise.resolve(checkOut(reception, visitId, body)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
 
-    const answers = await Promise.all(pending);
-    expect(answers.map(({ status }) => status).sort()).toEqual([200, 409]);
-    const refused = answers.find(({ status }) => status === 409);
-    expect(refused && errorOf(refused).code).toBe('VISIT_ALREADY_CLOSED');
-    expect(await storedPayments()).toHaveLength(1);
-  });
+      const answers = await Promise.all(pending);
+      expect(answers.map(({ status }) => status).sort()).toEqual([200, 409]);
+      const refused = answers.find(({ status }) => status === 409);
+      expect(refused && errorOf(refused).code).toBe('VISIT_ALREADY_CLOSED');
+      expect(await storedPayments()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("the quote's time prices the stay; a time older than 5 minutes or in the future is refused (422 out_of_range)", async () => {
     const visitId = await checkedIn();
@@ -500,22 +504,27 @@ describe('checking a visit out', () => {
     expect(await storedVisit(visitId)).toMatchObject({ checkedOutAt: null });
   });
 
-  it("a reception link deactivated while the check-out waits on the space's lock refuses it with 403", async () => {
-    const visitId = await checkedIn();
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => checkOut(reception, visitId, { payment: { amountAgorot: 1_500, method: 'CASH' } }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    "a reception link deactivated while the check-out waits on the space's lock refuses it with 403",
+    async () => {
+      const visitId = await checkedIn();
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => checkOut(reception, visitId, { payment: { amountAgorot: 1_500, method: 'CASH' } }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await storedVisit(visitId)).toMatchObject({ checkedOutAt: null });
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await storedVisit(visitId)).toMatchObject({ checkedOutAt: null });
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('a visit with no rate, checked out by whoever may not type a price', () => {

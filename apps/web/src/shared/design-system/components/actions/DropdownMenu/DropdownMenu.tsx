@@ -65,19 +65,38 @@ const itemClasses =
 export type DropdownMenuItemProps = ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   /** An action that removes, rejects or deactivates. */
   variant?: 'default' | 'destructive';
+  /**
+   * An action that cannot be taken now, for a reason the item holds in its own text. Unlike
+   * `disabled`, which Radix skips, a held item stays in the arrow keys and typeahead, so its reason
+   * is reached and read; it is marked `aria-disabled`, looks disabled, and selecting it does nothing.
+   */
+  held?: boolean;
 };
 
 export function DropdownMenuItem({
   className,
   variant = 'default',
+  held = false,
+  onSelect,
   ...props
 }: DropdownMenuItemProps) {
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-variant={variant}
+      data-held={held ? '' : undefined}
+      // Only a held item sets it: an undefined one would hide Radix's own on a disabled item.
+      {...(held ? { 'aria-disabled': true } : {})}
+      onSelect={
+        held
+          ? (event) => {
+              event.preventDefault();
+            }
+          : onSelect
+      }
       className={cn(
         itemClasses,
+        'data-held:opacity-50',
         // The destructive item keeps its colour when highlighted, on its verified subtle pair.
         'data-[variant=destructive]:text-destructive data-[variant=destructive]:[&_svg]:text-destructive data-[variant=destructive]:focus:bg-destructive-subtle data-[variant=destructive]:focus:text-destructive-subtle-foreground data-[variant=destructive]:focus:[&_svg]:text-destructive-subtle-foreground',
         className,

@@ -23,6 +23,24 @@ function renderNearMe() {
   );
 }
 
+/**
+ * The Permissions API on the stubbed navigator (after `fakeGeolocation`), answering `state` for the
+ * location; `change` moves it and fires its event, as a browser does once the prompt is answered.
+ */
+function fakePermission(state: PermissionState) {
+  const status = Object.assign(new EventTarget(), { state });
+  Object.assign(navigator, {
+    permissions: { query: () => Promise.resolve(status as unknown as PermissionStatus) },
+  });
+  return {
+    status,
+    change: (next: PermissionState) => {
+      status.state = next;
+      status.dispatchEvent(new Event('change'));
+    },
+  };
+}
+
 /** Every value the browser's storage holds. */
 function stored(): string {
   return [localStorage, sessionStorage]
@@ -138,6 +156,108 @@ describe('useNearMe', () => {
     act(() => {
       device.succeed(31.5, 34.46, 30);
     });
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+  });
+
+  it('with the permission already granted, waits the 15 s from the press', async () => {
+    vi.useFakeTimers();
+    fakeGeolocation();
+    fakePermission('granted');
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+  });
+
+  it('while the browser asks for the permission, waits the 15 s only once it is granted', async () => {
+    vi.useFakeTimers();
+    const device = fakeGeolocation();
+    const permission = fakePermission('prompt');
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    // The visitor reads the prompt for most of a minute: the 15 s are not counted meanwhile.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50_000);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+
+    act(() => {
+      permission.change('granted');
+    });
+    // Granted, the 15 s replace the prompt's bound: past the minute from the press, still asking.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(14_999);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    expect(result.current.near.state.status).toBe('granted');
+  });
+
+  it('a prompt that never settles and no answer end as denied a minute from the press, and it may be pressed again', async () => {
+    vi.useFakeTimers();
+    fakeGeolocation();
+    const permission = fakePermission('prompt');
+    const removed = vi.spyOn(permission.status, 'removeEventListener');
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    // Dismissed without a choice (as Firefox allows): no `change`, and the device answers nothing.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(59_999);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.near.state.status).toBe('denied');
+    // Settled, it stops following the permission; a new press asks again.
+    expect(removed).toHaveBeenCalledWith('change', expect.any(Function));
+    act(() => {
+      result.current.near.press();
+    });
+    expect(result.current.near.state.status).toBe('locating');
+  });
+
+  it('with the permission denied, ends at once as denied', async () => {
+    fakeGeolocation();
+    fakePermission('denied');
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+
+    await vi.waitFor(() => {
+      expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+    });
+  });
+
+  it('without the Permissions API, waits the 15 s from the press', () => {
+    vi.useFakeTimers();
+    fakeGeolocation();
+    Object.assign(navigator, { permissions: undefined });
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+
     expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
   });
 

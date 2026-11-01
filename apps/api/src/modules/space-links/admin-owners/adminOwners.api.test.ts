@@ -15,7 +15,7 @@ import {
 } from '../../../../test/admin.ts';
 import { createTestApp, inAWeek } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
-import { lockUsers, waitingOnLock, whileHeld } from '../../../../test/locks.ts';
+import { lockUsers, waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings } from '../../../../test/spaces.ts';
 import { prisma, type Tx } from '../../../db/index.ts';
@@ -251,38 +251,46 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
     expect(await links(user.id)).toEqual([]);
   });
 
-  it('waits for the space’s lock, so a save on the space decides on the link (finding 43)', async () => {
-    const user = await person();
-    let pending: ReturnType<typeof link> | undefined;
-    let duringHold: unknown[] = [];
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      pending = link(user.id);
-      await waitingOnLock();
-      duringHold = await links(user.id);
-    });
+  it(
+    'waits for the space’s lock, so a save on the space decides on the link (finding 43)',
+    async () => {
+      const user = await person();
+      let pending: ReturnType<typeof link> | undefined;
+      let duringHold: unknown[] = [];
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        pending = link(user.id);
+        await waitingOnLock({ on: 'spaces' });
+        duringHold = await links(user.id);
+      });
 
-    expect((await pending)?.status).toBe(204);
-    expect(duringHold).toEqual([]);
-    expect(await links(user.id)).toHaveLength(1);
-  });
+      expect((await pending)?.status).toBe(204);
+      expect(duringHold).toEqual([]);
+      expect(await links(user.id)).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('ends a session a sign-in opened while the link waited for the person’s lock', async () => {
-    const user = await person();
-    let pending: ReturnType<typeof link> | undefined;
-    // A sign-in in progress holds the person's session lock, and commits a new session after the
-    // link has started waiting for it (conventions §13).
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM users WHERE id = ${user.id} FOR NO KEY UPDATE`;
-      await session(user.id, tx);
-      pending = link(user.id);
-      await waitingOnLock();
-    });
+  it(
+    'ends a session a sign-in opened while the link waited for the person’s lock',
+    async () => {
+      const user = await person();
+      let pending: ReturnType<typeof link> | undefined;
+      // A sign-in in progress holds the person's session lock, and commits a new session after the
+      // link has started waiting for it (conventions §13).
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM users WHERE id = ${user.id} FOR NO KEY UPDATE`;
+        await session(user.id, tx);
+        pending = link(user.id);
+        await waitingOnLock({ on: 'users' });
+      });
 
-    expect((await pending)?.status).toBe(204);
-    expect(await role(user.id)).toBe('OWNER');
-    expect(await sessions(user.id)).toBe(0);
-  });
+      expect((await pending)?.status).toBe(204);
+      expect(await role(user.id)).toBe('OWNER');
+      expect(await sessions(user.id)).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('the owner links: the tokens signed before a role change', () => {
@@ -401,22 +409,26 @@ describe('DELETE /admin/spaces/:spaceId/owners/:userId', () => {
     expect(await links(owner.id)).toEqual([{ spaceId, role: 'OWNER', deactivatedAt: null }]);
   });
 
-  it('makes a person a user again when their two links end at once', async () => {
-    const owner = await person('OWNER');
-    const { id: other } = await createSpace('other-hub');
-    await prisma.spaceManager.create({ data: { spaceId, userId: owner.id } });
-    await prisma.spaceManager.create({ data: { spaceId: other, userId: owner.id } });
-    const pending: ReturnType<typeof unlink>[] = [];
-    // Both unlinks wait for the person's lock, so each counts the links the other left.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM users WHERE id = ${owner.id} FOR NO KEY UPDATE`;
-      pending.push(unlink(owner.id), unlink(owner.id, other));
-      await waitingOnLock({ count: 2 });
-    });
+  it(
+    'makes a person a user again when their two links end at once',
+    async () => {
+      const owner = await person('OWNER');
+      const { id: other } = await createSpace('other-hub');
+      await prisma.spaceManager.create({ data: { spaceId, userId: owner.id } });
+      await prisma.spaceManager.create({ data: { spaceId: other, userId: owner.id } });
+      const pending: ReturnType<typeof unlink>[] = [];
+      // Both unlinks wait for the person's lock, so each counts the links the other left.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM users WHERE id = ${owner.id} FOR NO KEY UPDATE`;
+        pending.push(unlink(owner.id), unlink(owner.id, other));
+        await waitingOnLock({ count: 2, on: 'users' });
+      });
 
-    expect((await Promise.all(pending)).map(({ status }) => status)).toEqual([204, 204]);
-    expect(await role(owner.id)).toBe('USER');
-  });
+      expect((await Promise.all(pending)).map(({ status }) => status)).toEqual([204, 204]);
+      expect(await role(owner.id)).toBe('USER');
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('POST /admin/owners', () => {
@@ -544,22 +556,27 @@ describe('POST /admin/owners', () => {
     expect(await entries()).toEqual([]);
   });
 
-  it('refuses an upgrade that waited on the person while a temporary password was issued', async () => {
-    const user = await prisma.user.create({
-      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
-    });
+  it(
+    'refuses an upgrade that waited on the person while a temporary password was issued',
+    async () => {
+      const user = await prisma.user.create({
+        data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+      });
 
-    // The test issues a temporary password, as an issue holding the person's lock would.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, user.id),
-      () => add({ ...NEW, upgradeExisting: true }),
-      (tx) => makePending(user.id, tx),
-    );
+      // The test issues a temporary password, as an issue holding the person's lock would.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, user.id),
+        () => add({ ...NEW, upgradeExisting: true }),
+        (tx) => makePending(user.id, tx),
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('ACCOUNT_PASSWORD_PENDING');
-    expect(await links(user.id)).toEqual([]);
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('ACCOUNT_PASSWORD_PENDING');
+      expect(await links(user.id)).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('creates the account when the upgrade is allowed but the email has none', async () => {
     const response = await add({ ...NEW, upgradeExisting: true });
@@ -592,6 +609,20 @@ describe('POST /admin/owners', () => {
     expect(await entries()).toEqual([]);
   });
 
+  it('ALREADY_OWNER carries the owner’s id', async () => {
+    const owner = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x', role: 'OWNER' },
+    });
+
+    const response = await add({ ...NEW, upgradeExisting: true });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({
+      code: 'ALREADY_OWNER',
+      details: { userId: owner.id },
+    });
+  });
+
   it('asks for the upgrade of the space’s reception before it refuses the link', async () => {
     const user = await prisma.user.create({
       data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
@@ -604,26 +635,30 @@ describe('POST /admin/owners', () => {
     expect(errorOf(response).code).toBe('EMAIL_HAS_ACCOUNT');
   });
 
-  it('refuses an email another creation took while this one waited for the space', async () => {
-    let pending: ReturnType<typeof add> | undefined;
-    // The add found no account and waits for the space's lock; meanwhile an account with its
-    // email is committed.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      pending = add(NEW);
-      // Its read of the email and its hash, outside any transaction, are done once it waits.
-      await waitingOnLock();
-      await tx.user.create({
-        data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+  it(
+    'refuses an email another creation took while this one waited for the space',
+    async () => {
+      let pending: ReturnType<typeof add> | undefined;
+      // The add found no account and waits for the space's lock; meanwhile an account with its
+      // email is committed.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        pending = add(NEW);
+        // Its read of the email and its hash, outside any transaction, are done once it waits.
+        await waitingOnLock({ on: 'spaces' });
+        await tx.user.create({
+          data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+        });
       });
-    });
-    const response = await pending;
+      const response = await pending;
 
-    expect(response?.status).toBe(409);
-    expect(response && errorOf(response).code).toBe('EMAIL_HAS_ACCOUNT');
-    expect(await prisma.spaceManager.count()).toBe(0);
-    expect(await entries()).toEqual([]);
-  });
+      expect(response?.status).toBe(409);
+      expect(response && errorOf(response).code).toBe('EMAIL_HAS_ACCOUNT');
+      expect(await prisma.spaceManager.count()).toBe(0);
+      expect(await entries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('refuses the upgrade of the space’s active reception', async () => {
     const user = await prisma.user.create({
@@ -649,6 +684,21 @@ describe('POST /admin/owners', () => {
     }
     expect(await account()).toBeNull();
     expect(await entries()).toEqual([]);
+  });
+
+  it('the add-owner names invalid_format for a string id and invalid_choice for a deleted space', async () => {
+    await prisma.space.update({ where: { id: spaceId }, data: { deletedAt: NOW } });
+
+    // The type check comes first, before the space is read: a deleted space's id written as a
+    // string is refused for how it is written (finding 69).
+    const written = await add({ ...NEW, spaceId: String(spaceId) as unknown as number });
+    const deleted = await add({ ...NEW, spaceId });
+
+    expect(written.status).toBe(422);
+    expect(errorOf(written).errors).toEqual({ spaceId: ['invalid_format'] });
+    expect(deleted.status).toBe(422);
+    expect(errorOf(deleted).errors).toEqual({ spaceId: ['invalid_choice'] });
+    expect(await account()).toBeNull();
   });
 
   it('refuses a body without a name, a valid email or a space', async () => {

@@ -4,7 +4,9 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  CircleCheckIcon,
   EmptyState,
+  SearchXIcon,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { ListPagination } from '@shared/lists';
@@ -80,7 +82,12 @@ function LedgerEmpty({ ledger }: { ledger: LedgerView }) {
   }
   const { empty } = ledger;
   return (
-    <EmptyState title={empty.title} description={empty.text}>
+    <EmptyState
+      // No match has its own icon; none today, the calm one (G17.1).
+      icon={empty.clear === null ? <CircleCheckIcon /> : <SearchXIcon />}
+      title={empty.title}
+      description={empty.text}
+    >
       {empty.clear !== null && (
         <Button variant="outline" onClick={empty.clear.run}>
           {empty.clear.label}
@@ -180,6 +187,8 @@ export function PaymentsLedger({
         <p className="text-body-sm text-muted-foreground">{ledger.refreshFailure}</p>
       )}
       <DataTable
+        // The rows of the page before stay dimmed while the page asked loads (finding 132).
+        refreshing={ledger.busy}
         label={ledger.label}
         columns={columns}
         data={ledger.rows}
@@ -200,6 +209,7 @@ export function PaymentsLedger({
         loading={ledger.state === 'loading'}
         empty={<LedgerEmpty ledger={ledger} />}
         toolbar={<LedgerFilters toolbar={ledger.toolbar} count={ledger.count} />}
+        summary={ledger.summary}
         pagination={ledger.pagination !== null && <ListPagination pagination={ledger.pagination} />}
       />
     </section>

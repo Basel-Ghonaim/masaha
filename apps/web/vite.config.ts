@@ -4,9 +4,17 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defaultClientConditions, defaultServerConditions, loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
-import { DASHBOARD_CHUNK, isDashboardModule } from './scripts/dashboardOnly.ts';
+import {
+  DASHBOARD_CHUNK,
+  DASHBOARD_SHARED_CHUNK,
+  isDashboardModule,
+  isDashboardShared,
+} from './scripts/dashboardOnly.ts';
 import { devServer } from './scripts/devServer.ts';
 import { LIBRARY_CHUNKS } from './scripts/libraryChunks.ts';
+
+// What only the dashboard imports, answered once per module for a build (isDashboardShared).
+const dashboardShared = new Map<string, boolean>();
 
 export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
@@ -39,6 +47,19 @@ export default defineConfig(({ mode }) => ({
               test,
               includeDependenciesRecursively: false,
             })),
+            // What only the dashboard imports besides its own code (a capability's dashboard parts,
+            // @masaha/shared's dashboard schemas, TanStack Query's useQuery), in a chunk the
+            // dashboard loads beside it: left to the bundler, it lands in a lazy dashboard page's
+            // chunk, which then imports the dashboard's chunk back (finding 27). Last, so the groups
+            // above take their modules first; what it takes imports no dashboard code, so the chunk
+            // never imports the dashboard's back, which check:build proves.
+            {
+              name: (id, context) =>
+                isDashboardShared(id, (module) => context.getModuleInfo(module), dashboardShared)
+                  ? DASHBOARD_SHARED_CHUNK
+                  : null,
+              includeDependenciesRecursively: false,
+            },
           ],
         },
       },

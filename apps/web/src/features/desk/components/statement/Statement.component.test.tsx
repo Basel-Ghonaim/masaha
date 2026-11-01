@@ -5,7 +5,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, SUBSCRIBED_AT, subscriptionState } from '../../../../test/deskCustomer';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { paymentRow } from '../../../../test/paymentRow';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -16,6 +16,7 @@ const SUBSCRIPTION = {
   ...subscriptionState({ id: 3, name: 'Every other day' }),
   paidAgorot: 10000,
   balanceAgorot: 0,
+  createdAt: SUBSCRIBED_AT,
 };
 
 const STATEMENT: SubscriptionStatement = {
@@ -38,7 +39,12 @@ const STATEMENT: SubscriptionStatement = {
       note: null,
       receivedAt: '2026-10-02T09:00:00Z',
       recordedById: 14,
-      voided: { at: '2026-10-03T09:00:00Z', byId: 14, reason: 'Entered twice' },
+      recordedBy: { id: 14, name: 'Ahmad' },
+      voided: {
+        at: '2026-10-03T09:00:00Z',
+        by: { id: 14, name: 'Ahmad' },
+        reason: 'Entered twice',
+      },
     },
   ],
   renewal: null,
@@ -69,7 +75,13 @@ describe('Statement', () => {
         <QueryClientProvider client={createQueryClient()}>
           <main>
             <h1>Sara Khalid</h1>
-            <CustomerFile spaceId={7} customerId={4} owner subscribe={() => undefined} />
+            <CustomerFile
+              spaceId={7}
+              customerId={4}
+              owner
+              subscribe={() => undefined}
+              spaceName={{ nameAr: null, nameEn: 'S' }}
+            />
           </main>
         </QueryClientProvider>,
       );
@@ -87,7 +99,11 @@ describe('Statement', () => {
       });
       expect(payments).toBeVisible();
       expect(within(statement as HTMLElement).getByText('Voided')).toBeVisible();
-      expect(within(statement as HTMLElement).getByText('Voided: Entered twice')).toBeVisible();
+      // Who recorded it, and who voided it and why (finding 162).
+      expect(within(statement as HTMLElement).getByText(/^Recorded by .Ahmad.$/)).toBeVisible();
+      expect(
+        within(statement as HTMLElement).getByText(/^Voided by .Ahmad.: Entered twice$/),
+      ).toBeVisible();
       expect(within(statement as HTMLElement).getByText('Auto check-out')).toBeVisible();
       expect(await axe(container)).toHaveNoViolations();
     },
@@ -106,7 +122,9 @@ function statementWith(voided: boolean): SubscriptionStatement {
         id: 7,
         amountAgorot: 5000,
         receivedAt: '2026-10-01T09:00:00Z',
-        voided: voided ? { at: '2026-10-27T09:00:00Z', byId: 14, reason: 'Twice' } : null,
+        voided: voided
+          ? { at: '2026-10-27T09:00:00Z', by: { id: 14, name: 'Ahmad' }, reason: 'Twice' }
+          : null,
       },
       payment,
     ],
@@ -129,7 +147,13 @@ async function openStatement(owner: boolean) {
     <QueryClientProvider client={createQueryClient()}>
       <main>
         <h1>Sara Khalid</h1>
-        <CustomerFile spaceId={7} customerId={4} owner={owner} subscribe={() => undefined} />
+        <CustomerFile
+          spaceId={7}
+          customerId={4}
+          owner={owner}
+          subscribe={() => undefined}
+          spaceName={{ nameAr: null, nameEn: 'S' }}
+        />
       </main>
     </QueryClientProvider>,
   );
@@ -161,7 +185,7 @@ describe('Statement › a payment’s void', () => {
   it('offers reception no «⋯»', async () => {
     stubScreenWidth(1440);
     await openStatement(false);
-    expect(await screen.findByText('Voided: Entered twice')).toBeVisible();
+    expect(await screen.findByText(/^Voided by .Ahmad.: Entered twice$/)).toBeVisible();
     expect(paymentActions()).toHaveLength(0);
   });
 

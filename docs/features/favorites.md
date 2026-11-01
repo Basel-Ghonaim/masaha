@@ -54,6 +54,7 @@
 - **«المفضّلة», with the shadda, everywhere** (DI-50). 2026-10-28, #129.
 - **The heart is the layer's icon button: 44 × 44 on a coarse pointer** (DI-51). 2026-10-28, #129.
 - **A guest's favourite waits in memory, never in the address, and is saved on return by the site's shell** (S14, DI-61): a link carrying it would let a crafted link save a space for a signed-in user; closing the sign-in lets it go, and so do 15 minutes or the guest landing on another page of the site (the shell reports each page it shows: `noteSitePage`), so a later sign-in in the tab, maybe someone else's, saves nothing (#129's review). *Cost:* a reload, or a recovery by email, loses it ([finding 168](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md)). 2026-10-28, #129.
+- **A guest's held favourite is also kept in the browser's storage for its 15 minutes** (`shared/routing`'s held intent), so a password recovery's new tab, once signed in there, still saves it, the app going back to the page it was pressed on; only its round trip's sign-in runs it — in the tab that held it, or after a password reset completed in this browser ([architecture §4](../frontend/architecture.md#4-session-and-preferences)) —, any other sign-in letting it go unrun, never a restore, and a sign-out or another page lets it go (2026-11-01, #132). *Why:* the owner's 168 ([finding 168](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md)). 2026-10-29, #132.
 - **Sent once, with no key** (S4): a save or a removal is idempotent by design, and a lost answer is retried from its toast. 2026-10-28, #129.
 
 ## Code map
@@ -64,7 +65,6 @@
 
 ## Open findings
 
-- [168. A guest's intent does not survive a password recovery](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md) — the favourite held for a guest is lost by a reload or a recovery by email.
 - [187. A favourite just removed cannot be saved again for an undo](../architecture/findings/187-a-favourite-just-removed-cannot-be-saved-again-for-an-undo.md) — «إزالة» of a space that left offers no «تراجع».
 
 ## History
@@ -78,3 +78,4 @@
 
 - 2026-10-28, #129 — the heart on the site's cards and beside a space's name: optimistic, «تراجع» and «إعادة المحاولة» in its toasts; a guest asked to sign in, the favourite held in memory and saved on return.
 - 2026-10-28, #129 — «إزالة» of a space that left, in the account's «المفضّلة», said with no «تراجع» (it cannot be saved meanwhile).
+- 2026-10-29, #132 — a guest's held favourite survives a password recovery, kept in the browser's storage and run after a sign-in; its toast takes the welcome back's place.

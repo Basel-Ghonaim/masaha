@@ -18,6 +18,7 @@ const RAHAF: StaffMember = {
   name: 'Rahaf',
   email: 'rahaf@example.com',
   isActive: true,
+  addedAt: '2026-09-14T08:30:00.000Z',
   temporaryPassword: null,
 };
 const PENDING: StaffMember = { ...RAHAF, temporaryPassword: { expiresAt: '2999-01-01T00:00:00Z' } };
@@ -35,7 +36,10 @@ function renderActions(
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(() => useStaffActions(7, member, { open }), { wrapper });
+  const rendered = renderHook(
+    () => useStaffActions(7, member, { open, collectionsLink: '/payments?staff=15' }),
+    { wrapper },
+  );
   return { ...rendered, requests, client, open };
 }
 
@@ -74,14 +78,14 @@ describe('useStaffActions', () => {
   it('holds «New temporary password» with its reason when none is pending, and on a deactivated row', () => {
     const settled = renderActions(RAHAF);
     expect(itemNamed(settled.result.current.items, 'New temporary password')).toMatchObject({
-      disabled: true,
+      held: true,
       reason:
         'They’ve changed the temporary password; if they forget their password, they recover it by email.',
     });
 
     const inactive = renderActions(INACTIVE);
     expect(itemNamed(inactive.result.current.items, 'New temporary password')).toMatchObject({
-      disabled: true,
+      held: true,
       reason: 'Give their access back first.',
     });
   });

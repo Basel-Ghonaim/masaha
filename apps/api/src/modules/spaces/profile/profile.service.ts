@@ -19,7 +19,7 @@ interface Dependencies extends GroupEditDependencies {
  * changes through the save path every fact group takes.
  */
 export function createProfileService({ lookups, ...dependencies }: Dependencies) {
-  const editGroup = createGroupEdit(dependencies);
+  const editGroup = createGroupEdit({ ...dependencies, lookups });
   const repository = createSpaceRepository();
 
   return {

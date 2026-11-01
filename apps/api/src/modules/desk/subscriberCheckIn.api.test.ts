@@ -13,7 +13,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -106,6 +106,7 @@ describe('checking a subscriber in', () => {
         id: sara.subscription.id,
         customerId: sara.customer.id,
         packageId: null,
+        publishedPeriod: null,
         renewalOfId: null,
         name: 'شهري',
         startsOn: '2026-10-01',
@@ -199,43 +200,47 @@ describe('checking a subscriber in', () => {
     expect(await storedCheckIns()).toHaveLength(3 + 5);
   });
 
-  it('a retry answers the same check-in and the same warnings, 201; two at once make one', async () => {
-    const twoDays = await subscriber('Rami', { daysPerWeek: 2 });
-    await createCheckIn(twoDays.subscription, stay('2026-10-18', '09:00', '12:00'));
-    await createCheckIn(twoDays.subscription, stay('2026-10-19', '09:00', '12:00'));
-    const key = randomUUID();
+  it(
+    'a retry answers the same check-in and the same warnings, 201; two at once make one',
+    async () => {
+      const twoDays = await subscriber('Rami', { daysPerWeek: 2 });
+      await createCheckIn(twoDays.subscription, stay('2026-10-18', '09:00', '12:00'));
+      await createCheckIn(twoDays.subscription, stay('2026-10-19', '09:00', '12:00'));
+      const key = randomUUID();
 
-    const first = await checkIn(reception, { subscriptionId: twoDays.subscription.id }, key);
-    const retry = await checkIn(reception, { subscriptionId: twoDays.subscription.id }, key);
-    expect([first.status, retry.status]).toEqual([201, 201]);
-    expect(dataOf(retry)).toEqual(dataOf(first));
-    expect(warningsOf(retry)).toEqual(['DAYS_PER_WEEK_USED']);
-    expect(warningsOf(first)).toEqual(['DAYS_PER_WEEK_USED']);
-    expect(await storedCheckIns()).toHaveLength(3);
-    expect((await auditEntries()).map(({ action }) => action)).toEqual(['checkIn.checkedIn']);
+      const first = await checkIn(reception, { subscriptionId: twoDays.subscription.id }, key);
+      const retry = await checkIn(reception, { subscriptionId: twoDays.subscription.id }, key);
+      expect([first.status, retry.status]).toEqual([201, 201]);
+      expect(dataOf(retry)).toEqual(dataOf(first));
+      expect(warningsOf(retry)).toEqual(['DAYS_PER_WEEK_USED']);
+      expect(warningsOf(first)).toEqual(['DAYS_PER_WEEK_USED']);
+      expect(await storedCheckIns()).toHaveLength(3);
+      expect((await auditEntries()).map(({ action }) => action)).toEqual(['checkIn.checkedIn']);
 
-    // The key names another subscription: a conflict, nothing written.
-    const other = await subscriber('Omar');
-    const reused = await checkIn(reception, { subscriptionId: other.subscription.id }, key);
-    expect(reused.status).toBe(409);
-    expect(errorOf(reused).code).toBeUndefined();
+      // The key names another subscription: a conflict, nothing written.
+      const other = await subscriber('Omar');
+      const reused = await checkIn(reception, { subscriptionId: other.subscription.id }, key);
+      expect(reused.status).toBe(409);
+      expect(errorOf(reused).code).toBeUndefined();
 
-    const together = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await lockSpace(tx);
-      pending.push(
-        Promise.resolve(checkIn(owner, { subscriptionId: other.subscription.id }, together)),
-        Promise.resolve(checkIn(reception, { subscriptionId: other.subscription.id }, together)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
-    const [one, two] = await Promise.all(pending);
-    expect([one?.status, two?.status]).toEqual([201, 201]);
-    expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
-    expect(await storedCheckIns()).toHaveLength(4);
-  });
+      const together = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await lockSpace(tx);
+        pending.push(
+          Promise.resolve(checkIn(owner, { subscriptionId: other.subscription.id }, together)),
+          Promise.resolve(checkIn(reception, { subscriptionId: other.subscription.id }, together)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
+      const [one, two] = await Promise.all(pending);
+      expect([one?.status, two?.status]).toEqual([201, 201]);
+      expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
+      expect(await storedCheckIns()).toHaveLength(4);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('a customer present by a check-in or a visit is refused MEMBER_ALREADY_CHECKED_IN, writing nothing', async () => {
     const sara = await subscriber('Sara');
@@ -257,30 +262,35 @@ describe('checking a subscriber in', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('a check-in made meanwhile without the space lock is caught by the open check-in index: MEMBER_ALREADY_CHECKED_IN, not a 500', async () => {
-    const sara = await subscriber('Sara');
-    const second = await createSubscription(sara.customer, { name: 'مسائي' });
-    // A writer outside the space's lock: its open check-in, uncommitted, is not present yet, so the
-    // request's insert waits on the index until it commits.
-    const response = await whileHeld(
-      (tx) =>
-        tx.checkIn.create({
-          data: {
-            spaceId,
-            idempotencyKey: randomUUID(),
-            customerId: sara.customer.id,
-            subscriptionId: second.id,
-            checkedInAt: wednesday('09:59'),
-          },
-        }),
-      () => checkIn(reception, { subscriptionId: sara.subscription.id }),
-      () => Promise.resolve(),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('MEMBER_ALREADY_CHECKED_IN');
-    expect(await storedCheckIns()).toMatchObject([{ subscriptionId: second.id }]);
-    expect(await auditEntries()).toEqual([]);
-  });
+  it(
+    'a check-in made meanwhile without the space lock is caught by the open check-in index: MEMBER_ALREADY_CHECKED_IN, not a 500',
+    async () => {
+      const sara = await subscriber('Sara');
+      const second = await createSubscription(sara.customer, { name: 'مسائي' });
+      // A writer outside the space's lock: its open check-in, uncommitted, is not present yet, so the
+      // request's insert waits on the index until it commits.
+      const response = await whileHeld(
+        'check_ins',
+        (tx) =>
+          tx.checkIn.create({
+            data: {
+              spaceId,
+              idempotencyKey: randomUUID(),
+              customerId: sara.customer.id,
+              subscriptionId: second.id,
+              checkedInAt: wednesday('09:59'),
+            },
+          }),
+        () => checkIn(reception, { subscriptionId: sara.subscription.id }),
+        () => Promise.resolve(),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('MEMBER_ALREADY_CHECKED_IN');
+      expect(await storedCheckIns()).toMatchObject([{ subscriptionId: second.id }]);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("another space's or an unknown subscription is invalid_choice on subscriptionId; an archived customer CUSTOMER_ARCHIVED", async () => {
     const theirs = await subscriber('Huda', {}, otherSpaceId);
@@ -302,63 +312,78 @@ describe('checking a subscriber in', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it("a stranger, another space's owner and the admin are not_found; a reception link ended while waiting is 403", async () => {
-    const sara = await subscriber('Sara');
-    for (const caller of [stranger, unrelatedOwner, admin]) {
-      const response = await checkIn(caller, { subscriptionId: sara.subscription.id });
-      expect(response.status).toBe(404);
-      expect(errorOf(response).type).toBe('not_found');
-    }
+  it(
+    "a stranger, another space's owner and the admin are not_found; a reception link ended while waiting is 403",
+    async () => {
+      const sara = await subscriber('Sara');
+      for (const caller of [stranger, unrelatedOwner, admin]) {
+        const response = await checkIn(caller, { subscriptionId: sara.subscription.id });
+        expect(response.status).toBe(404);
+        expect(errorOf(response).type).toBe('not_found');
+      }
 
-    const response = await whileHeld(
-      lockSpace,
-      () => checkIn(reception, { subscriptionId: sara.subscription.id }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await storedCheckIns()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => checkIn(reception, { subscriptionId: sara.subscription.id }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await storedCheckIns()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('a check-in waiting while the subscription is ended warns SUBSCRIPTION_EXPIRED', async () => {
-    const sara = await subscriber('Sara');
-    const response = await whileHeld(
-      lockSpace,
-      () => checkIn(reception, { subscriptionId: sara.subscription.id }),
-      (tx) =>
-        tx.subscription.update({
-          where: { id: sara.subscription.id },
-          data: {
-            endsOn: new Date('2026-10-21'),
-            endedAt: wednesday('09:59'),
-            endedById: owner.id,
-          },
-        }),
-    );
-    expect(response.status).toBe(201);
-    expect(warningsOf(response)).toEqual(['SUBSCRIPTION_EXPIRED']);
-    expect(dataOf(response)).toMatchObject({ subscription: { status: 'EXPIRED' } });
-  });
+  it(
+    'a check-in waiting while the subscription is ended warns SUBSCRIPTION_EXPIRED',
+    async () => {
+      const sara = await subscriber('Sara');
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => checkIn(reception, { subscriptionId: sara.subscription.id }),
+        (tx) =>
+          tx.subscription.update({
+            where: { id: sara.subscription.id },
+            data: {
+              endsOn: new Date('2026-10-21'),
+              endedAt: wednesday('09:59'),
+              endedById: owner.id,
+            },
+          }),
+      );
+      expect(response.status).toBe(201);
+      expect(warningsOf(response)).toEqual(['SUBSCRIPTION_EXPIRED']);
+      expect(dataOf(response)).toMatchObject({ subscription: { status: 'EXPIRED' } });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('a check-in waiting while the customer is archived is refused CUSTOMER_ARCHIVED', async () => {
-    const sara = await subscriber('Sara');
-    const response = await whileHeld(
-      lockSpace,
-      () => checkIn(reception, { subscriptionId: sara.subscription.id }),
-      (tx) =>
-        tx.customer.update({
-          where: { id: sara.customer.id },
-          data: { archivedAt: wednesday('09:59') },
-        }),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('CUSTOMER_ARCHIVED');
-    expect(await storedCheckIns()).toEqual([]);
-  });
+  it(
+    'a check-in waiting while the customer is archived is refused CUSTOMER_ARCHIVED',
+    async () => {
+      const sara = await subscriber('Sara');
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => checkIn(reception, { subscriptionId: sara.subscription.id }),
+        (tx) =>
+          tx.customer.update({
+            where: { id: sara.customer.id },
+            data: { archivedAt: wednesday('09:59') },
+          }),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('CUSTOMER_ARCHIVED');
+      expect(await storedCheckIns()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('refuses a missing or malformed key and an invalid body with 422 before anything is read', async () => {
     const missing = await checkIn(owner, { subscriptionId: 999_999 }, null);

@@ -5,6 +5,7 @@ import type {
   PaymentsQuery,
   UncollectedVisit,
 } from '@masaha/shared/payments';
+import type { WrittenOffVisit } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../shared/auth/index.ts';
@@ -26,6 +27,14 @@ export function createPaymentsController(service: PaymentsService) {
       const query = req.query as unknown as PaginationQuery;
       const { rows, total } = await service.uncollectedIn(spaceOf(req).id, query);
       sendSuccess(res, rows satisfies UncollectedVisit[], {
+        meta: buildPaginationMeta(query, total),
+      });
+    },
+
+    writtenOff: async (req: Request, res: Response) => {
+      const query = req.query as unknown as PaginationQuery;
+      const { rows, total } = await service.writtenOffIn(spaceOf(req).id, query);
+      sendSuccess(res, rows satisfies WrittenOffVisit[], {
         meta: buildPaginationMeta(query, total),
       });
     },

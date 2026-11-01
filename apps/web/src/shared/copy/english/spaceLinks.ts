@@ -1,3 +1,4 @@
+import { englishPlural } from '../plural';
 import type { FactGroup } from '@masaha/shared/spaces';
 
 /**
@@ -28,6 +29,8 @@ export const SPACE_LINKS = {
       unverified: 'Unverified',
       hidden: 'Hidden',
       deleted: 'Deleted',
+      /** The unverified spaces not hidden: those the admin keeps (DI30). */
+      editable: 'Kept by the admin',
     },
     /** A deleted row's line, by the list's own short date, in place of its badges. */
     deletedOn: ({ date }: { date: string }) => `Deleted · ${date}`,
@@ -40,6 +43,9 @@ export const SPACE_LINKS = {
     /** The phone's button's name while filters apply. */
     filtersApplied: ({ count }: { count: number }) => `Filters, ${String(count)} applied`,
     clearFilters: 'Clear filters',
+    /** The phone's sheet's way back to the list, with the count the filters keep. */
+    showResults: ({ count }: { count: number }) =>
+      englishPlural(count, { one: 'Show 1 result', other: `Show ${String(count)} results` }),
     close: 'Close',
     columns: {
       space: 'Space',
@@ -214,6 +220,8 @@ export const SPACE_LINKS = {
     owner: ({ spaces }: { spaces: string }) => `Owner · ${spaces}`,
     ownerOfNone: 'Owner',
     user: 'User',
+    /** A user who works a front desk, with those spaces. */
+    userAtDesk: ({ spaces }: { spaces: string }) => `User · reception at ${spaces}`,
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -239,8 +247,13 @@ export const SPACE_LINKS = {
       noReception: 'None',
     },
     confirmAccount: 'Make sure this is the person you mean: they’ll become an owner of this space',
-    accountUnconfirmed:
-      'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',
+    /** No account has exactly this email as read now (finding 89): nothing is upgraded. */
+    accountNotFound: 'No account has exactly this email now, so nothing is upgraded — check it.',
+    /** The email's account could not be read (finding 89), with a retry. */
+    checkFailed: 'Couldn’t check this email right now.',
+    /** `ALREADY_OWNER`, under the email (finding 83), and the way on: the link dialog for them. */
+    alreadyOwner: 'This email is already an owner’s.',
+    linkThem: 'Link them to the space',
     willUpgrade:
       'Their account will be upgraded to owner and linked to the space; it keeps its name and its way of signing in, and no password is shown.',
     create: 'Create account and link',
@@ -260,10 +273,10 @@ export const SPACE_LINKS = {
     refusals: {
       ACCOUNT_IS_ADMIN:
         'This email is an admin’s account, and an admin can’t be linked to a space.',
-      ACCOUNT_SUSPENDED: 'This account is suspended; it can’t be linked until it’s restored.',
-      ALREADY_OWNER:
-        'This email is already an owner’s — link them to the space from their row in the list.',
     },
+    /** `ACCOUNT_SUSPENDED`: its way on, the users list searched by the email (`link`). */
+    suspended: ({ link }: { link: string }) => `The account is suspended — ${link}.`,
+    restoreFirst: 'restore it first',
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `${name} upgraded to owner and linked to ${space}`,
   },
@@ -274,6 +287,8 @@ export const SPACE_LINKS = {
     close: 'Close',
     /** From a space, which is linked from its editor only while it has no owner. */
     noOwner: 'It has no owner today.',
+    /** From a space that has owners as the server reads it now (linked meanwhile). */
+    hasOwner: 'They become another owner of this space.',
     oneAtATime: 'One space at a time.',
     person: 'Person',
     personHelper: 'Owners and users, by name or email. Suspended accounts can’t be linked.',
@@ -286,6 +301,9 @@ export const SPACE_LINKS = {
     anotherOwner: ({ space }: { space: string }) =>
       `They become another owner of ${space}; it stays verified.`,
     becomesOwner: 'Their account becomes an owner’s, and they’re asked to sign in again.',
+    /** A person who works a front desk: that link is kept. */
+    staysAtDesk: ({ spaces }: { spaces: string }) =>
+      `Works the front desk at ${spaces}; that link stays.`,
     addOwner: 'A new owner with no account? Add them on the space owners page.',
     submit: 'Link',
     failed: 'Not linked',
@@ -302,6 +320,8 @@ export const SPACE_LINKS = {
     linked: ({ person, space }: { person: string; space: string }) =>
       `${person} linked to ${space}`,
     nowVerified: 'The space is now verified',
+    /** A link to a space that has owners already. */
+    ownerAdded: 'An owner was added to the space',
   },
   /** Unlinking an owner from a space, which asks first. */
   unlink: {

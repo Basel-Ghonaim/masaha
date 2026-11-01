@@ -2,6 +2,7 @@ import type { RecoveryPosition } from '@masaha/shared/auth';
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { deferred } from '../../../../test/fakeSession';
@@ -73,10 +74,21 @@ describe('ForgotPasswordCard', () => {
     expect(resend).toBeDisabled();
   });
 
-  it('offers to enter the email again, and no resend, once the resends are spent', async () => {
+  it('offers another email under the resend at once, which opens the empty form, focused', async () => {
+    renderAt(sentPosition({ resendInSeconds: 60 }));
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Use another email' }));
+
+    const email = await screen.findByLabelText('Email');
+    expect(email).toHaveValue('');
+    expect(email).toHaveFocus();
+  });
+
+  it('offers another email, and no resend, once the resends are spent', async () => {
     renderAt(sentPosition({ canResend: false }));
 
-    expect(await screen.findByRole('button', { name: 'Enter your email again' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Use another email' })).toBeEnabled();
     expect(screen.getByText(/asked for the link too many times/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
   });

@@ -1,4 +1,4 @@
-import { Button, EmptyState, HeartIcon } from '@shared/design-system';
+import { Button, Card, EmptyState, HeartIcon } from '@shared/design-system';
 import type { SpaceNameView } from '@shared/lib';
 import { useId, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -20,7 +20,9 @@ const SKELETONS = [1, 2, 3];
  * cards, each with the page's action (the heart); then the spaces that left, each a muted card with
  * its name and the page's action («إزالة»); their skeletons while they load, the failure with its
  * retry, or, with none, the empty state and «تصفّح المساحات». A row removed while its action holds
- * the focus hands it to the next row's, else the first card's heart, else the count (DI-52).
+ * the focus hands it to the next row's, else the first card's heart, else the count (DI-52), or,
+ * once none is saved, «تصفّح المساحات». The count, «الأقرب إليّ» and its line show only once the list
+ * has answered with at least one space (G10.1); the empty state is a card (G10.2).
  */
 export function FavoritesView({
   spaceLink,
@@ -56,25 +58,29 @@ export function FavoritesView({
       <h2 id={headingId} className="sr-only">
         {view.region}
       </h2>
-      <div className="flex flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p
-            ref={countRef}
-            tabIndex={-1}
-            aria-live="polite"
-            className="text-body-sm text-muted-foreground outline-none"
-          >
-            {view.count}
-          </p>
-          <NearMeButton ref={nearButton} button={view.near.button} />
+      {view.state === 'ready' && (
+        <div className="flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p
+              ref={(element) => {
+                countRef.current = element;
+              }}
+              tabIndex={-1}
+              aria-live="polite"
+              className="text-body-sm text-muted-foreground outline-none"
+            >
+              {view.count}
+            </p>
+            <NearMeButton ref={nearButton} button={view.near.button} />
+          </div>
+          <LocationStatus
+            view={view.near.status}
+            returnFocus={() => {
+              nearButton.current?.focus();
+            }}
+          />
         </div>
-        <LocationStatus
-          view={view.near.status}
-          returnFocus={() => {
-            nearButton.current?.focus();
-          }}
-        />
-      </div>
+      )}
       {view.state === 'loading' && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {SKELETONS.map((key) => (
@@ -84,16 +90,25 @@ export function FavoritesView({
       )}
       {view.state === 'failed' && view.failure !== null && <FailureAlert failure={view.failure} />}
       {view.state === 'empty' && (
-        <EmptyState
-          titleAs="h3"
-          icon={<HeartIcon />}
-          title={view.empty.title}
-          description={view.empty.text}
-        >
-          <Button asChild variant="outline">
-            <Link to={browseLink}>{view.empty.browse}</Link>
-          </Button>
-        </EmptyState>
+        <Card>
+          <EmptyState
+            titleAs="h3"
+            icon={<HeartIcon />}
+            title={view.empty.title}
+            description={view.empty.text}
+          >
+            <Button asChild>
+              <Link
+                ref={(element) => {
+                  countRef.current = element;
+                }}
+                to={browseLink}
+              >
+                {view.empty.browse}
+              </Link>
+            </Button>
+          </EmptyState>
+        </Card>
       )}
       {view.state === 'ready' && view.cards.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

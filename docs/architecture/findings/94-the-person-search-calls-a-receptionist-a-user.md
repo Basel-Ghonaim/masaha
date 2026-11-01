@@ -1,6 +1,6 @@
 # 94. The person search calls a receptionist a user
 
-**Status:** Open · **Date:** 2026-10-19
+**Status:** Resolved · **Date:** 2026-10-19 · **Resolved:** 2026-10-29
 
 **Evidence:** the link dialog opened from a space's editor offers people by name or email, each saying
 what it is from its row's global role and owner spaces: «مالك · {spaces}», «مالك» or «مستخدم». Since #90,
@@ -12,3 +12,5 @@ confirm.
 
 **Resolves when:** the person option, and the line before the act, name the front desks a person works at,
 as the users page will word a row with its reception spaces.
+
+**Resolution (#132):** The person option and the line before the act name the front desks a person works at (D6.6): «مستخدم · استقبال {spaces}» / "User · reception at {spaces}", and «يعمل في استقبال {spaces}، ويبقى رابطه هناك.» / "Works the front desk at {spaces}; that link stays.".

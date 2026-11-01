@@ -18,7 +18,7 @@ type Values = { reason: string };
  * The owner's «لن يُحصَّل…» of an uncollected visit, ready to render: who, when and how much, what the
  * write-off is and is not (DI-9), and its reason, required. Sent once, with no key, never again by
  * itself (S3, finding 115). Done, its toast stays until it is closed with «تراجع» (DI-29), which
- * undoes it once — no screen lists a written-off visit after it (finding 164).
+ * undoes it once, as the owner's «لن تُحصَّل» view does (finding 164).
  */
 export function useWriteOffDialog({
   spaceId,

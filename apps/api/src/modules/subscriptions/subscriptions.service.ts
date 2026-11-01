@@ -57,6 +57,15 @@ function currentByCustomer(states: readonly SubscriptionState[]): Map<number, Su
 }
 
 /**
+ * A subscription's kind, as the customers list filters it: a package's, a published week's or
+ * month's price's, else custom (typed, or sold before the period was kept).
+ */
+function kindOf(state: SubscriptionState): 'PACKAGE' | 'WEEK' | 'MONTH' | 'CUSTOM' {
+  if (state.packageId !== null) return 'PACKAGE';
+  return state.publishedPeriod ?? 'CUSTOM';
+}
+
+/**
  * A new subscription as its audit entry records it: its customer, the package it copies and the one it
  * renews, its terms and dates, and a typed price's reason (else `null`); not its space, the entry's
  * own, nor its key.
@@ -300,7 +309,7 @@ export function createSubscriptionsService({
         packageId,
       }: {
         status?: SubscriptionStatus | undefined;
-        kind?: 'PACKAGE' | 'CUSTOM' | 'NONE' | undefined;
+        kind?: 'PACKAGE' | 'WEEK' | 'MONTH' | 'CUSTOM' | 'NONE' | undefined;
         packageId?: number | undefined;
       },
       at: Date,
@@ -313,7 +322,7 @@ export function createSubscriptionsService({
       const include = [...current.values()].filter(
         (state) =>
           (status === undefined || state.status === status) &&
-          (kind === undefined || (kind === 'PACKAGE') === (state.packageId !== null)) &&
+          (kind === undefined || kindOf(state) === kind) &&
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };
@@ -627,7 +636,12 @@ export function createSubscriptionsService({
      * time; audited `checkIn.autoCheckedOut` with no actor. One that cannot be closed is logged and
      * the next one still is; the run counts them in `failed`, and throws only when it cannot run.
      */
-    async autoCheckOut(at: Date): Promise<{ checkIns: number; remaining: number; failed: number }> {
+    async autoCheckOut(at: Date): Promise<{
+      checkIns: number;
+      remaining: number;
+      failed: number;
+      stalled?: true;
+    }> {
       const open = await repository.openEverywhere();
       const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
       const [weeks, settings] = await Promise.all([
@@ -657,8 +671,10 @@ export function createSubscriptionsService({
         return dueAt <= at ? [{ checkIn, dueAt }] : [];
       });
 
+      const batch = due.slice(0, AUTO_CHECKOUT_BATCH);
+      const failedBefore = failed;
       let closed = 0;
-      for (const { checkIn, dueAt } of due.slice(0, AUTO_CHECKOUT_BATCH)) {
+      for (const { checkIn, dueAt } of batch) {
         const done = await runInTransaction(async (tx) => {
           if (!(await repository.lockOpen(checkIn.id, tx))) return false;
           await repository.closeAuto(checkIn.id, dueAt, tx);
@@ -680,10 +696,17 @@ export function createSubscriptionsService({
         });
         if (done) closed += 1;
       }
+      // Stalled: a full batch, all failures, so the next run would take and fail the same stays. A
+      // smaller batch of failures is not: what falls due later still closes (finding 114).
+      const stalled =
+        batch.length === AUTO_CHECKOUT_BATCH &&
+        closed === 0 &&
+        failed - failedBefore === batch.length;
       return {
         checkIns: closed,
         remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
         failed,
+        ...(stalled && { stalled: true as const }),
       };
     },
   };

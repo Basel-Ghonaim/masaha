@@ -1,4 +1,11 @@
-import { Alert, AlertDescription, AlertTitle, Badge } from '@shared/design-system';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Button,
+} from '@shared/design-system';
 import type { useAddOwnerForm } from '../../hooks/add-owner/useAddOwnerForm';
 
 type Notice = ReturnType<typeof useAddOwnerForm>['notice'];
@@ -6,8 +13,8 @@ type Notice = ReturnType<typeof useAddOwnerForm>['notice'];
 /**
  * What adding the owner will do, under the fields: a new account; the email's account being read;
  * that account shown — its name, when it joined, its spaces and its reception desks — so the admin
- * confirms it is the person meant before the upgrade; or, when no account has exactly this email,
- * that it is not upgraded here.
+ * confirms it is the person meant before the upgrade; when no account has exactly this email, that
+ * nothing is upgraded; or, when it could not be read, that, with «إعادة المحاولة» (finding 89).
  */
 export function AddOwnerNotice({ notice }: { notice: Notice }) {
   switch (notice.kind) {
@@ -19,11 +26,23 @@ export function AddOwnerNotice({ notice }: { notice: Notice }) {
           {notice.text}
         </p>
       );
-    case 'unconfirmed':
+    case 'notFound':
       return (
         <Alert variant="warning">
           <AlertTitle>{notice.title}</AlertTitle>
           <AlertDescription>{notice.text}</AlertDescription>
+        </Alert>
+      );
+    case 'failed':
+      return (
+        <Alert variant="warning">
+          <AlertTitle>{notice.title}</AlertTitle>
+          <AlertDescription>{notice.text}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" onClick={notice.retry.run}>
+              {notice.retry.label}
+            </Button>
+          </AlertAction>
         </Alert>
       );
     case 'upgrade':

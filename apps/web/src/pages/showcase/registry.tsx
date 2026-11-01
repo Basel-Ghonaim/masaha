@@ -3,16 +3,19 @@ import fixtures from './fixtures.json';
 import { ButtonSection } from './sections/actions/ButtonSection';
 import { DropdownMenuSection } from './sections/actions/DropdownMenuSection';
 import { TogglesSection } from './sections/actions/TogglesSection';
+import { BarChartSection, HeatmapSection } from './sections/data/ChartsSection';
 import { DataTableSection } from './sections/data/DataTableSection';
 import { TableSection } from './sections/data/TableSection';
 import { AvatarSection } from './sections/display/AvatarSection';
 import { BadgeSection } from './sections/display/BadgeSection';
 import { CardSection } from './sections/display/CardSection';
 import { FilterTagSection } from './sections/display/FilterTagSection';
+import { MeterSection } from './sections/display/MeterSection';
 import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
 import { AlertSection } from './sections/feedback/AlertSection';
 import { EmptyStateSection } from './sections/feedback/EmptyStateSection';
+import { RefreshingSection } from './sections/feedback/RefreshingSection';
 import { SkeletonSection } from './sections/feedback/SkeletonSection';
 import { SpinnerSection } from './sections/feedback/SpinnerSection';
 import { ToastSection } from './sections/feedback/ToastSection';
@@ -165,6 +168,12 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
     />
   )),
   entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
+  entry('display', 'Meter', 'meter', (samples) => <MeterSection samples={samples} />),
+  entry('data', 'BarChart', 'barChart', (samples) => <BarChartSection samples={samples} />),
+  entry('feedback', 'Refreshing', 'refreshing', (samples) => (
+    <RefreshingSection samples={samples} />
+  )),
+  entry('data', 'Heatmap', 'heatmap', (samples) => <HeatmapSection samples={samples} />),
 ];
 
 export type ShowcaseView =

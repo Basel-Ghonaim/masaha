@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createSubscription } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { addPrice, setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -196,24 +196,28 @@ describe('checking a visitor in', () => {
     expect((await auditEntries()).map(({ action }) => action)).toEqual(['visit.checkedIn']);
   });
 
-  it('two requests with one key at once make one visit', async () => {
-    const key = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      pending.push(
-        Promise.resolve(checkIn(owner, { visitorName: 'Omar' }, key)),
-        Promise.resolve(checkIn(reception, { visitorName: 'Omar' }, key)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
+  it(
+    'two requests with one key at once make one visit',
+    async () => {
+      const key = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        pending.push(
+          Promise.resolve(checkIn(owner, { visitorName: 'Omar' }, key)),
+          Promise.resolve(checkIn(reception, { visitorName: 'Omar' }, key)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
 
-    const [first, second] = await Promise.all(pending);
-    expect([first?.status, second?.status]).toEqual([201, 201]);
-    expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
-    expect(await storedVisits()).toHaveLength(1);
-  });
+      const [first, second] = await Promise.all(pending);
+      expect([first?.status, second?.status]).toEqual([201, 201]);
+      expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
+      expect(await storedVisits()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('a missing or malformed Idempotency-Key is refused with 422 before the body is read', async () => {
     const missing = await checkIn(owner, {}, null);
@@ -296,21 +300,26 @@ describe('checking a visitor in', () => {
     });
   });
 
-  it("a reception link deactivated while the check-in waits on the space's lock refuses it with 403", async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => checkIn(reception, { visitorName: 'Omar' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    "a reception link deactivated while the check-in waits on the space's lock refuses it with 403",
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => checkIn(reception, { visitorName: 'Omar' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await storedVisits()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await storedVisits()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("checkedInAt is the clock's", async () => {
     const early = createTestApp({ clock: () => sunday('08:17') });
@@ -319,5 +328,69 @@ describe('checking a visitor in', () => {
     expect(dataOf(response)).toMatchObject({ checkedInAt: '2026-10-18T05:17:00.000Z' });
     const [stored] = await storedVisits();
     expect(stored?.checkedInAt).toEqual(sunday('08:17'));
+  });
+
+  it("a visit checked in with customerId is that customer's, audited with it", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara', phone: '+970599000205' });
+
+    const response = await checkIn(reception, { visitorName: 'Sara', customerId: sara.id });
+    expect(response.status).toBe(201);
+    const { id } = dataOf(response) as { id: number };
+    expect(dataOf(response)).toMatchObject({
+      visitorName: 'Sara',
+      customer: { id: sara.id, name: 'Sara', phone: '+970599000205' },
+    });
+    expect((await prisma.visit.findUniqueOrThrow({ where: { id } })).customerId).toBe(sara.id);
+    expect(await auditEntries()).toMatchObject([
+      {
+        action: 'visit.checkedIn',
+        entityId: id,
+        after: { visitorName: 'Sara', customerId: sara.id },
+      },
+    ]);
+  });
+
+  it("refuses another space's customer, or an unknown one, with 422 invalid_choice on customerId, writing nothing", async () => {
+    const theirs = await createCustomer(otherSpaceId, { name: 'Huda' });
+
+    for (const customerId of [theirs.id, 999_999]) {
+      const response = await checkIn(owner, { visitorName: 'Huda', customerId });
+      expect(response.status).toBe(422);
+      expect(errorOf(response).errors).toEqual({ customerId: ['invalid_choice'] });
+    }
+    expect(await storedVisits()).toEqual([]);
+  });
+
+  it("an archived customer's visit check-in is refused CUSTOMER_ARCHIVED, writing nothing", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara', archivedAt: new Date() });
+
+    const response = await checkIn(owner, { visitorName: 'Sara', customerId: sara.id });
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'CUSTOMER_ARCHIVED' });
+    expect(await storedVisits()).toEqual([]);
+  });
+
+  it("a present customer's visit check-in is refused MEMBER_ALREADY_CHECKED_IN: an open visit or check-in", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    await prisma.visit.create({
+      data: { spaceId, idempotencyKey: randomUUID(), visitorName: 'Sara', customerId: sara.id },
+    });
+    const omar = await createCustomer(spaceId, { name: 'Omar' });
+    const omars = await createSubscription(omar);
+    await prisma.checkIn.create({
+      data: {
+        spaceId,
+        customerId: omar.id,
+        subscriptionId: omars.id,
+        idempotencyKey: randomUUID(),
+      },
+    });
+
+    for (const { id, name } of [sara, omar]) {
+      const response = await checkIn(owner, { visitorName: name, customerId: id });
+      expect(response.status).toBe(409);
+      expect(errorOf(response)).toMatchObject({ code: 'MEMBER_ALREADY_CHECKED_IN' });
+    }
+    expect(await storedVisits()).toHaveLength(1);
   });
 });

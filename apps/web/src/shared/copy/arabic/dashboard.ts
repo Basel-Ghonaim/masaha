@@ -24,6 +24,19 @@ export const DASHBOARD = {
     users: 'المستخدمون',
     lookups: 'القوائم',
     audit: 'سجل التدقيق',
+    platformSettings: 'إعدادات المنصة',
+  },
+  groups: {
+    today: 'اليوم',
+    money: 'المال',
+    space: 'المساحة',
+    team: 'الفريق والإعدادات',
+    spaces: 'المساحات',
+    platform: 'المنصة',
+  },
+  badges: {
+    newReports: 'بلاغات جديدة',
+    reportsForAdmin: 'بلاغات بانتظار الإدارة',
   },
   addSpace: {
     title: 'إضافة مساحة',

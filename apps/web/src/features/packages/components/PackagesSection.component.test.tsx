@@ -31,9 +31,9 @@ const EVENINGS: SpacePackage = { ...TEN_DAYS, id: 4, name: 'Evenings', isActive:
 const heard = (expected: string) => (name: string) =>
   name.replace(/[\u2066-\u2069]/g, '') === expected;
 
-/** The section of space 7, offered `shifts`, at a page whose hours are at `/profile#hours`. */
-function renderSection(shifts: ShiftChoice[] | null) {
-  fakeTransport(() => ok([TEN_DAYS, EVENINGS]));
+/** The section of space 7 holding `packages`, offered `shifts`, at a page whose hours are at `/profile#hours`. */
+function renderSection(shifts: ShiftChoice[] | null, packages = [TEN_DAYS, EVENINGS]) {
+  fakeTransport(() => ok(packages));
   const router = createMemoryRouter(
     [
       {
@@ -63,8 +63,12 @@ describe('PackagesSection', () => {
   it('names each row’s switch and edit by its package', async () => {
     renderSection([]);
 
-    expect(await screen.findByRole('switch', { name: heard('10 days: available') })).toBeChecked();
-    expect(screen.getByRole('switch', { name: heard('Evenings: available') })).not.toBeChecked();
+    expect(
+      await screen.findByRole('switch', { name: heard('10 days: available at the desk') }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: heard('Evenings: available at the desk') }),
+    ).not.toBeChecked();
     expect(screen.getByRole('button', { name: heard('Edit 10 days') })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: heard('Edit Evenings') })).toBeInTheDocument();
   });
@@ -92,5 +96,54 @@ describe('PackagesSection', () => {
       within(sheet).getByRole('link', { name: 'Add shifts in the opening hours' }),
     ).toHaveAttribute('href', '/profile#hours');
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+  it('says the desk sells the packages, and puts a row’s price at its end beside its switch', async () => {
+    renderSection([]);
+
+    expect(
+      await screen.findByText(
+        'Never shown to visitors · chosen at the desk when creating a subscription',
+      ),
+    ).toBeInTheDocument();
+    const toggle = await screen.findByRole('switch', {
+      name: heard('10 days: available at the desk'),
+    });
+    expect(screen.getAllByText('Available at the desk')).toHaveLength(2);
+    const end = toggle.closest('li')?.lastElementChild as HTMLElement;
+    expect(within(end).getByText('₪150')).toHaveClass('text-label');
+  });
+
+  it('says the sheet’s package is the desk’s', async () => {
+    const user = userEvent.setup();
+    renderSection([]);
+    await user.click(await screen.findByRole('button', { name: 'New package' }));
+    const sheet = await screen.findByRole('dialog', { name: 'New package' });
+
+    expect(
+      within(sheet).getByText('Private — never shown to visitors; chosen at the front desk.'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers to create a package to pick at the desk when there is none', async () => {
+    renderSection([], []);
+
+    expect(await screen.findByText('No private packages')).toBeInTheDocument();
+    expect(
+      screen.getByText('Create a package like «10 days» or «20 hours» to pick at the desk.'),
+    ).toBeInTheDocument();
+  });
+  it('announces the terms and the price as they change, never the name typed', async () => {
+    const user = userEvent.setup();
+    renderSection([]);
+    await user.click(await screen.findByRole('button', { name: 'New package' }));
+    const sheet = await screen.findByRole('dialog', { name: 'New package' });
+
+    await user.type(within(sheet).getByRole('textbox', { name: 'Package name' }), 'Evenings');
+    await user.type(within(sheet).getByRole('textbox', { name: 'Total price (₪)' }), '150');
+
+    const live = sheet.querySelector('[aria-live="polite"]');
+    expect(live).toHaveTextContent('₪150');
+    expect(live).not.toHaveTextContent('Evenings');
+    expect(within(sheet).getAllByText('Evenings').length).toBeGreaterThan(0);
   });
 });

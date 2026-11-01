@@ -134,6 +134,33 @@ describe('the desk repository', () => {
     ]);
   });
 
+  it('reads the owner’s page of the written-off visits', async () => {
+    const repository = createDeskRepository();
+    const row = {
+      visit: VISIT,
+      writtenOffBy: { id: 2, name: 'Huda' },
+      paidAgorot: 0,
+      writtenOffAgorot: 2500,
+    };
+    const requests = serve(() => ({
+      status: 200,
+      data: {
+        success: true,
+        data: [row],
+        meta: { currentPage: 2, pageSize: 20, totalRecords: 21, totalPages: 2 },
+      },
+    }));
+
+    await expect(repository.writtenOff(7, 2)).resolves.toEqual({
+      data: [row],
+      meta: { currentPage: 2, pageSize: 20, totalRecords: 21, totalPages: 2 },
+    });
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /manage/spaces/7/written-off-visits',
+    ]);
+    expect(requests[0]?.params).toEqual({ page: 2 });
+  });
+
   it('reads the unpriced visits’ page, and prices a visit with no key', async () => {
     const repository = createDeskRepository();
     const requests = serve((url) =>
@@ -260,6 +287,27 @@ describe('the desk repository', () => {
       'post /manage/spaces/7/subscriptions/3/end',
     ]);
     expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
+
+  it('corrects a subscription’s terms and its price, each with no key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: {} } }));
+    const repository = createDeskRepository();
+
+    await repository.correctSubscription(7, 3, { endsOn: null });
+    await repository.correctPrice(7, 3, { billing: 'FIXED', priceAgorot: 9000, reason: 'Deal' });
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'patch /manage/spaces/7/subscriptions/3',
+      'put /manage/spaces/7/subscriptions/3/price',
+    ]);
+    expect(requests.map((request) => bodyOf(request))).toEqual([
+      { endsOn: null },
+      { billing: 'FIXED', priceAgorot: 9000, reason: 'Deal' },
+    ]);
+    expect(requests.map(({ headers }) => headers.get('Idempotency-Key'))).toEqual([
+      undefined,
+      undefined,
+    ]);
   });
 
   it('creates a customer and subscribes them, each with its own key, the warnings handed back', async () => {

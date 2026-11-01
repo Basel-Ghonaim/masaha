@@ -6,27 +6,35 @@ import {
   SidebarProvider,
 } from '@shared/design-system';
 import { cn } from '@shared/design-system';
+import { SkipLink, useMainFocus } from '@shared/routing';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router';
 import { PageActionSlot } from './PageActionSlot';
 import { PageHeaderSlot } from './PageHeaderSlot';
 import { TopBar } from './TopBar';
 import { DashboardLanguageToggle } from './DashboardLanguageToggle';
+import { DashboardThemeToggle } from './DashboardThemeToggle';
+import { DrawerAccount } from './DrawerAccount';
 
 /**
  * The dashboard's shell (ADR 0016): the sidebar, named `label`, with its `header`, the navigation
  * (`children`) and its `footer`; beside it the top bar and the page. The sidebar's form follows the
- * width (foundation §9). On a phone the language moves from the top bar to the drawer's foot. Below
+ * width (foundation §9). On a phone the drawer opens with the account (`role` beside the name), and
+ * the language and the theme move from the top bar to the drawer's foot (DI-10, SH-005). Below
  * 768 px a page may put its one all-day action in a bar fixed at the foot (`PageActionBar`): the bar
- * is drawn only while a page fills it, and the content then makes room for it.
+ * is drawn only while a page fills it, and the content then makes room for it. The skip link comes
+ * before the sidebar, and the page's `main` takes the focus on a page change (`useMainFocus`).
  */
 export function DashboardLayout({
   label,
+  role,
   header,
   footer,
   children,
 }: {
   label: string;
+  /** The user's role, worded, beside their name in the account menu. */
+  role: string | undefined;
   header: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
@@ -41,22 +49,30 @@ export function DashboardLayout({
     };
   }, []);
   const action = useMemo(() => ({ target: bar, fill }), [bar, fill]);
+  useMainFocus();
 
   return (
     <SidebarProvider className="bg-background text-foreground">
+      <SkipLink />
       <Sidebar label={label}>
+        <DrawerAccount role={role} />
         {header}
         <SidebarContent>{children}</SidebarContent>
         <SidebarFooter className="flex flex-col items-start gap-2">
           {footer}
-          <DashboardLanguageToggle className="md:hidden" />
+          <div className="flex items-center gap-1 md:hidden">
+            <DashboardLanguageToggle />
+            <DashboardThemeToggle />
+          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <TopBar slot={setSlot} />
+        <TopBar slot={setSlot} role={role} />
         <main
+          id="main"
+          tabIndex={-1}
           className={cn(
-            'flex flex-1 flex-col gap-6 px-4 py-6 md:px-8',
+            'flex flex-1 flex-col gap-6 px-4 py-6 outline-none md:px-8',
             filled > 0 && 'pb-24 md:pb-6',
           )}
         >

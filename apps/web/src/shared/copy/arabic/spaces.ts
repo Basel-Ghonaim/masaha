@@ -56,6 +56,8 @@ export const SPACES = {
       namesSeparator: '، ',
       description: 'هذه مساحة موثّقة، فتظهر هنا للقراءة فقط.',
       viewOnSite: 'عرض في الموقع',
+      correct: 'لتصحيح معلومة:',
+      reports: ({ space }: { space: string }) => `بلاغات ${space}`,
     },
     owner: {
       intro: 'كل قسم يُحفظ وحده، ويظهر للزوار فور حفظه.',
@@ -296,6 +298,8 @@ export const SPACES = {
         `رُفعت ${String(uploaded)} من ${String(selected)}؛ الحد 10 صور`,
       preparing: 'جارٍ التحضير…',
       uploading: ({ percent }: { percent: number }) => `جارٍ الرفع ${String(percent)}٪`,
+      uploadingPhoto: ({ n }: { n: number }) => `جارٍ رفع الصورة ${String(n)}`,
+      percent: ({ percent }: { percent: number }) => `${String(percent)}٪`,
       unsupported: 'صيغة غير مدعومة، اختر JPEG أو PNG أو WebP',
       tooLarge: 'أكبر من 4 ميغابايت؛ اختر صورة أصغر',
       uploadFailed: 'تعذّر رفع هذه الصورة',
@@ -314,6 +318,7 @@ export const SPACES = {
   menu: {
     actions: ({ name }: { name: string }) => `إجراءات: ${name}`,
     edit: 'تعديل',
+    view: 'عرض (يعدّلها المالك)',
     hide: 'إخفاء',
     show: 'إظهار',
     delete: 'حذف',
@@ -323,7 +328,7 @@ export const SPACES = {
   deleteDialog: {
     title: ({ name }: { name: string }) => `حذف ${name}؟`,
     description: 'تختفي من الموقع ومن القائمة، وتجدها في «محذوفة» لاسترجاعها.',
-    cancel: 'إلغاء',
+    cancel: 'رجوع',
     confirm: 'حذف',
   },
   toasts: {

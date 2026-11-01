@@ -7,6 +7,8 @@ import {
   Badge,
   Button,
   EmptyState,
+  UsersIcon,
+  WifiOffIcon,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import {
@@ -19,7 +21,9 @@ import {
   type ReactNode,
 } from 'react';
 import { usePresentList } from '../hooks/now/usePresentList';
+import type { PresentPeople } from '../types/PresentPeople';
 import type { PresentRowView } from '../types/PresentRowView';
+import { PresentName } from './PresentName';
 
 const column = createDataTableColumnHelper<PresentRowView>();
 
@@ -31,7 +35,9 @@ const TICK_MS = 60_000;
  * the people present in the server's order — a table from 768 px, a card each below it — with their
  * kind, since when and for how long, a visit's charge so far, and the row's action the page sets
  * (`action`), such as the desk's check-out, and a subscriber's usage the page knows (`usage`), such
- * as their subscription's progress. The list is read on arrival, every 30 s while visible
+ * as their subscription's progress; `people`, what the page knows of them — a subscriber's plan, the
+ * badge's name, and the way to a customer's file, where their name leads. No answer at all draws the
+ * offline state (P7). The list is read on arrival, every 30 s while visible
  * and on returning to it; a failed refresh keeps the last list and says so. When the person whose
  * action had the focus leaves the list, the focus goes to the next row's action, else to the
  * heading (S10), never to the page's start.
@@ -40,11 +46,14 @@ export function PresentList({
   spaceId,
   action,
   usage,
+  people,
 }: {
   spaceId: number;
   action: (person: PresentPerson) => ReactNode;
   /** A subscriber's usage line, in their row's usage cell; none by default. */
   usage?: (person: PresentPerson) => string | null;
+  /** A subscriber's plan and the way to their file; with none, «اشتراك» and no link. */
+  people?: PresentPeople;
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -55,7 +64,8 @@ export function PresentList({
       clearInterval(timer);
     };
   }, []);
-  const list = usePresentList(spaceId, { now });
+  const list = usePresentList(spaceId, { now, plan: people?.plan });
+  const fileLink = people?.fileLink;
   const headingId = useId();
   const section = useRef<HTMLElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
@@ -92,21 +102,19 @@ export function PresentList({
         column.display({
           id: 'name',
           header: headers.name,
-          cell: (info) => (
-            <span className="text-label" dir="auto">
-              {info.row.original.name}
-            </span>
-          ),
+          cell: (info) => <PresentName row={info.row.original} fileLink={fileLink} />,
         }),
         column.display({
           id: 'kind',
           header: headers.kind,
-          cell: (info) => <Badge variant="neutral">{info.row.original.kind}</Badge>,
+          cell: (info) => (
+            <Badge variant={info.row.original.kind.variant}>{info.row.original.kind.label}</Badge>
+          ),
         }),
         column.display({
           id: 'since',
           header: headers.since,
-          cell: (info) => info.row.original.since,
+          cell: (info) => info.row.original.time,
         }),
         column.display({
           id: 'duration',
@@ -121,7 +129,8 @@ export function PresentList({
         }),
         column.display({
           id: 'actions',
-          header: headers.actions,
+          // Named for a reader; the buttons say themselves what they do (G13.17).
+          header: () => <span className="sr-only">{headers.actions}</span>,
           cell: (info) => (
             <div data-present-action={info.row.original.key}>
               {action(info.row.original.person)}
@@ -130,7 +139,7 @@ export function PresentList({
           meta: { className: 'w-px' },
         }),
       ]),
-    [headers, action, usage],
+    [headers, action, usage, fileLink],
   );
 
   return (
@@ -157,7 +166,17 @@ export function PresentList({
       {list.refreshFailure !== null && (
         <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
       )}
-      {list.state === 'failed' ? (
+      {list.state === 'offline' ? (
+        <EmptyState
+          icon={<WifiOffIcon />}
+          title={list.offline.title}
+          description={list.offline.text}
+        >
+          <Button variant="outline" onClick={list.failure.retry}>
+            {list.failure.retryLabel}
+          </Button>
+        </EmptyState>
+      ) : list.state === 'failed' ? (
         <Alert variant="destructive">
           <AlertTitle>{list.failure.title}</AlertTitle>
           <AlertDescription>
@@ -182,10 +201,8 @@ export function PresentList({
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-label" dir="auto">
-                    {row.name}
-                  </span>
-                  <Badge variant="neutral">{row.kind}</Badge>
+                  <PresentName row={row} fileLink={fileLink} />
+                  <Badge variant={row.kind.variant}>{row.kind.label}</Badge>
                 </div>
                 <span className="text-caption text-muted-foreground">
                   {row.since} · {row.duration}
@@ -197,7 +214,13 @@ export function PresentList({
           )}
           loading={list.state === 'loading'}
           loadingRows={3}
-          empty={<EmptyState title={list.empty.title} description={list.empty.text} />}
+          empty={
+            <EmptyState
+              icon={<UsersIcon />}
+              title={list.empty.title}
+              description={list.empty.text}
+            />
+          }
           summary={list.state === 'ready' ? list.summary : undefined}
         />
       )}

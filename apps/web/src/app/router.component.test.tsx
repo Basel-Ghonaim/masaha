@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startPreferences } from '../test/startPreferences';
+import { routeLoaders, warm } from '../test/warmLazy';
 import { routes } from './router';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(() => warm(...routeLoaders(routes, '/')), 60_000);
 
 // The site's shell, replaced by one with a header that fails while it renders.
 vi.mock('../pages/site/shell/SiteLayout', async () => {

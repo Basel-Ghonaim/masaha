@@ -64,6 +64,8 @@ export const ERRORS = {
   CLOSURE_ALREADY_EXTENDED: "This closure's subscriptions were already extended.",
   REPORT_ALREADY_DECIDED: 'This report was already decided.',
   FAVORITES_LIMIT_REACHED: 'Your favourites are full; remove a space first.',
+  PUBLISHED_PRICE_CHANGED:
+    'This price changed since the sheet opened. Check the new amount, then confirm.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

@@ -5,6 +5,7 @@ import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -72,36 +73,58 @@ type Server = {
   add?: (request: Request) => FakeAnswer;
   /** The users the users list finds for a search. */
   users?: AdminUserRow[];
+  /** The answer to the users list's read, in place of `users`'s page. */
+  usersAnswer?: (request: Request) => FakeAnswer;
 };
 
 /** The sheet as the owners page shows it, the server answering as `server` says. */
-function renderSheet(server: Server = {}) {
+function renderSheet(server: Server = {}, path = '/owners') {
   const shown: AddedOwnerView[] = [];
   // Where the page's dialog returns the focus once done, as the slot was handed it.
   const returnTo: (HTMLElement | null)[] = [];
   const requests = fakeTransport((request) => {
     if (request.url === '/admin/spaces') return page([FOCUS_HUB]);
-    if (request.url === '/admin/users') return page(server.users ?? []);
+    if (request.url === '/admin/users') {
+      if (server.usersAnswer !== undefined) return server.usersAnswer(request);
+      // The users list keeps the one account whose email is exactly the one asked (`email`).
+      const email = (request.params as { email?: string } | undefined)?.email;
+      return page(
+        (server.users ?? []).filter((user) => email === undefined || user.email === email),
+      );
+    }
     return server.add?.(request) ?? ok({ userId: 12, temporaryPassword: 'Tmp-4821-xk' }, 201);
   });
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/owners',
+        element: (
+          <AddOwner
+            usersLink={(q) => `/users?q=${encodeURIComponent(q)}`}
+            temporaryPassword={(added, done, returnFocus) => {
+              shown.push(added);
+              returnTo.push(returnFocus.current);
+              return (
+                <div role="dialog" aria-label="Password slot">
+                  <button type="button" onClick={done}>
+                    Slot done
+                  </button>
+                </div>
+              );
+            }}
+          />
+        ),
+      },
+      { path: '/users', element: <p>Users page</p> },
+    ],
+    { initialEntries: [path] },
+  );
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <AddOwner
-        temporaryPassword={(added, done, returnFocus) => {
-          shown.push(added);
-          returnTo.push(returnFocus.current);
-          return (
-            <div role="dialog" aria-label="Password slot">
-              <button type="button" onClick={done}>
-                Slot done
-              </button>
-            </div>
-          );
-        }}
-      />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { requests, shown, returnTo };
+  return { requests, shown, returnTo, router };
 }
 
 /** Opens the sheet and fills it: `name`, `email`, and Focus Hub chosen. */
@@ -242,7 +265,9 @@ describe('AddOwner', () => {
 
     const upgrade = await screen.findByRole('button', { name: 'Upgrade and link' });
     const users = requests.filter((request) => request.url === '/admin/users');
-    expect(users.map((request): unknown => request.params)).toEqual([{ q: 'rima@example.com' }]);
+    expect(users.map((request): unknown => request.params)).toEqual([
+      { email: 'rima@example.com' },
+    ]);
     const account = noticeTitled('This email has an account');
     expect(within(account).getByText('Rima Haddad')).toBeInTheDocument();
     expect(within(account).getByText(/^1 Sept/)).toBeInTheDocument();
@@ -301,12 +326,129 @@ describe('AddOwner', () => {
 
     expect(
       await screen.findByText(
-        'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',
+        'No account has exactly this email now, so nothing is upgraded — check it.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Upgrade and link' })).not.toBeInTheDocument();
     expect(screen.queryByText('Rima Haddad')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create account and link' })).toBeDisabled();
     expect(adds(requests)).toHaveLength(1);
+  });
+
+  it('an exact email is found even beyond the first page', async () => {
+    // A search would rank twenty longer emails first; the exact read finds the one asked.
+    const others = Array.from({ length: 20 }, (_, index) => ({
+      ...RIMA,
+      id: 100 + index,
+      email: `karima${String(index)}@example.com`,
+    }));
+    const { requests } = renderSheet({ add: hasAccount, users: [...others, RIMA] });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    expect(await screen.findByRole('button', { name: 'Upgrade and link' })).toBeEnabled();
+    expect(
+      requests
+        .filter((request) => request.url === '/admin/users')
+        .map((request): unknown => request.params),
+    ).toEqual([{ email: 'rima@example.com' }]);
+  });
+
+  it('a failed read says so and retries', async () => {
+    let reads = 0;
+    renderSheet({
+      add: hasAccount,
+      usersAnswer: () => {
+        reads += 1;
+        return reads === 1 ? refused(403, { type: 'forbidden' }) : page([RIMA]);
+      },
+    });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    expect(await screen.findByText('Couldn’t check this email right now.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create account and link' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'Upgrade and link' })).toBeEnabled();
+    expect(reads).toBe(2);
+  });
+
+  it('ALREADY_OWNER offers «اربطه بالمساحة» opening the link dialog for that owner', async () => {
+    const hadi: AdminUserRow = {
+      ...RIMA,
+      id: 3,
+      name: 'Hadi Saleh',
+      email: 'hadi@example.com',
+      role: 'OWNER',
+      spaces: [{ id: 9, nameEn: 'Palm Hub', nameAr: null }],
+    };
+    const { requests } = renderSheet({
+      users: [hadi],
+      add: () => ({
+        ...refused(409, { type: 'conflict', code: 'ALREADY_OWNER' }),
+        // The owner the refusal names (api-contract §2).
+        data: {
+          success: false,
+          error: {
+            type: 'conflict',
+            code: 'ALREADY_OWNER',
+            message: 'Fake refusal',
+            requestId: 'req-1',
+            details: { userId: 3 },
+          },
+        },
+      }),
+    });
+
+    await fill('hadi@example.com', 'Hadi');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    const email = screen.getByRole('textbox', { name: 'Email address' });
+    expect(await screen.findByText('This email is already an owner’s.')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription('This email is already an owner’s.');
+    const link = screen.getByRole('button', { name: 'Link them to the space' });
+    await waitFor(() => {
+      expect(link).toBeEnabled();
+    });
+    await userEvent.click(link);
+
+    const dialog = await screen.findByRole('dialog', {
+      name: (name) => name.replace(/[⁦-⁩]/g, '') === 'Link Hadi Saleh to a space',
+    });
+    // The space chosen in the sheet stays chosen.
+    expect(within(dialog).getByRole('combobox', { name: /^Space/ })).toHaveTextContent('Focus Hub');
+    expect(
+      requests.filter((request) => request.url === '/admin/users').map((r): unknown => r.params),
+    ).toEqual([{ email: 'hadi@example.com' }]);
+  });
+
+  it('?sheet=add opens the add sheet, and closing it takes the address off', async () => {
+    const { router } = renderSheet({}, '/owners?sheet=add');
+
+    expect(await screen.findByRole('dialog', { name: 'Add owner' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+    expect(screen.queryByRole('dialog', { name: 'Add owner' })).not.toBeInTheDocument();
+  });
+
+  it('ACCOUNT_SUSPENDED links the users page searched by the email', async () => {
+    const { router } = renderSheet({
+      add: () => refused(409, { type: 'conflict', code: 'ACCOUNT_SUSPENDED' }),
+    });
+
+    await fill('sara@example.com', 'Sara');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    const restore = await screen.findByRole('link', { name: 'restore it first' });
+    expect(restore.closest('[role="alert"], [data-slot="alert"]')?.textContent).toBe(
+      'The account is suspended — restore it first.',
+    );
+    expect(restore).toHaveAttribute('href', '/users?q=sara%40example.com');
+    await userEvent.click(restore);
+    expect(router.state.location.pathname).toBe('/users');
   });
 });

@@ -66,7 +66,10 @@ export function createClosuresService({
       const { rows, total } = await announcements.page(spaceId, query, now());
       const closureIds = rows.filter(({ type }) => type === 'CLOSURE').map(({ id }) => id);
       const extensions = await repository.extensionsOf(closureIds);
-      const appliers = await users.namesFor([...new Set(extensions.map((row) => row.appliedById))]);
+      const appliers = await users.namesFor(
+        [...new Set(extensions.map((row) => row.appliedById))],
+        undefined,
+      );
       const names = new Map(appliers.map(({ id, name }) => [id, name]));
       const byClosure = new Map(
         extensions.map((row) => [
@@ -104,7 +107,7 @@ export function createClosuresService({
         const count = await repository.movedCount(spaceId, span, gazaClockOf(at).date);
         return { ...proposal, subscriptions: count, applied: null };
       }
-      const [applier] = await users.namesFor([extension.appliedById]);
+      const [applier] = await users.namesFor([extension.appliedById], undefined);
       return {
         ...proposal,
         subscriptions: extension.subscriptions,

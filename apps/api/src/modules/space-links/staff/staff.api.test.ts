@@ -200,6 +200,7 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Sara',
           email: 'reception@example.com',
           isActive: true,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: { expiresAt: '2026-10-25T10:00:00.000Z' },
         },
         {
@@ -207,6 +208,7 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Nour',
           email: 'nour@example.com',
           isActive: true,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: null,
         },
         {
@@ -214,10 +216,31 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Omar',
           email: 'omar@example.com',
           isActive: false,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: null,
         },
       ],
     });
+  });
+});
+
+describe('the date of a reception link', () => {
+  it('a staff member is answered with the date their link was made', async () => {
+    await prisma.spaceManager.update({
+      where: { spaceId_userId: { spaceId, userId: reception.id } },
+      data: {
+        createdAt: new Date('2026-09-14T08:30:00.000Z'),
+        updatedAt: new Date('2026-10-20T12:00:00.000Z'),
+      },
+    });
+
+    const listed = await staff(owner, 'get');
+    const changed = await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: false });
+
+    expect(dataOf(listed)).toEqual([
+      expect.objectContaining({ userId: reception.id, addedAt: '2026-09-14T08:30:00.000Z' }),
+    ]);
+    expect(dataOf(changed)).toMatchObject({ addedAt: '2026-09-14T08:30:00.000Z' });
   });
 });
 
@@ -275,6 +298,7 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
       name: 'Sara',
       email: 'nour@example.com',
       isActive: false,
+      addedAt: expect.any(String) as unknown,
       temporaryPassword: null,
     });
     expect((await readSpace(nour)).status).toBe(401);
@@ -290,6 +314,26 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
         after: { userId: nour.id, isActive: false },
       },
     ]);
+  });
+
+  it('deactivating a link of a person with another active link keeps their sessions', async () => {
+    const nour = await signedInReceptionist();
+    // An owner elsewhere, who is this space's reception too.
+    await prisma.spaceManager.create({
+      data: { spaceId: otherSpaceId, userId: nour.id, role: 'OWNER' },
+    });
+    const { sessionVersion } = await prisma.user.findUniqueOrThrow({ where: { id: nour.id } });
+
+    const response = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: false });
+
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toMatchObject({ isActive: false });
+    // This space is closed to them at once: the boundary reads the links on every request.
+    expect((await readSpace(nour)).status).toBe(404);
+    expect((await refresh(nour.refreshToken)).status).toBe(200);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: nour.id } })).toMatchObject({
+      sessionVersion,
+    });
   });
 
   it('re-activating restores the link, ends nothing, and the same state writes nothing', async () => {
@@ -314,6 +358,21 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
     const suspended = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: true });
     expect(suspended.status).toBe(409);
     expect(errorOf(suspended).code).toBe('ACCOUNT_SUSPENDED');
+  });
+
+  it('a re-activation refuses an admin: ACCOUNT_IS_ADMIN', async () => {
+    await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: false });
+    await prisma.user.update({ where: { id: reception.id }, data: { role: 'ADMIN' } });
+
+    const response = await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: true });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_IS_ADMIN');
+    expect(
+      await prisma.spaceManager.findUniqueOrThrow({
+        where: { spaceId_userId: { spaceId, userId: reception.id } },
+      }),
+    ).toMatchObject({ deactivatedAt: expect.any(Date) as unknown });
   });
 
   it('an owner cannot deactivate a co-owner, or anyone without a reception link here', async () => {
@@ -399,6 +458,57 @@ describe('POST /manage/spaces/:spaceId/staff/:userId/temporary-password', () => 
     expect(limited.status).toBe(429);
     expect(limited.headers['retry-after']).toBeDefined();
   }, 30_000);
+  it('the re-issue refuses an admin’s account with ACCOUNT_IS_ADMIN', async () => {
+    const added = await addedReceptionist();
+    await prisma.user.update({ where: { id: added.userId }, data: { role: 'ADMIN' } });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_IS_ADMIN');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+  });
+
+  it('the re-issue refuses an OWNER-role account with no link here: ACCOUNT_HAS_LINKS', async () => {
+    const added = await addedReceptionist();
+    // No other link: its role alone refuses it.
+    await prisma.user.update({ where: { id: added.userId }, data: { role: 'OWNER' } });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_HAS_LINKS');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+  });
+
+  it('the re-issue and the handover answer 404 for a deactivated reception link', async () => {
+    const added = await addedReceptionist();
+    await staff(owner, 'patch', `/${String(added.userId)}`, { isActive: false });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+    const entries = (await auditEntries()).length;
+
+    const reissue = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+    const handover = await staff(
+      owner,
+      'post',
+      `/${String(added.userId)}/temporary-password/handover`,
+      { channel: 'WHATSAPP' },
+    );
+
+    expect(reissue.status).toBe(404);
+    expect(handover.status).toBe(404);
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+    expect(await auditEntries()).toHaveLength(entries);
+  });
+
   it('refuses a re-issue for an account that holds anything else', async () => {
     const added = await addedReceptionist();
     await prisma.spaceManager.create({

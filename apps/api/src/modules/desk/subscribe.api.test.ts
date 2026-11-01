@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { addPrice, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -106,6 +106,7 @@ describe('subscribing a customer', () => {
         id: stored?.id,
         customerId,
         packageId: pack.id,
+        publishedPeriod: null,
         renewalOfId: null,
         name: 'شهري',
         startsOn: '2026-10-21',
@@ -126,6 +127,7 @@ describe('subscribing a customer', () => {
         dueAgorot: 30_000,
         paidAgorot: 0,
         balanceAgorot: 30_000,
+        createdAt: stored?.createdAt.toISOString(),
       },
       payments: [],
       debtAgorot: 30_000,
@@ -288,6 +290,38 @@ describe('subscribing a customer', () => {
     expect(await storedSubscriptions()).toEqual([]);
   });
 
+  it('a published amount that differs answers PUBLISHED_PRICE_CHANGED, writing nothing', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+
+    const response = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري', amountAgorot: 20_000 },
+      payment: { amountAgorot: 20_000, method: 'CASH' },
+    });
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'PUBLISHED_PRICE_CHANGED' });
+    expect(await storedSubscriptions()).toEqual([]);
+    expect(await prisma.payment.count()).toBe(0);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('an equal amount, or none, subscribes as before', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+
+    const equal = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري', amountAgorot: 25_000 },
+    });
+    expect(equal.status).toBe(201);
+    expect((dataOf(equal) as { subscription: object }).subscription).toMatchObject({
+      priceAgorot: 25_000,
+    });
+    const none = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+      startsOn: '2026-11-20',
+    });
+    expect(none.status).toBe(201);
+    expect(await storedSubscriptions()).toHaveLength(2);
+  });
+
   it('a published price with a package is invalid_choice on packageId; an hour price on its period', async () => {
     await addPrice(spaceId, 'HOUR', 500);
     const pack = await monthly();
@@ -382,31 +416,35 @@ describe('subscribing a customer', () => {
     expect(await storedSubscriptions()).toEqual([]);
   });
 
-  it('a retry with the same key answers the first subscription, 201; two at once make one', async () => {
-    const pack = await monthly();
-    const key = randomUUID();
-    const first = await subscribe(owner, { packageId: pack.id }, { key });
-    const retry = await subscribe(owner, { packageId: pack.id }, { key });
-    expect([first.status, retry.status]).toEqual([201, 201]);
-    expect(dataOf(retry)).toEqual(dataOf(first));
-    expect(await storedSubscriptions()).toHaveLength(1);
+  it(
+    'a retry with the same key answers the first subscription, 201; two at once make one',
+    async () => {
+      const pack = await monthly();
+      const key = randomUUID();
+      const first = await subscribe(owner, { packageId: pack.id }, { key });
+      const retry = await subscribe(owner, { packageId: pack.id }, { key });
+      expect([first.status, retry.status]).toEqual([201, 201]);
+      expect(dataOf(retry)).toEqual(dataOf(first));
+      expect(await storedSubscriptions()).toHaveLength(1);
 
-    const together = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await lockSpace(tx);
-      pending.push(
-        Promise.resolve(subscribe(owner, { packageId: pack.id }, { key: together })),
-        Promise.resolve(subscribe(reception, { packageId: pack.id }, { key: together })),
-      );
-      await waitingOnLock({ count: 2 });
-    });
-    const [one, two] = await Promise.all(pending);
-    expect([one?.status, two?.status]).toEqual([201, 201]);
-    expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
-    expect(await storedSubscriptions()).toHaveLength(2);
-  });
+      const together = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await lockSpace(tx);
+        pending.push(
+          Promise.resolve(subscribe(owner, { packageId: pack.id }, { key: together })),
+          Promise.resolve(subscribe(reception, { packageId: pack.id }, { key: together })),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
+      const [one, two] = await Promise.all(pending);
+      expect([one?.status, two?.status]).toEqual([201, 201]);
+      expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
+      expect(await storedSubscriptions()).toHaveLength(2);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("a key that subscribed another customer is a conflict under this one's path, writing nothing", async () => {
     const pack = await monthly();
@@ -445,21 +483,26 @@ describe('subscribing a customer', () => {
     expect(await storedSubscriptions()).toEqual([]);
   });
 
-  it('a reception link ended while the request waits is refused 403, writing nothing', async () => {
-    const pack = await monthly();
+  it(
+    'a reception link ended while the request waits is refused 403, writing nothing',
+    async () => {
+      const pack = await monthly();
 
-    const response = await whileHeld(
-      lockSpace,
-      () => subscribe(reception, { packageId: pack.id }),
-      (tx) =>
-        tx.spaceManager.updateMany({
-          where: { spaceId, userId: reception.id },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await storedSubscriptions()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => subscribe(reception, { packageId: pack.id }),
+        (tx) =>
+          tx.spaceManager.updateMany({
+            where: { spaceId, userId: reception.id },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await storedSubscriptions()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('the start date: the one sent; else today; an end before the start is out_of_range', async () => {
     const pack = await monthly();

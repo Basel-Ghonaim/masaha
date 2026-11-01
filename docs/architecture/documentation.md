@@ -1,6 +1,6 @@
 # Documentation Rules
 
-> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** Where each kind of fact lives, what each category of document owns and must not contain, the document classes, the capability documents' shape, and link integrity. The map of the documents is [README.md](../README.md); *when* a document is updated is owned by [workflow §7](../development/workflow.md#7-documentation-update-triggers). Why the capability documents exist is in [ADR 0018](decisions/0018-capability-documents.md).
 
 ## 1. One home per fact
@@ -75,7 +75,7 @@ A document may declare its class in its header. **A declared class must be true.
   10. *History*: the PRs.
 - **A section appears only when its code exists.** A capability with no web feature has no web section.
 - ***Decisions* and *History* by layer.** Each has an **API** part and a **Web** part, so the two workers append in different places ([workflow §9](../development/workflow.md#conflicts)); a part appears only when its layer's code exists. The parts are headed *API decisions*, *Web decisions*, *API history* and *Web history*, so each has an anchor of its own. A decision that rules both layers, or `packages/shared`, goes to the API part, since the contract is the API worker's ([workflow §9](../development/workflow.md#9-parallel-work)); a PR that changed both layers is listed in both histories, each line saying what that layer got.
-- **About 1,200 words at most,** so it can be read whole before a change.
+- **Short where it is read before a change** (OD4, 2026-10-29, #132): a capability document holds the decisions as they hold today and links rather than restates; it has no word ceiling, but a part that a change to the capability need not read (its *History*, a superseded decision's record) moves below its *Code map*, so the part read before a change stays short.
 - **Read first** when a task changes the capability ([workflow, Reading before work](../development/workflow.md#reading-before-work)).
 
 ## 6. Rules and intent, not inventories

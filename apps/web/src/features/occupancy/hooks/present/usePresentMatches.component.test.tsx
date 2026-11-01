@@ -17,7 +17,9 @@ const NOW: SpaceOccupancyNow = {
     {
       kind: 'VISIT',
       id: 12,
+      customerId: null,
       name: 'Omar',
+      audience: 'GENERAL',
       since: '2026-07-01T07:00:00.000Z',
       chargeNowAgorot: 1250,
     },
@@ -25,7 +27,9 @@ const NOW: SpaceOccupancyNow = {
     {
       kind: 'VISIT',
       id: 13,
+      customerId: null,
       name: 'Samir',
+      audience: 'GENERAL',
       since: '2026-07-01T09:00:00.000Z',
       chargeNowAgorot: null,
     },
@@ -62,7 +66,7 @@ describe('usePresentMatches', () => {
       expect(result.current.rows.map((row) => row.name)).toEqual(['Sara', 'Samir']);
     });
     expect(result.current.heading).toBe('Here now');
-    expect(result.current.rows[0]?.kind).toBe('Subscription');
+    expect(result.current.rows[0]?.kind).toEqual({ label: 'Subscription', variant: 'primary' });
     expect(requests[0]?.url).toBe('/manage/spaces/7/occupancy');
   });
 

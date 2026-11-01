@@ -15,6 +15,7 @@ import { toastCheckedOut } from '../../components/toast/deskToasts';
 import { deskFailure } from '../../services/deskRefusal';
 import { quoteIsStale } from '../../services/quoteAge';
 import { useMoneyBlock } from '../money/useMoneyBlock';
+import { usePhoneOwner } from '../phone/usePhoneOwner';
 import { deskKeys } from '../queryKeys';
 import { useCheckOutVisit } from './useCheckOutVisit';
 import { useQuoteQuery } from './useQuoteQuery';
@@ -159,6 +160,8 @@ export function useCheckOutDialog({
     failureLines: words.refusals,
   });
 
+  const typedPhone = useWatch({ control: form.form.control, name: 'phone' });
+  const phoneOwner = usePhoneOwner(spaceId, typedPhone);
   const [typedAmount, debtName] = useWatch({
     control: form.form.control,
     name: ['charge.amountAgorot', 'customerName'],
@@ -210,24 +213,45 @@ export function useCheckOutDialog({
       ? present.minutes({ minutes })
       : present.duration({ hours: Math.floor(minutes / 60), minutes: minutes % 60 });
   const rounding = terms.rounding;
+  const roundingLine =
+    rounding.rule === 'UP_AFTER_MINUTES'
+      ? words.checkOut.rounding.UP_AFTER_MINUTES({
+          minutes: words.checkOut.minutes({ count: rounding.minutes ?? 0 }),
+        })
+      : rounding.rule === 'NEAREST_HALF_HOUR'
+        ? copy.spaceSettings.pricing.half
+        : copy.spaceSettings.pricing.minute;
+  // The lines say how the quote's charge came about, from the visit's own rates; the amount is
+  // always the quote's (G13.11, S7): the web never prices.
+  const calcOf = (charge: number, minutes: number, capped: boolean | null): string[] => {
+    const hourRate = visit?.hourRateAgorot ?? null;
+    const dayRate = visit?.dayRateAgorot ?? null;
+    if (hourRate === null) {
+      return [words.checkOut.dayOnly({ day: price(dayRate ?? charge) })];
+    }
+    const hours = isolate(String(Math.round((minutes / 60) * 100) / 100));
+    if (capped === true) {
+      return [
+        words.checkOut.billedCapped({ hours, rate: price(hourRate), rounding: roundingLine }),
+        words.checkOut.cap({ day: price(dayRate ?? charge) }),
+      ];
+    }
+    return [
+      words.checkOut.billed({
+        hours,
+        rate: price(hourRate),
+        amount: price(charge),
+        rounding: roundingLine,
+      }),
+    ];
+  };
   const calc =
     quote === null || quote.chargeAgorot === null
       ? []
-      : [
-          words.checkOut.billed({
-            time: isolate(lengthOf(quote.billedMinutes)),
-          }),
-          rounding.rule === 'UP_AFTER_MINUTES'
-            ? words.checkOut.rounding.UP_AFTER_MINUTES({
-                minutes: words.checkOut.minutes({ count: rounding.minutes ?? 0 }),
-              })
-            : rounding.rule === 'NEAREST_HALF_HOUR'
-              ? copy.spaceSettings.pricing.half
-              : copy.spaceSettings.pricing.minute,
-          ...(quote.capApplied === true ? [words.checkOut.cap] : []),
-        ];
+      : calcOf(quote.chargeAgorot, quote.billedMinutes, quote.capApplied);
   const hasVisitCustomerRefusal = refusal?.code === 'VISIT_HAS_CUSTOMER';
   const failure = deskFailure(hasVisitCustomerRefusal ? null : refusal, form.failure, {
+    limited: words.failure.limited,
     title: words.checkOut.failed,
     lost: words.failure.lost,
     nothing: words.failure.nothing,
@@ -288,6 +312,7 @@ export function useCheckOutDialog({
               name: { label: words.debt.name, field: form.field('customerName') },
               nameError: form.errors.customerName,
               phone: { label: words.debt.phone, field: form.field('phone') },
+              owner: phoneOwner,
               phoneError: hasVisitCustomerRefusal
                 ? words.refusals.VISIT_HAS_CUSTOMER
                 : form.errors.phone,

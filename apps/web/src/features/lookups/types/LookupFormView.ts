@@ -1,13 +1,15 @@
 import type { FormFailureView } from '@shared/forms';
 import type { BaseSyntheticEvent } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
+import type { PositionFieldView } from './PositionFieldView';
 
 /** The names a governorate or an area is given, in the order the sheet shows them. */
 export type LookupNameField = 'nameAr' | 'nameEn';
 
 /**
  * A governorate's or an area's form in the sheet, ready to render: its two names, and when editing
- * its Active switch (a new one is always active), with their labels, errors and states.
+ * a row of a list of more than ten its position, with their labels, errors and states. Whether it
+ * is shown is its row's switch alone.
  */
 export type LookupFormView = {
   field: (name: LookupNameField) => UseFormRegisterReturn & { disabled: boolean };
@@ -18,11 +20,5 @@ export type LookupFormView = {
   errors: Partial<Record<LookupNameField, string>>;
   failure: FormFailureView | null;
   labels: { nameAr: string; nameEn: string; save: string };
-  active?: {
-    label: string;
-    hint: string;
-    checked: boolean;
-    disabled: boolean;
-    toggle: (checked: boolean) => void;
-  };
+  position?: PositionFieldView;
 };

@@ -1,4 +1,4 @@
-const ARABIC_INDIC_ZERO = 0x0660;
+import { toWesternDigits } from './westernDigits';
 
 /**
  * A whole number as typed, for a form's schema to read: blank is none (`undefined`); digits, Western
@@ -6,11 +6,7 @@ const ARABIC_INDIC_ZERO = 0x0660;
  * type, so its field says so.
  */
 export function wholeNumberOf(text: string): number | string | undefined {
-  const typed = text
-    .trim()
-    .replace(/[٠-٩]/g, (digit) =>
-      String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
-    );
+  const typed = toWesternDigits(text.trim());
   if (typed === '') return undefined;
   return /^\d+$/.test(typed) ? Number(typed) : text;
 }

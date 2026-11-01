@@ -15,7 +15,7 @@ import {
   signIn,
 } from '../../../test/admin.ts';
 import { createAccount, createTestApp, PASSWORD } from '../../../test/app.ts';
-import { lockUsers, whileHeld } from '../../../test/locks.ts';
+import { lockUsers, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
 import { createLogger } from '../../shared/http/index.ts';
@@ -256,45 +256,55 @@ describe('POST /admin/users/:userId/temporary-password', () => {
 });
 
 describe('POST /admin/users/:userId/temporary-password: the races', () => {
-  it('refuses an account suspended while the issue waited for the lock', async () => {
-    const user = await createAccount();
+  it(
+    'refuses an account suspended while the issue waited for the lock',
+    async () => {
+      const user = await createAccount();
 
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, user.id),
-      () => issue(user.id),
-      (tx) => tx.user.update({ where: { id: user.id }, data: { suspendedAt: new Date() } }),
-    );
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, user.id),
+        () => issue(user.id),
+        (tx) => tx.user.update({ where: { id: user.id }, data: { suspendedAt: new Date() } }),
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('ACCOUNT_SUSPENDED');
-    expect((await stored(user.id)).mustChangePassword).toBe(false);
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('ACCOUNT_SUSPENDED');
+      expect((await stored(user.id)).mustChangePassword).toBe(false);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('ends a session a password change opened while the issue waited for the lock', async () => {
-    const user = await createAccount();
+  it(
+    'ends a session a password change opened while the issue waited for the lock',
+    async () => {
+      const user = await createAccount();
 
-    // The test changes the password and opens a session, as a change holding the lock would.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, user.id),
-      () => issue(user.id),
-      async (tx) => {
-        await tx.user.update({ where: { id: user.id }, data: { passwordHash: 'changed' } });
-        await tx.refreshToken.create({
-          data: {
-            userId: user.id,
-            familyId: 0,
-            tokenHash: 'opened-meanwhile',
-            expiresAt: new Date(Date.now() + 60_000),
-            sessionEndsAt: new Date(Date.now() + 60_000),
-          },
-        });
-      },
-    );
+      // The test changes the password and opens a session, as a change holding the lock would.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, user.id),
+        () => issue(user.id),
+        async (tx) => {
+          await tx.user.update({ where: { id: user.id }, data: { passwordHash: 'changed' } });
+          await tx.refreshToken.create({
+            data: {
+              userId: user.id,
+              familyId: 0,
+              tokenHash: 'opened-meanwhile',
+              expiresAt: new Date(Date.now() + 60_000),
+              sessionEndsAt: new Date(Date.now() + 60_000),
+            },
+          });
+        },
+      );
 
-    expect(answer.status).toBe(200);
-    expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
-    const account = await stored(user.id);
-    expect(await bcrypt.compare(issued(answer), account.passwordHash ?? '')).toBe(true);
-    expect(account.mustChangePassword).toBe(true);
-  }, 20_000);
+      expect(answer.status).toBe(200);
+      expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
+      const account = await stored(user.id);
+      expect(await bcrypt.compare(issued(answer), account.passwordHash ?? '')).toBe(true);
+      expect(account.mustChangePassword).toBe(true);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

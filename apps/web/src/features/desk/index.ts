@@ -1,12 +1,14 @@
 export { CheckOutAction } from './components/check-out/CheckOutAction';
 export { CustomerFile } from './components/file/CustomerFile';
 export { CustomersList } from './components/customers/CustomersList';
+export { DeskLog } from './components/log/DeskLog';
 export { DeskSearch, type SearchAfter } from './components/search/DeskSearch';
 export { PayDialog } from './components/pay/PayDialog';
 export { SubscriptionSheet } from './components/sheet/SubscriptionSheet';
 export type { PayTarget } from './hooks/pay/usePayDialog';
 export { UncollectedCard } from './components/uncollected/UncollectedCard';
 export { UnpricedCard } from './components/unpriced/UnpricedCard';
+export { UsageOutDialog } from './components/usage-out/UsageOutDialog';
 export { VisitDialog } from './components/visit/VisitDialog';
 export { VoidPaymentAction } from './components/void/VoidPaymentAction';
 export { useVisitDialog, type VisitDialogView } from './hooks/check-in/useVisitDialog';

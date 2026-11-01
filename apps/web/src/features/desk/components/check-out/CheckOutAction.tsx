@@ -1,11 +1,11 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import type { VisitTerms } from '@masaha/shared/visits';
 import { useCopy } from '@shared/copy';
-import { Button } from '@shared/design-system';
+import { Button, LogOutIcon } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
 import { useRef, useState, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
-import { useCheckOutSubscriber } from '../../hooks/subscriber/useCheckOutSubscriber';
+import { useCheckOutSubscriber, type UsageOut } from '../../hooks/subscriber/useCheckOutSubscriber';
 import { CheckOutDialog } from './CheckOutDialog';
 
 /** What follows a check-out started from the desk's search: it is cleared and focused. */
@@ -23,6 +23,7 @@ export function CheckOutAction({
   terms,
   after,
   receive,
+  usageOut,
 }: {
   spaceId: number;
   person: PresentPerson;
@@ -30,11 +31,19 @@ export function CheckOutAction({
   after?: After;
   /** Opens the payment on what a subscriber's check-out leaves owed. */
   receive?: (target: PayTarget) => void;
+  /** Opens the page's due dialog after a usage-based subscriber's check-out (D7.12). */
+  usageOut?: UsageOut;
 }) {
   return person.kind === 'VISIT' ? (
     <VisitCheckOutAction spaceId={spaceId} person={person} terms={terms} after={after} />
   ) : (
-    <SubscriberCheckOutAction spaceId={spaceId} person={person} after={after} receive={receive} />
+    <SubscriberCheckOutAction
+      spaceId={spaceId}
+      person={person}
+      after={after}
+      receive={receive}
+      usageOut={usageOut}
+    />
   );
 }
 
@@ -64,6 +73,7 @@ function VisitCheckOutAction({
           setOpen(true);
         }}
       >
+        <LogOutIcon aria-hidden />
         {words.open}
       </Button>
       {open && terms !== undefined && (
@@ -91,13 +101,19 @@ function SubscriberCheckOutAction({
   person,
   after,
   receive,
+  usageOut,
 }: {
   spaceId: number;
   person: Extract<PresentPerson, { kind: 'CHECK_IN' }>;
   after?: After;
   receive?: (target: PayTarget) => void;
+  usageOut?: UsageOut;
 }) {
-  const checkOut = useCheckOutSubscriber(spaceId, person, { done: after?.done, receive });
+  const checkOut = useCheckOutSubscriber(spaceId, person, {
+    done: after?.done,
+    receive,
+    usageOut,
+  });
 
   return (
     <Button
@@ -107,6 +123,7 @@ function SubscriberCheckOutAction({
       aria-busy={checkOut.busy || undefined}
       onClick={checkOut.run}
     >
+      <LogOutIcon aria-hidden />
       {checkOut.label}
     </Button>
   );

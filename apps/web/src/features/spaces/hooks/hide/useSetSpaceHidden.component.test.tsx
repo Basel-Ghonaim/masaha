@@ -6,7 +6,13 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { deferred } from '../../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import {
+  fakeTransport,
+  ok,
+  refused,
+  restoreTransport,
+  bodyOf,
+} from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { findToast } from '../../../../test/findToast';
 import { useSetSpaceHidden } from './useSetSpaceHidden';
@@ -147,5 +153,25 @@ describe('useSetSpaceHidden', () => {
     await waitFor(() => {
       expect(client.getMutationCache().getAll()).toEqual([]);
     });
+  });
+
+  it('hiding offers «تراجع» that shows it again', async () => {
+    const { result, requests } = renderHidden(() => ({ status: 204 }));
+
+    await act(() => result.current.hidden.mutateAsync({ ...PALM, isHidden: true }));
+    const hidden = await toastTitled('Palm Hub is hidden from the site');
+    // A plain click: sonner captures the pointer on a press, which jsdom does not offer.
+    act(() => {
+      within(hidden.closest('li') ?? hidden)
+        .getByRole('button', { name: 'Undo' })
+        .click();
+    });
+
+    expect(await toastTitled('Palm Hub is visible again')).toBeVisible();
+    const puts = requests.filter(({ method }) => method === 'put').map(bodyOf);
+    expect(puts).toEqual([{ isHidden: true }, { isHidden: false }]);
+    // The undo's own toast offers no undo of its own.
+    const shown = await toastTitled('Palm Hub is visible again');
+    expect(within(shown.closest('li') ?? shown).queryByRole('button', { name: 'Undo' })).toBeNull();
   });
 });

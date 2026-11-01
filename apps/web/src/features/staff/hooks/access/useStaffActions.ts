@@ -10,9 +10,12 @@ import { useSetStaffActive } from './useSetStaffActive';
 /** One item of a staff member's menu: its label, and why it is held when it is. */
 export type StaffActionItem = {
   label: string;
-  disabled: boolean;
+  /** Cannot be taken now: kept in the keyboard's path, its reason read with it (finding 105). */
+  held: boolean;
   /** Why the item is held, said under it (foundation §10). */
   reason?: string;
+  /** An item that leads elsewhere: the address it opens. */
+  href?: string;
   destructive: boolean;
   run: () => void;
 };
@@ -34,7 +37,7 @@ function personOf(variables: unknown): number | undefined {
 export function useStaffActions(
   spaceId: number,
   member: StaffMember,
-  { open }: { open: (dialog: StaffDialog) => void },
+  { open, collectionsLink }: { open: (dialog: StaffDialog) => void; collectionsLink: string },
 ) {
   const copy = useCopy().staff;
   const reactivate = useSetStaffActive(spaceId);
@@ -47,7 +50,7 @@ export function useStaffActions(
   const access: StaffActionItem = member.isActive
     ? {
         label: copy.deactivate.item,
-        disabled: false,
+        held: false,
         destructive: true,
         run: () => {
           open({ kind: 'deactivate', member });
@@ -55,7 +58,7 @@ export function useStaffActions(
       }
     : {
         label: copy.reactivate.item,
-        disabled: false,
+        held: false,
         destructive: false,
         run: () => {
           reactivate.mutate(
@@ -71,7 +74,7 @@ export function useStaffActions(
 
   const held = (reason: string): StaffActionItem => ({
     label: copy.reissue.item,
-    disabled: true,
+    held: true,
     reason,
     destructive: false,
     run: () => undefined,
@@ -82,15 +85,24 @@ export function useStaffActions(
       ? held(copy.reissue.heldSettled)
       : {
           label: copy.reissue.item,
-          disabled: false,
+          held: false,
           destructive: false,
           run: () => {
             open({ kind: 'reissue', member });
           },
         };
 
+  const collections: StaffActionItem = {
+    label: copy.viewCollections,
+    held: false,
+    destructive: false,
+    href: collectionsLink,
+    run: () => undefined,
+  };
+
   return {
     trigger: { label: copy.menu({ name }), busy: waiting.includes(member.userId) },
-    items: member.isActive ? [reissue, access] : [access, reissue],
+    // «عرض مقبوضاته» first: it leads to the ledger and changes nothing (D5.6).
+    items: [collections, ...(member.isActive ? [reissue, access] : [access, reissue])],
   };
 }

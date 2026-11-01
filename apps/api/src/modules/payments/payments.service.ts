@@ -8,6 +8,7 @@ import type {
   UncollectedVisit,
   VisitPayment,
 } from '@masaha/shared/payments';
+import type { WrittenOffVisit } from '@masaha/shared/visits';
 
 import type { Tx } from '../../db/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
@@ -81,6 +82,22 @@ export function createPaymentsService({
   now,
 }: Dependencies) {
   const repository = createPaymentsRepository();
+
+  /**
+   * Names the accounts that recorded or voided these payments, in one query: a lookup by id; a name
+   * missing is a bug.
+   */
+  async function peopleOf(rows: readonly ItemPaymentRow[], tx?: Tx) {
+    const ids = idsOf(rows.flatMap(({ recordedById, voidedById }) => [recordedById, voidedById]));
+    const names = new Map(
+      ids.length === 0 ? [] : (await users.namesFor(ids, tx)).map(({ id, name }) => [id, name]),
+    );
+    return (id: number) => {
+      const name = names.get(id);
+      if (name === undefined) throw new Error(`The user ${String(id)} has no name.`);
+      return { id, name };
+    };
+  }
 
   /**
    * These payments of the space as the payments list shows them, in their order: each named by its
@@ -369,6 +386,50 @@ export function createPaymentsService({
       return repository.balanceTotals(spaceId, calendarOf(at), tx);
     },
 
+    /**
+     * A page of the space's written-off visits, the owner's (the router's `can()`): this ledger pages
+     * them over the visits and their non-voided payments, the latest written off first; `visits`
+     * answers them as the desk sees them, and `users` names who wrote each off. The rest written off
+     * is the charge less what was paid.
+     */
+    async writtenOffIn(
+      spaceId: number,
+      query: PaginationQuery,
+    ): Promise<{ rows: WrittenOffVisit[]; total: number }> {
+      const { rows, total } = await repository.writtenOffPage(spaceId, {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      const deskVisits = await visits.deskVisitsOf(
+        spaceId,
+        rows.map(({ id }) => id),
+      );
+      const byIds = idsOf([...deskVisits.values()].map(({ writeOff }) => writeOff?.byId ?? null));
+      const names = new Map(
+        byIds.length === 0
+          ? []
+          : (await users.namesFor(byIds, undefined)).map(({ id, name }) => [id, name]),
+      );
+      return {
+        rows: rows.flatMap(({ id, paidAgorot }) => {
+          const visit = deskVisits.get(id);
+          const byId = visit?.writeOff?.byId;
+          if (!visit || byId === undefined) return [];
+          const name = names.get(byId);
+          if (name === undefined) throw new Error(`The user ${String(byId)} has no name.`);
+          return [
+            {
+              visit,
+              writtenOffBy: { id: byId, name },
+              paidAgorot,
+              writtenOffAgorot: (visit.charge?.amountAgorot ?? 0) - paidAgorot,
+            },
+          ];
+        }),
+        total,
+      };
+    },
+
     /** The space's uncollected visits counted: all, what the priced ones owe, the unpriced apart. */
     uncollectedTotals(spaceId: number, tx?: Tx): Promise<UncollectedTotals> {
       return repository.uncollectedTotals(spaceId, tx);
@@ -419,31 +480,37 @@ export function createPaymentsService({
     },
 
     /**
-     * Every payment of these visits of the space, voided ones marked, by visit, the earliest received
-     * first; a visit with none is absent. One query.
+     * Every payment of these visits of the space, voided ones marked, each named by who recorded and
+     * who voided it, by visit, the earliest received first; a visit with none is absent. Two
+     * queries: the payments, then the names.
      */
     async paymentsFor(
       spaceId: number,
       visitIds: readonly number[],
       tx?: Tx,
     ): Promise<Map<number, ItemPayment[]>> {
+      const rows = await repository.paymentsOfVisits(spaceId, visitIds, tx);
+      const person = await peopleOf(rows, tx);
       const byVisit = new Map<number, ItemPayment[]>();
-      for (const row of await repository.paymentsOfVisits(spaceId, visitIds, tx)) {
+      for (const row of rows) {
         if (row.visitId === null) continue;
-        byVisit.set(row.visitId, [...(byVisit.get(row.visitId) ?? []), toItemPayment(row)]);
+        byVisit.set(row.visitId, [...(byVisit.get(row.visitId) ?? []), toItemPayment(row, person)]);
       }
       return byVisit;
     },
 
-    /** Every payment of the space's subscription, voided ones marked, the earliest received first. */
+    /**
+     * Every payment of the space's subscription, voided ones marked, each named by who recorded and
+     * who voided it, the earliest received first.
+     */
     async paymentsOfSubscription(
       spaceId: number,
       subscriptionId: number,
       tx?: Tx,
     ): Promise<ItemPayment[]> {
-      return (await repository.paymentsOfSubscription(spaceId, subscriptionId, tx)).map(
-        toItemPayment,
-      );
+      const rows = await repository.paymentsOfSubscription(spaceId, subscriptionId, tx);
+      const person = await peopleOf(rows, tx);
+      return rows.map((row) => toItemPayment(row, person));
     },
 
     /**

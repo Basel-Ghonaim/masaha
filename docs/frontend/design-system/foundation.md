@@ -91,7 +91,7 @@ A new component goes in the category of its role: the removable filter tag ([fin
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
-- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), the pin (`.map-pin`, on `primary`), the marks of a map of many places (`.map-mark`: a dot filled, barred, hollow or dashed, toned `success`, `warning` or `muted-foreground`, the selected one ringed on `primary`, never filled), the visitor's point (`.map-user`), the crosshair at the centre while a point is picked (`.map-crosshair`) and a mark's name beside it (`.map-tooltip`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
+- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), the pin (`.map-pin`, on `primary`), the marks of a map of many places (`.map-mark`: a dot filled, barred, hollow or dashed, toned `success`, `warning` or `muted-foreground`, the selected one ringed on `primary`, never filled; each drawn on a span that takes the light theme, as OpenStreetMap's tiles are light in both themes, so the map's marks and a legend's `MapMarkSample` agree in dark ([finding 135](../../architecture/findings/135-in-dark-the-maps-marks-disagree-with-its-legend.md), 2026-10-29, #132)), the visitor's point (`.map-user`), the crosshair at the centre while a point is picked (`.map-crosshair`) and a mark's name beside it (`.map-tooltip`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
 
 **Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk, react-day-picker or TanStack Table outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 
@@ -139,6 +139,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 |---|---|---|
 | `card-border` | light `n-200` (= `border`) · dark `n-700` | Card, table container, panels, the outline Button — dark cards have no shadow, so the border carries the edge |
 | `control-height` | 40px · **44px on touch** (`pointer: coarse`) | Button, Input, Select, Checkbox row |
+| `control-height-lg` | 48px · **52px on touch** | Input at `size="lg"`: a page's main field, such as the front desk's search |
 | `control-text-size` | 15px (`body`) · **16px on touch** | The value typed or chosen in Input, Textarea and the Select trigger, with `body`'s line height. iOS Safari zooms the page into a focused input whose text is under 16px |
 | `button-padding-inline` | 16px | Button |
 | `card-padding` | 20px | Card, StatCard |
@@ -146,6 +147,9 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
 | `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
+| `chart-height-md` · `chart-height-sm` | 200px · 120px | BarChart's two sizes: a chart of its own, and one beside others |
+| `refreshing` | opacity 0.6 | Refreshing and DataTable's `refreshing`: the rows or cards shown while the next page or filter loads over them |
+| `heatmap-step-1` … `heatmap-step-5` | opacity 0.12 · 0.3 · 0.5 · 0.72 · 1 | Heatmap: `primary` over a `muted` cell, from the fewest to the most, and its legend |
 
 **Layout is not tokenised.** Pages use Tailwind's 4px scale; *Sea*'s rhythm maps to it: page gutter 32px (`8`; 16px on phones), grid gap 16px (`4`) / 24px (`6`), section spacing 56px (`14`), home hero padding 64px (`16`). These are guidance for page composition, not layer tokens.
 
@@ -368,13 +372,13 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
-| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
+| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side · a `held` item, for an action that cannot be taken now: `aria-disabled` and drawn disabled, its reason inside the item's text, and selecting it does nothing; unlike `disabled`, which Radix skips in the arrow keys and typeahead, it stays reachable, so its reason is read (§10; [finding 105](../../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)) |
 
 ### `fields`
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
+| Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box · Input's `size="lg"` is a page's main field, such as the front desk's search: `control-height-lg`, its value text `control-text-size` as at the standard size |
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, a filter of several choices (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one · a caller that finds its own options, such as a server's search, passes `search` (the text and its change): the list shows the options as given, unfiltered, and `loading` stands in for the empty text while they come. |
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
@@ -391,12 +395,15 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
 | FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
+| Meter | hand-built | A share of a whole as a bar: a `muted` track 12px high, `radius-pill`, filled from the start side in `primary` or `warning` (`tone`) · `kind="meter"` (a measure, such as occupancy) or `"progress"` (a task on its way, such as a photo's upload), with `aria-valuemin/max/now`, an optional `valueText`, and named by `label` · the value kept inside 0…max; the fill's width is set inside the layer, so no page draws a bar |
 
 ### `data`
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows · `cardsBelow="lg"` keeps the cards until 1024px, for the lists the design draws as cards until 1024 (A7: the spaces, users and data-report lists) |
+| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows · `refreshing` keeps the rows or cards shown while another page or filter loads over them, dimmed (`refreshing`) and the table or list marked busy, so a list never blanks between two answers · `cardsBelow="lg"` keeps the cards until 1024px, for the lists the design draws as cards until 1024 (A7: the spaces, users and data-report lists) |
+| BarChart | hand-built | Stacked vertical bars on the `chart-1…5` roles (each series names its `tone`), hand-built without a chart library: `md` 200px or `sm` 120px high (`chart-height-*`), a tick under each bar, a legend only for two series or more · the bars are for the eye (`aria-hidden`); a visually hidden table, captioned with the `title`, holds every value of every series as the caller's `format` writes it, its first header the `periodLabel` |
+| Heatmap | hand-built | Rows by columns (days by hours), each cell `primary` at one of five steps over `muted` (`heatmap-step-*`), with a legend from `fewer` to `more` · the cells are for the eye; a visually hidden table holds every value, captioned with the `title` and the `unit`, its first header the `dayLabel` |
 
 ### `feedback`
 
@@ -407,6 +414,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Skeleton | shadcn | Loading states |
 | EmptyState | hand-built | Icon + title + text + action |
 | Spinner | hand-built | |
+| Refreshing | hand-built | A wrapper for a list that is not a table, such as a grid of cards, while its next page or filter loads: what it holds stays, dimmed (`refreshing`), and it is marked `aria-busy` ([finding 132](../../architecture/findings/132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)) |
 
 ### `overlays`
 
@@ -450,7 +458,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 8. **404**
 
 ### My account (3)
-9. **Profile & settings** — name, password (a Google-only account can add one), language, theme
+9. **Profile & settings** — name, password (a Google-only account can add one), language, theme; the ways the account signs in, Google and the password (2026-10-29, #132)
 10. **Favourites**
 11. **My reports** — submitted reports, their status and the resolution note («ردّ إدارة المساحة» or «ردّ فريقنا»)
 
@@ -470,7 +478,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 21. **Prices & packages** (O) — the published prices (hour, day, week, month, student), which are the public packages, and private packages
 22. **Staff** (O) — reception accounts: add by name and email (a temporary password shown once, or an existing account linked), deactivate
 23. **Data reports** (O) — users' reports about the space's info; resolve with an optional note
-24. **Settings** (O) — auto check-out rule, visit rounding rule, account
+24. **Settings** (O) — auto check-out rule, visit rounding rule; the account card, «حسابي», leading to one's own settings (screen 9) (2026-10-29, #132)
 
 ### Admin dashboard (8)
 25. **Overview** — spaces verified / unverified, open reports, new users, data completeness
@@ -479,7 +487,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 28. **Data reports** — all reports and their status; resolve those of unverified spaces with an optional note
 29. **Users** — search, suspend, change role; issue a temporary password to a user who lost access to their email
 30. **Lookups** — areas and amenities, in Arabic and English
-31. **Audit log**
+31. **Audit log** — the admin's; and the owner's, scoped to the space (O13: the admin's page for one space, in «الفريق والإعدادات»), one screen, not a 33rd (DI1; 2026-10-29, #132)
 32. **Settings** — contact email and WhatsApp, default auto check-out, data-staleness threshold
 
 ---

@@ -5,13 +5,19 @@ import { useRefusalView } from '@shared/forms';
 import { clockOf, dayWord } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
+import { useLocation } from 'react-router';
 import { useUnpricedQuery } from './useUnpricedQuery';
+
+/** The card's anchor: the owner's overview links to it, «… بلا سعر» (screen 12). */
+export const UNPRICED_ID = 'unpriced';
 
 /**
  * «بدون سعر», ready to render, only for whoever may type a price (`mayTypePrice`, the terms' answer
  * for the caller, S5): its list is not even read for anyone else. The title counts all the visits;
  * the rows are the first page's — each priced leaves it, and the next takes its place — each saying
- * who, how and when it closed, with «تحديد السعر». The card is absent with none to price.
+ * who, how and when it closed, with «تحديد السعر». The card is absent with none to price. Arriving
+ * at `#unpriced` (`arrived`), it lands there once it draws: it appears only once the terms answer,
+ * after the shell's focus rule looked for it.
  */
 export function useUnpricedCard(spaceId: number, { mayTypePrice }: { mayTypePrice: boolean }) {
   const copy = useCopy();
@@ -19,6 +25,7 @@ export function useUnpricedCard(spaceId: number, { mayTypePrice }: { mayTypePric
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   const query = useUnpricedQuery(spaceId, 1, mayTypePrice);
   const answer = query.data;
+  const arrived = useLocation().hash === `#${UNPRICED_ID}`;
   const [dialog, setDialog] = useState<{ visit: DeskVisit; name: string } | null>(null);
   const { view, blocked } = useRefusalView(
     answer === undefined ? query.error : null,
@@ -52,6 +59,7 @@ export function useUnpricedCard(spaceId: number, { mayTypePrice }: { mayTypePric
 
   return {
     shown: mayTypePrice && !(answer !== undefined && rows.length === 0),
+    arrived,
     title: words.unpriced.title({ count: answer?.meta.totalRecords ?? 0 }),
     state: query.isPending
       ? ('loading' as const)

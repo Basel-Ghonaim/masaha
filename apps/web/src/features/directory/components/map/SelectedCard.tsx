@@ -60,7 +60,7 @@ export function SelectedCard({
         </CardAction>
       </CardHeader>
       <CardContent>
-        <SpaceSummary card={card} />
+        <SpaceSummary card={card} distance={selected.distance} />
       </CardContent>
       <CardFooter>
         <Button asChild className="w-full">

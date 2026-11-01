@@ -17,6 +17,14 @@ export interface WarningsMeta {
   warnings: DomainErrorCode[];
 }
 
+/**
+ * The record a refusal names, so the client can act on it without a second search. Today only
+ * `ALREADY_OWNER` carries it: the owner's account, to link instead.
+ */
+export interface ErrorDetails {
+  userId: number;
+}
+
 /** An error answer. */
 export interface ErrorEnvelope {
   success: false;
@@ -26,6 +34,8 @@ export interface ErrorEnvelope {
     /** English, for developers and logs only: never shown to users. */
     message: string;
     errors?: FieldErrors;
+    /** The record a refusal is about, when it names one (api-contract §2). */
+    details?: ErrorDetails;
     /** The X-Request-Id of this answer. */
     requestId: string;
   };

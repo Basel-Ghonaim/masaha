@@ -9,11 +9,18 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { useStaffList } from '../list/useStaffList';
 import { useStaffPeople } from './useStaffPeople';
 
+/** No month's collections read: the list's own rows are what these tests prove. */
+const COLLECTIONS = {
+  of: () => null,
+  link: (userId: number) => `/payments?staff=${String(userId)}`,
+};
+
 const member = (change: Partial<StaffMember>): StaffMember => ({
   userId: 15,
   name: 'Laila',
   email: 'laila@example.com',
   isActive: true,
+  addedAt: '2026-09-14T08:30:00.000Z',
   temporaryPassword: null,
   ...change,
 });
@@ -36,9 +43,12 @@ describe('useStaffPeople', () => {
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
     // The staff page's list and the ledger's filter, side by side, share one read.
-    const { result } = renderHook(() => ({ people: useStaffPeople(7), list: useStaffList(7) }), {
-      wrapper,
-    });
+    const { result } = renderHook(
+      () => ({ people: useStaffPeople(7), list: useStaffList(7, COLLECTIONS) }),
+      {
+        wrapper,
+      },
+    );
 
     expect(result.current.people.state).toBe('loading');
     await waitFor(() => {

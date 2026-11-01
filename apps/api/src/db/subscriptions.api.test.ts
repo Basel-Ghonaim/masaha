@@ -282,6 +282,30 @@ describe('a subscription', () => {
       createSubscription(await createCustomer(branch.id), { idempotencyKey: key }),
     ).resolves.toMatchObject({ idempotencyKey: key });
   });
+
+  it('keeps the period of the published price it was sold from: a week or a month, never with a package', async () => {
+    const space = await createSpace();
+    const customer = await createCustomer(space.id);
+    const monthly = await prisma.package.create({
+      data: {
+        spaceId: space.id,
+        name: 'شهري',
+        validityDays: 30,
+        billing: 'FIXED',
+        priceAgorot: 30_000,
+      },
+    });
+
+    await expect(createSubscription(customer, { publishedPeriod: 'MONTH' })).resolves.toMatchObject(
+      { publishedPeriod: 'MONTH' },
+    );
+    await expect(createSubscription(customer, { publishedPeriod: 'DAY' })).rejects.toThrow(
+      /subscriptions_published_period_check/,
+    );
+    await expect(
+      createSubscription(customer, { packageId: monthly.id, publishedPeriod: 'WEEK' }),
+    ).rejects.toThrow(/subscriptions_published_period_check/);
+  });
 });
 
 describe('a package', () => {
@@ -320,7 +344,8 @@ interface Usage {
   days_this_week: number;
   minutes_used: number;
   minutes_today: number;
-  due_agorot: number;
+  /** `bigint`: no price within its bound overflows it (data model › Derived values). */
+  due_agorot: bigint;
 }
 
 /** The function's rows for a space (one customer's, when given), on Wednesday 2026-10-21. */
@@ -398,11 +423,15 @@ describe('subscription_usage', () => {
       expect.objectContaining({
         subscription_id: fixed.id,
         usage_based: false,
-        due_agorot: 30_000,
+        due_agorot: 30_000n,
       }),
-      expect.objectContaining({ subscription_id: perDay.id, usage_based: true, due_agorot: 5_000 }),
-      expect.objectContaining({ subscription_id: perHour.id, usage_based: true, due_agorot: 500 }),
-      expect.objectContaining({ subscription_id: unused.id, days_used: 0, due_agorot: 0 }),
+      expect.objectContaining({
+        subscription_id: perDay.id,
+        usage_based: true,
+        due_agorot: 5_000n,
+      }),
+      expect.objectContaining({ subscription_id: perHour.id, usage_based: true, due_agorot: 500n }),
+      expect.objectContaining({ subscription_id: unused.id, days_used: 0, due_agorot: 0n }),
     ]);
   });
 
@@ -421,6 +450,26 @@ describe('subscription_usage', () => {
     ]);
     expect(await usage(space.id, omar.id)).toMatchObject([
       { subscription_id: omars.id, customer_id: omar.id },
+    ]);
+  });
+
+  it("a per-day subscription's due past the integer's range is answered exactly", async () => {
+    const space = await createSpace();
+    // The price's bound, a day: 215 days owe 2,150,000,000 agorot, past 2³¹ − 1.
+    const perDay = await createSubscription(await createCustomer(space.id), {
+      billing: 'PER_DAY',
+      priceAgorot: 10_000_000,
+    });
+    await prisma.$executeRaw`
+      INSERT INTO check_ins (space_id, customer_id, subscription_id, request_id, checked_in_at,
+                             checked_out_at, checkout_method, updated_at)
+      SELECT ${space.id}, ${perDay.customerId}, ${perDay.id}, gen_random_uuid(),
+             '2026-01-01T09:00:00+02:00'::timestamptz + n * interval '1 day',
+             '2026-01-01T10:00:00+02:00'::timestamptz + n * interval '1 day', 'MANUAL', now()
+      FROM generate_series(0, 214) n`;
+
+    expect(await usage(space.id)).toMatchObject([
+      { subscription_id: perDay.id, days_used: 215, due_agorot: 2_150_000_000n },
     ]);
   });
 });

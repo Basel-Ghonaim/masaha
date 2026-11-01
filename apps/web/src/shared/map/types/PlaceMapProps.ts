@@ -7,4 +7,6 @@ export type PlaceMapProps = {
   label: string;
   /** The line shown when the map cannot load, its tiles or its code. */
   failed: string;
+  /** The visitor's point, a picture named by its label, the map then showing both; or none. */
+  user?: { point: MapPoint; label: string } | null;
 };

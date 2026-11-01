@@ -29,19 +29,16 @@ afterEach(() => {
 });
 
 describe('useEditAreaForm', () => {
-  it('saves the area as it stands with its switch turned on, restoring it', async () => {
+  it('saves the area’s names as they stand, and never its Active flag', async () => {
     const onSaved = vi.fn();
     const requests = fakeTransport((request) =>
-      request.method === 'get' ? ok([]) : ok({ ...SHUJAIYYA, isActive: true }),
+      request.method === 'get' ? ok([]) : ok(SHUJAIYYA),
     );
     const { result } = renderHook(() => useEditAreaForm({ area: SHUJAIYYA, onSaved }), {
       wrapper: queryWrapper(),
     });
-    expect(result.current.active?.checked).toBe(false);
+    expect(result.current).not.toHaveProperty('active');
 
-    act(() => {
-      result.current.active?.toggle(true);
-    });
     act(() => {
       result.current.submit();
     });
@@ -49,15 +46,18 @@ describe('useEditAreaForm', () => {
     await waitFor(() => {
       expect(onSaved).toHaveBeenCalledOnce();
     });
-    expect(bodyOf(requests[0])).toEqual({
+    expect(bodyOf(requests.find(({ method }) => method === 'patch'))).toEqual({
       nameAr: 'الشجاعية',
       nameEn: 'Ash-Shuja’iyya',
-      isActive: true,
     });
   });
 
   it('puts a taken Arabic name on its field, in the governorate’s words', async () => {
-    fakeTransport(() => refused(409, { type: 'conflict', errors: { nameAr: ['not_unique'] } }));
+    fakeTransport((request) =>
+      request.method === 'get'
+        ? ok([])
+        : refused(409, { type: 'conflict', errors: { nameAr: ['not_unique'] } }),
+    );
     const { result } = renderHook(() => useEditAreaForm({ area: SHUJAIYYA, onSaved: vi.fn() }), {
       wrapper: queryWrapper(),
     });

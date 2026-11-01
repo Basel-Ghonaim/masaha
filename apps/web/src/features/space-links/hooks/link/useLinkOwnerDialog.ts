@@ -9,12 +9,14 @@ import type { NamedLineView } from '../../types/NamedLineView';
 import type { PersonChoiceView } from '../../types/PersonChoiceView';
 import type { SpaceChoiceView } from '../../types/SpaceChoiceView';
 import { useSpaceChoices } from '../useSpaceChoices';
+import { useSpaceOwnersQuery } from '../useSpaceOwnersQuery';
 import { useLinkOwner } from './useLinkOwner';
 import { usePersonChoices } from './usePersonChoices';
 
 /**
  * The link dialog, ready to render, from either end: from a space, one person to choose (owners and
- * users, by name or email); from a person, one space (each with its state and owners, theirs
+ * users, by name or email), the space's owners read afresh as it opens (finding 95: one linked
+ * meanwhile is worded as another owner, and the submit waits for the read); from a person, one space (each with its state and owners, theirs
  * already and those whose front desk they work offered but not to be chosen). Before the act it
  * says what the link does, from the chosen option's own facts: an unverified space becomes
  * verified, a verified one gains another owner, and a user's account becomes an owner's — said only
@@ -27,13 +29,18 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
   const link = useLinkOwner();
   const fromSpace = target.from === 'space';
   const people = usePersonChoices({ enabled: fromSpace });
+  // From a space, its owners as the server reads them now, not as the editor read them.
+  const owners = useSpaceOwnersQuery(target.from === 'space' ? target.space.id : 0, fromSpace);
+  const hasOwner = owners.data !== undefined && owners.data.length > 0;
   const spaces = useSpaceChoices({
     enabled: !fromSpace,
     linked: target.from === 'person' ? target.person.spaceIds : [],
     desks: target.from === 'person' ? target.person.deskIds : [],
   });
   const [person, setPerson] = useState<PersonChoiceView | null>(null);
-  const [chosenSpace, setSpace] = useState<SpaceChoiceView | null>(null);
+  const [chosenSpace, setSpace] = useState<SpaceChoiceView | null>(
+    target.from === 'person' ? (target.space ?? null) : null,
+  );
   const [missing, setMissing] = useState(false);
   const [refusal, setRefusal] = useState<AppError | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -48,15 +55,26 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
     setRefusal(null);
   };
 
-  // The space and whether it is verified, and whether the person is a user, as the choice says.
+  // The space and whether it is verified, whether the person is a user, and the front desks they
+  // work, as the choice says.
   const facts =
     target.from === 'space'
       ? person === null
         ? null
-        : { space: target.space.name, verified: false, user: person.role === 'USER' }
+        : {
+            space: target.space.name,
+            verified: hasOwner,
+            user: person.role === 'USER',
+            desks: person.desks,
+          }
       : space === null
         ? null
-        : { space: space.name, verified: space.isVerified, user: target.person.role === 'USER' };
+        : {
+            space: space.name,
+            verified: space.isVerified,
+            user: target.person.role === 'USER',
+            desks: null,
+          };
 
   const consequence: (NamedLineView | string)[] =
     facts === null
@@ -66,6 +84,7 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
             ? namedLine(({ name }) => lines.anotherOwner({ space: name }), facts.space)
             : namedLine(({ name }) => lines.becomesVerified({ space: name }), facts.space),
           ...(facts.user ? [lines.becomesOwner] : []),
+          ...(facts.desks === null ? [] : [lines.staysAtDesk({ spaces: facts.desks })]),
         ];
 
   const placeholder = fromSpace ? lines.choosePerson : lines.chooseSpace;
@@ -100,7 +119,7 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
       target.from === 'space'
         ? namedLine(({ name }) => lines.titleFromSpace({ space: name }), target.space.name)
         : lines.titleFromPerson({ name: isolate(target.person.name) }),
-    description: fromSpace ? lines.noOwner : lines.oneAtATime,
+    description: fromSpace ? (hasOwner ? lines.hasOwner : lines.noOwner) : lines.oneAtATime,
     field: {
       label: fromSpace ? lines.person : lines.space,
       helper: fromSpace ? lines.personHelper : undefined,
@@ -130,7 +149,13 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
     consequence,
     addOwner:
       target.from === 'space' ? { text: lines.addOwner, link: target.addOwnerLink } : undefined,
-    submit: { label: lines.submit, run, busy: link.isPending, blocked },
+    submit: {
+      label: lines.submit,
+      run,
+      // From a space, the submit waits for the fresh read of its owners.
+      busy: link.isPending || (fromSpace && owners.isFetching),
+      blocked,
+    },
     failure,
     closeLabel: lines.close,
   };

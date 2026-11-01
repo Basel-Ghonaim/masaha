@@ -6,6 +6,7 @@ export const DESK = {
     checkIn: 'تسجيل زيارة',
     switchStaff: 'تبديل الموظف',
     more: 'إجراءات أخرى',
+    oldest: ({ item }: { item: string }) => `أقدم بند: ${item}`,
   },
   switchStaff: {
     failed: 'تعذّر الخروج من الحساب؛ أعد المحاولة.',
@@ -28,7 +29,8 @@ export const DESK = {
     shift: 'الوردية',
     optional: 'اختياري',
     noShift: 'بدون وردية',
-    full: 'المساحة ممتلئة؛ يمكنك التسجيل على أي حال، وتبقى حالتها للزوار «ممتلئ».',
+    full: ({ ratio }: { ratio: string }) =>
+      `المساحة ممتلئة ${ratio}؛ يمكنك التسجيل على أي حال، وتبقى حالتها للزوار «ممتلئ».`,
     submit: 'تسجيل الزيارة',
     submitAnyway: 'تسجيل على أي حال',
     failed: 'تعذّر تسجيل الزيارة',
@@ -41,8 +43,21 @@ export const DESK = {
     visit: 'زيارة',
     studentVisit: 'زيارة · طالب',
     rows: { in: 'الدخول', out: 'الخروج', duration: 'المدة' },
-    billed: ({ time }: { time: string }) => `مدة محسوبة ${time}`,
-    cap: 'السقف: سعر اليوم',
+    billed: ({
+      hours,
+      rate,
+      amount,
+      rounding,
+    }: {
+      hours: string;
+      rate: string;
+      amount: string;
+      rounding: string;
+    }) => `${hours} س × ${rate} = ${amount} · ${rounding}`,
+    billedCapped: ({ hours, rate, rounding }: { hours: string; rate: string; rounding: string }) =>
+      `${hours} س × ${rate} · ${rounding}`,
+    cap: ({ day }: { day: string }) => `السقف: سعر اليوم ${day}`,
+    dayOnly: ({ day }: { day: string }) => `لا يوجد سعر بالساعة — سعر اليوم ${day}`,
     rounding: {
       UP_AFTER_MINUTES: ({ minutes }: { minutes: string }) => `تقريب لأعلى بعد ${minutes}`,
     },
@@ -102,6 +117,7 @@ export const DESK = {
         many: `${String(count)} زيارة غير محصّلة`,
         other: `${String(count)} زيارة غير محصّلة`,
       }),
+    heading: 'غير محصّل',
     none: 'لا توجد مبالغ غير محصّلة.',
     loadFailed: 'تعذّر تحميل الزيارات غير المحصّلة',
     how: ({ day, range }: { day: string; range: string }) =>
@@ -139,6 +155,8 @@ export const DESK = {
     phone: 'رقم الجوال',
     phoneRequired: 'رقم الجوال مطلوب ليُسجَّل المبلغ دينًا، مثل \u2066+970 59 000 0000\u2069',
     adds: ({ name }: { name: string }) => `يُضاف إلى ملف ${name}`,
+    newCustomer: 'زبون جديد بهذا الرقم',
+    phonePlaceholder: '+970 59 000 0000',
     title: ({ name }: { name: string }) => `تسجيل دين · ${name}`,
     text: ({ amount }: { amount: string }) =>
       `يبقى ${amount} دينًا على صاحب هذا الرقم، ويُنشأ له ملف زبون إن لم يكن له ملف.`,
@@ -179,6 +197,28 @@ export const DESK = {
     undoFailed: 'تعذّر التراجع عن الشطب',
     failed: 'تعذّر الشطب',
   },
+  writtenOff: {
+    views: 'أيّ الزيارات',
+    uncollected: 'غير محصّل',
+    writtenOff: 'لن تُحصَّل',
+    line: ({ amount, reason }: { amount: string; reason: string }) =>
+      `لن يُحصَّل ${amount} · ${reason}`,
+    by: ({ name, date }: { name: string; date: string }) => `كتبها ${name} في ${date}`,
+    undo: 'تراجع',
+    undoName: ({ name, day }: { name: string; day: string }) =>
+      `تراجع عن شطب زيارة ${name} · ${day}`,
+    none: 'لا زيارات شُطبت.',
+    loadFailed: 'تعذّر تحميل الزيارات المشطوبة',
+    pagination: {
+      label: 'صفحات الزيارات المشطوبة',
+      previous: 'السابق',
+      next: 'التالي',
+      page: ({ page }: { page: number }) => `الصفحة ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `صفحة ${String(page)} من ${String(total)}`,
+      more: 'صفحات أخرى',
+    },
+  },
   void: {
     menu: ({ amount, who }: { amount: string; who: string }) =>
       `إجراءات الدفعة: ${amount} · ${who}`,
@@ -218,6 +258,7 @@ export const DESK = {
   failure: {
     lost: 'لم يصل الرد. أعد المحاولة — لن تُسجَّل مرتين.',
     nothing: 'لم يُسجَّل شيء.',
+    limited: 'لم يُسجَّل شيء. إعادة المحاولة بعد ذلك لن تسجّله مرتين.',
   },
   refusals: {
     VISIT_ALREADY_CLOSED:
@@ -270,10 +311,13 @@ export const DESK = {
     checkIn: 'حضور',
     checkInName: ({ name }: { name: string }) => `حضور ${name}`,
     receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    notHere: 'غير حاضر',
+    renewFailed: 'تعذّرت قراءة الاشتراك لتجديده',
     /** A customer's «⋯» (DI-39), named by them. */
     menu: {
       label: ({ name }: { name: string }) => `إجراءات أخرى: ${name}`,
       file: 'ملف الزبون',
+      reading: 'جارٍ تحميل الإجراءات…',
       edit: 'تعديل البيانات',
       archive: 'أرشفة…',
       restore: 'استرجاع',
@@ -289,7 +333,6 @@ export const DESK = {
         `يبدأ الاشتراك «${name}» في ${date}.`,
       asVisit: 'تسجيل كزيارة',
       startFailed: 'تعذّرت قراءة تاريخ بدء الاشتراك',
-      asVisitNote: 'تُسجَّل زيارة باسمه، ولا تُضاف إلى ملفه.',
       anyway: 'تسجيل على أي حال',
       back: 'رجوع',
     },
@@ -356,6 +399,8 @@ export const DESK = {
       options: {
         all: 'كل الأنواع',
         PACKAGE: 'باقة',
+        WEEK: 'أسبوعي',
+        MONTH: 'شهري',
         CUSTOM: 'مخصّص',
         NONE: 'بدون اشتراك',
       },
@@ -428,9 +473,13 @@ export const DESK = {
     notFound: { title: 'لم نجد هذا الزبون', text: 'ربما ليس من زبائن هذه المساحة.' },
     balance: 'الرصيد',
     archived: 'مؤرشف',
-    here: 'حاضر الآن',
+    hereSince: ({ time }: { time: string }) => `حاضر منذ ${time}`,
+    reminder: {
+      label: 'تذكير على واتساب',
+      caption: 'يفتح واتساب برسالة جاهزة، وترسلها أنت.',
+    },
     loadFailed: 'تعذّر تحميل ملف الزبون',
-    unpaid: { title: 'زيارات غير مدفوعة', unpriced: 'بدون سعر بعد' },
+    unpaid: { title: 'زيارات غير مدفوعة', counts: 'تُحسب في رصيده.', unpriced: 'بدون سعر بعد' },
     subscriptions: {
       title: 'الاشتراكات',
       none: 'لا توجد اشتراكات',
@@ -505,7 +554,7 @@ export const DESK = {
     payments: 'الدفعات',
     noPayments: 'لا دفعات بعد.',
     voided: 'ملغاة',
-    voidedReason: ({ reason }: { reason: string }) => `أُلغيت: ${reason}`,
+    recordedBy: ({ name }: { name: string }) => `سجّلها ${name}`,
     renewal: ({ date }: { date: string }) => `التجديد يبدأ في ${date}`,
   },
   /** Ending a subscription early. */
@@ -540,7 +589,8 @@ export const DESK = {
     phoneRequired: ({ amount }: { amount: string }) =>
       `رقم الجوال مطلوب: يبقى ${amount} دينًا، مثل \u2066+970 59 000 0000\u2069`,
     package: 'الباقة',
-    groups: { published: 'منشورة للزوار', packages: 'باقات المساحة — لا تظهر للزوار' },
+    groups: { published: 'منشورة للزوار', packages: 'خاصة بالمكتب — لا تظهر للزوار' },
+    private: 'خاصة',
     published: {
       WEEK: 'أسبوعي',
       MONTH: 'شهري',
@@ -564,6 +614,38 @@ export const DESK = {
     to: 'إلى',
     toFromPackage: 'تُحسب من الباقة',
     noEnd: 'بلا تاريخ نهاية · يبقى نشطًا حتى يُنهى',
+    noEndLimit: ({ limit }: { limit: string }) => `بلا تاريخ نهاية · ينتهي عند استهلاك ${limit}`,
+    endOrLimit: ({ date, limit }: { date: string; limit: string }) =>
+      `ينتهي في ${date} أو عند استهلاك ${limit}، أيهما أسبق`,
+    limitDays: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا أيام',
+        one: 'يوم واحد',
+        two: 'يومين',
+        few: `${String(count)} أيام`,
+        many: `${String(count)} يومًا`,
+        other: `${String(count)} يوم`,
+      }),
+    limitHours: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا ساعات',
+        one: 'ساعة واحدة',
+        two: 'ساعتين',
+        few: `${String(count)} ساعات`,
+        many: `${String(count)} ساعة`,
+        other: `${String(count)} ساعة`,
+      }),
+    clearEnd: 'بلا تاريخ نهاية',
+    calendar: { previous: 'الشهر السابق', next: 'الشهر التالي' },
+    total: 'المجموع',
+    calcItem: ({ item, balance }: { item: string; balance: string }) => `${item}: ${balance}`,
+    calcNew: ({ name, price }: { name: string; price: string }) => `الاشتراك: ${name} ${price}`,
+    calcRenewal: ({ name, price }: { name: string; price: string }) => `التجديد: ${name} ${price}`,
+    fromPublished: 'من السعر المنشور',
+    byAttendance: {
+      PER_HOUR: ({ rate }: { rate: string }) => `يُحسب من الحضور: ${rate} للساعة`,
+      PER_DAY: ({ rate }: { rate: string }) => `يُحسب من الحضور: ${rate} لليوم`,
+    },
     custom: {
       title: 'مخصّص',
       terms: 'حدّد الشروط والسعر بنفسك',
@@ -610,6 +692,72 @@ export const DESK = {
       noPayment: 'بدون دفع',
       owes: ({ amount }: { amount: string }) => `يبقى ${amount} دينًا`,
       failed: 'تعذّر حفظ الاشتراك',
+    },
+  },
+  usageOut: {
+    title: ({ name }: { name: string }) => `خرج ${name}`,
+    today: ({ time, paid }: { time: string; paid: string }) => `اليوم ${time} · المدفوع ${paid}`,
+    left: ({ subscription, balance }: { subscription: string; balance: string }) =>
+      `يبقى على اشتراك ${subscription}: ${balance}`,
+    receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    later: 'لاحقًا',
+    failed: 'تعذّر تسجيل الدفعة',
+  },
+  log: {
+    tabs: { label: 'الحضور واليوم', now: 'الآن', log: 'السجل' },
+    title: 'السجل',
+    day: 'يوم السجل',
+    today: 'اليوم',
+    calendar: { previous: 'الشهر السابق', next: 'الشهر التالي' },
+    table: 'سجل اليوم',
+    columns: {
+      name: 'الاسم',
+      kind: 'النوع',
+      in: 'دخل',
+      out: 'خرج',
+      duration: 'المدة',
+      ended: 'الخروج',
+    },
+    kinds: { visit: 'زيارة', student: 'زيارة · طالب' },
+    stillHere: '—',
+    duration: ({ hours, minutes }: { hours: string; minutes: string }) => `${hours}:${minutes}`,
+    methods: { AUTO: 'تلقائي', MANUAL: 'يدوي' },
+    writtenOff: 'لن يُحصَّل',
+    empty: 'لا يوجد حضور في هذا اليوم',
+    loadFailed: 'تعذّر تحميل السجل',
+    pagination: {
+      label: 'صفحات السجل',
+      previous: 'السابق',
+      next: 'التالي',
+      page: ({ page }: { page: number }) => `الصفحة ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `صفحة ${String(page)} من ${String(total)}`,
+      more: 'صفحات أخرى',
+    },
+  },
+  correct: {
+    action: 'تصحيح الاشتراك',
+    ended: 'انتهى الاشتراك مبكرًا',
+    title: ({ name }: { name: string }) => `تصحيح ${name}`,
+    terms: 'الاسم والتواريخ والحدود',
+    name: 'الاسم',
+    from: 'من',
+    to: 'إلى',
+    noLimit: 'بلا حد',
+    price: {
+      title: 'السعر',
+      billing: 'طريقة الاحتساب',
+      price: 'السعر (₪)',
+      reason: 'سبب التصحيح',
+    },
+    save: 'حفظ التصحيح',
+    back: 'رجوع',
+    done: 'صُحّح الاشتراك',
+    failed: 'تعذّر تصحيح الاشتراك',
+    endBeforeStart: 'النهاية قبل البداية',
+    refusals: {
+      SUBSCRIPTION_ENDED: 'انتهى هذا الاشتراك مبكرًا؛ لا يُصحَّح.',
+      PRICE_BELOW_PAID: 'السعر أقل مما دُفع عليه.',
     },
   },
 } satisfies Catalogue['desk'];

@@ -4,6 +4,7 @@ import {
   FIELD_ERROR_CODES,
   errorTypeOfStatus,
   type DomainErrorCode,
+  type ErrorDetails,
   type ErrorEnvelope,
   type ErrorType,
   type FieldErrorCode,
@@ -53,6 +54,7 @@ export function toAppError(error: unknown): AppError {
     // A code this client does not know is dropped, so `code ?? type` always has a catalogue line.
     code: isDomainErrorCode(code) ? code : undefined,
     errors: knownFieldErrors(envelope.errors),
+    details: detailsOf(envelope.details),
     // A proxy's answer has no body, but the header still names the request.
     requestId:
       stringOrUndefined(envelope.requestId) ??
@@ -126,6 +128,15 @@ function knownFieldErrors(value: unknown): FieldErrors | undefined {
     return known.length > 0 ? [[field, known] as const] : [];
   });
   return fields.length > 0 ? Object.fromEntries(fields) : undefined;
+}
+
+/** The record a refusal names, kept only in the shape the contract gives it. */
+function detailsOf(value: unknown): ErrorDetails | undefined {
+  if (typeof value !== 'object' || value === null || !('userId' in value)) return undefined;
+  const { userId } = value;
+  return typeof userId === 'number' && Number.isInteger(userId) && userId > 0
+    ? { userId }
+    : undefined;
 }
 
 /** A response header, whatever the case of its name. */

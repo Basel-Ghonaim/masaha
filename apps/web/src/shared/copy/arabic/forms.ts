@@ -11,6 +11,7 @@ export const FORMS = {
       minLength: '8 أحرف على الأقل',
       letter: 'حرف واحد على الأقل',
       digit: 'رقم واحد على الأقل',
+      bytes: 'طويلة جدًا — اختصرها',
     },
     met: '— تحقّق',
     notMet: '— لم يتحقّق بعد',
@@ -21,4 +22,5 @@ export const FORMS = {
     offlineDescription: 'تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.',
     reference: ({ id }: { id: string }) => `رقم المرجع: ${id}`,
   },
+  listRange: ({ range, total }: { range: string; total: string }) => `عرض ${range} من ${total}`,
 } satisfies Catalogue['forms'];

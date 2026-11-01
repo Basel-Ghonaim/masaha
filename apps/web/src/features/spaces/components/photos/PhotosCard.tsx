@@ -22,7 +22,9 @@ export function PhotosCard({
     <Card id={id} className="scroll-mt-28 lg:scroll-mt-20">
       <CardHeader>
         <CardTitle>
-          <h2>{title}</h2>
+          <h2 tabIndex={-1} className="outline-none">
+            {title}
+          </h2>
         </CardTitle>
         {description !== undefined && <CardDescription>{description}</CardDescription>}
       </CardHeader>

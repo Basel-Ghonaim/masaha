@@ -13,12 +13,14 @@ import {
   SheetTitle,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import { useSubscriptionSheet } from '../../hooks/sheet/useSubscriptionSheet';
 import type { SheetChoices } from '../../types/SheetChoices';
 import type { SheetEntry } from '../../types/SheetEntry';
 import { MoneyBlock } from '../money/MoneyBlock';
 import { CustomTerms } from './CustomTerms';
 import { PackageOptions } from './PackageOptions';
+import { DateField } from './DateField';
 import { PriorDebts } from './PriorDebts';
 
 /**
@@ -97,10 +99,7 @@ export function SubscriptionSheet({
                   }
                   error={customer.phone.error}
                 >
-                  <Input
-                    type="tel"
-                    dir="ltr"
-                    autoComplete="off"
+                  <PhoneInput
                     aria-required={customer.phone.required}
                     readOnly={customer.saved}
                     {...customer.phone.field}
@@ -118,20 +117,23 @@ export function SubscriptionSheet({
             {view.custom !== null && <CustomTerms view={view.custom} disabled={busy} />}
             <div className="grid grid-cols-2 gap-3">
               <Field label={dates.from.label} error={dates.from.error}>
-                <Input type="date" dir="ltr" {...dates.from.field} />
+                <DateField date={dates.from} disabled={busy} />
               </Field>
               {dates.to?.kind === 'package' && (
-                <Field label={dates.to.label} helper={dates.to.help}>
-                  <Input dir="auto" readOnly value={dates.to.text} />
-                </Field>
+                // A package's end is said, never chosen: the server sets it (G16.1).
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-label">{dates.to.label}</span>
+                  <span className="text-body-sm">{dates.to.text}</span>
+                  <span className="text-caption text-muted-foreground">{dates.to.help}</span>
+                </div>
               )}
               {dates.to?.kind === 'custom' && (
                 <Field label={dates.to.label} helper={dates.to.help} error={dates.to.error}>
-                  <Input type="date" dir="ltr" {...dates.to.field} />
+                  <DateField date={dates.to} disabled={busy} />
                 </Field>
               )}
             </div>
-            <MoneyBlock view={view.money} label={view.moneyLabel} calc={[]} disabled={busy}>
+            <MoneyBlock view={view.money} label={view.moneyLabel} calc={view.calc} disabled={busy}>
               {view.noPhone !== null && (
                 <p className="text-body-sm text-muted-foreground">{view.noPhone}</p>
               )}

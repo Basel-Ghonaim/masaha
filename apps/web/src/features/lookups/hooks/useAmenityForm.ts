@@ -1,51 +1,57 @@
 import { AMENITY_ICON_KEYS, type AmenityIconKey } from '@masaha/shared/lookups';
 import { useCopy } from '@shared/copy';
 import { useServerForm, type ServerFormOptions } from '@shared/forms';
-import { useController, useWatch, type DefaultValues } from 'react-hook-form';
+import { useController, type DefaultValues } from 'react-hook-form';
+import type { Positioned } from '../services/withPosition';
 import type { AmenityFormView } from '../types/AmenityFormView';
+import type { RowPlace } from '../types/RowPlace';
+import { useRowPosition } from './useRowPosition';
 
 /**
- * Every value an amenity's form may hold. Each form sets the ones its request takes, and its schema
- * keeps only those: the Active switch only when editing. A new amenity has no icon until one is
- * chosen.
+ * Every value an amenity's form may hold: its names, its icon, and the position, typed, which is
+ * its list's. A new amenity has no icon until one is chosen.
  */
 type AmenityValues = {
   nameAr: string;
   nameEn: string;
   icon: AmenityIconKey | undefined;
-  isActive: boolean;
+  position: string;
 };
 
 /**
  * What an amenity's forms share, on the one form pattern (`useServerForm`): the two names, then the
- * icon, chosen from the shared keys, each named; and when `editing`, the Active
- * switch, since a new amenity is always active. The save sends the request (`save`), then closes the
- * sheet (`onSaved`) once the list shows the change.
+ * icon, chosen from the shared keys, each named; and, editing an amenity of a list of more than ten
+ * (`place`), its position. Its switch stays in its row, the one control of whether it is offered.
+ * The save sends the request (`save`), then the new position, if any, then closes the sheet
+ * (`onSaved`) once the list shows the change.
  */
 export function useAmenityForm<Request>({
   schema,
   defaultValues,
-  editing,
   save,
   onSaved,
+  place,
 }: {
   schema: ServerFormOptions<AmenityValues, Request>['schema'];
   defaultValues: DefaultValues<AmenityValues>;
-  editing: boolean;
   save: (request: Request) => Promise<unknown>;
   onSaved: () => void;
+  place?: RowPlace;
 }): AmenityFormView {
   const copy = useCopy();
   const lines = copy.lookups.sheet;
+  const position = useRowPosition(place);
   const { field, submit, isPending, blocked, errors, failure, form } = useServerForm<
     AmenityValues,
-    Request
+    Positioned<Request>
   >({
-    schema,
-    defaultValues,
-    fields: ['nameAr', 'nameEn', 'icon'],
-    submit: async (request) => {
-      await save(request);
+    schema: position.schema(schema),
+    defaultValues: { ...defaultValues, position: position.defaultValue },
+    fields: ['nameAr', 'nameEn', 'icon', 'position'],
+    prepare: (values) => ({ ...values, position: position.input(values.position) }),
+    submit: async ({ position: to, ...request }) => {
+      await save(request as Request);
+      await position.save(to);
       onSaved();
     },
     failureTitle: lines.saveFailed,
@@ -54,12 +60,13 @@ export function useAmenityForm<Request>({
       // A new amenity's key is its English name: taken by another, or one that yields no key.
       nameEn: { ...lines.fieldErrors.nameEn, not_unique: lines.fieldErrors.amenityTaken },
       icon: lines.fieldErrors.icon,
+      position: position.lines,
     },
   });
-  const isActive = useWatch({ control: form.control, name: 'isActive' });
   // The icon is held by the form, not read from the grid: its ref only takes the focus when the
   // icon is missing, where `register` would read a value from the option it is given.
   const { field: icon } = useController({ control: form.control, name: 'icon' });
+  const positionField = position.view(field('position'), errors.position);
 
   return {
     field,
@@ -81,16 +88,6 @@ export function useAmenityForm<Request>({
         if (key !== undefined) icon.onChange(key);
       },
     },
-    ...(editing && {
-      active: {
-        label: lines.amenityActive,
-        hint: lines.amenityActiveHint,
-        checked: isActive,
-        disabled: isPending,
-        toggle: (checked: boolean) => {
-          form.setValue('isActive', checked, { shouldDirty: true });
-        },
-      },
-    }),
+    ...(positionField && { position: positionField }),
   };
 }

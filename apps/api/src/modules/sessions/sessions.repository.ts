@@ -134,6 +134,34 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /**
+     * Deletes the rows ended by `now`, at most `limit` a table, oldest first: the recoveries past
+     * their end, the reset tokens past theirs (a recovery bound to one ends with it), and the refresh
+     * tokens past their own expiry or their session's end. Each condition is checked again on the row
+     * deleted. How many of each it deleted.
+     */
+    async sweepExpired(
+      now: Date,
+      limit: number,
+      tx: Tx = db,
+    ): Promise<{ refreshTokens: number; resetTokens: number; recoveries: number }> {
+      const recoveries = await tx.$executeRaw`
+        DELETE FROM password_recoveries WHERE expires_at <= ${now} AND id IN (
+          SELECT id FROM password_recoveries WHERE expires_at <= ${now} ORDER BY id LIMIT ${limit}
+        )`;
+      const resetTokens = await tx.$executeRaw`
+        DELETE FROM password_reset_tokens WHERE expires_at <= ${now} AND id IN (
+          SELECT id FROM password_reset_tokens WHERE expires_at <= ${now} ORDER BY id LIMIT ${limit}
+        )`;
+      const refreshTokens = await tx.$executeRaw`
+        DELETE FROM refresh_tokens
+        WHERE (expires_at <= ${now} OR session_ends_at <= ${now}) AND id IN (
+          SELECT id FROM refresh_tokens WHERE expires_at <= ${now} OR session_ends_at <= ${now}
+          ORDER BY id LIMIT ${limit}
+        )`;
+      return { refreshTokens, resetTokens, recoveries };
+    },
+
     /** A new reset token. Earlier ones stay until this one is delivered. Its id. */
     async createResetToken(
       userId: number,

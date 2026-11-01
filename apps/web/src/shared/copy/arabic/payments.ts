@@ -26,6 +26,7 @@ export const PAYMENTS = {
       all: 'كل الموظفين',
       self: ({ name }: { name: string }) => `${name} (أنت)`,
       inactive: ({ name }: { name: string }) => `${name} · موقوف`,
+      owner: ({ name }: { name: string }) => `${name} · صاحب المساحة`,
     },
     method: { label: 'الطريقة', all: 'كل الطرق' },
     kind: {

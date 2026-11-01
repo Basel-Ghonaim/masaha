@@ -10,6 +10,7 @@ const RIMA: StaffMember = {
   name: 'Rima',
   email: 'rima@example.com',
   isActive: true,
+  addedAt: '2026-09-14T08:30:00.000Z',
   temporaryPassword: null,
 };
 

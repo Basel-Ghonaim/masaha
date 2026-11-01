@@ -72,6 +72,7 @@ export const AUDIT_ACTIONS = [
   'user.created',
   'user.emailChanged',
   'user.profileEdited',
+  'user.replaced',
   'user.roleChanged',
   'user.suspended',
   'user.temporaryPasswordHandedOver',

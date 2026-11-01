@@ -1,10 +1,10 @@
 import { UserLinkDialog, UsersList, useUserLinkDialog } from '@features/space-links';
 import { AccountActionDialog, useAccountDialog } from '@features/users';
+import { useRowTriggers } from '@shared/lists';
 import { useCallback, type ComponentProps } from 'react';
 import { ADMIN_DELETED_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 import { UserActionsMenu } from './UserActionsMenu';
-import { useRowTriggers } from './useRowTriggers';
 
 type RowActions = ComponentProps<typeof UsersList>['actions'];
 

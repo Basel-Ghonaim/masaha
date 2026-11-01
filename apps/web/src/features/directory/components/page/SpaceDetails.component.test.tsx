@@ -290,6 +290,91 @@ describe('SpaceDetails', () => {
     expect(await screen.findByText('تعذّر قراءة الحالة الآن')).toBeInTheDocument();
   });
 
+  it('draws the status panel with no hours and no point near me', async () => {
+    renderDetails(390, publicSpace({ hours: null }));
+
+    const panel = await screen.findByRole('heading', { level: 2, name: 'الحالة' });
+    expect(panel).toBeInTheDocument();
+    expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
+  });
+
+  it('says «مغلقة مؤقتًا اليوم» for today while a closure runs', async () => {
+    renderDetails(
+      390,
+      publicSpace({
+        announcements: [
+          {
+            id: 1,
+            type: 'CLOSURE',
+            textAr: 'مغلقون للصيانة',
+            textEn: null,
+            startsAt: '2026-10-22T06:00:00+03:00',
+            endsAt: '2026-10-23T06:00:00+03:00',
+          },
+        ],
+      }),
+    );
+
+    expect(await screen.findByText('مغلقة مؤقتًا اليوم')).toBeInTheDocument();
+  });
+
+  it('shows the visitor’s point on the location map while near me holds one', async () => {
+    nearMeStore.granted({ lat: 31.521, lng: 34.451 }, 'device');
+    renderDetails(390);
+
+    expect(await screen.findByRole('img', { name: 'موقعك' })).toBeInTheDocument();
+  });
+
+  it('offers «الاتجاهات» as the location section’s own action, beside its heading', async () => {
+    renderDetails(390);
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'الموقع' });
+    const directions = screen.getByRole('link', { name: 'الاتجاهات' });
+    expect(heading.parentElement).toContainElement(directions);
+  });
+
+  it('names the phone’s single tile with the gallery’s «عرض كل الصور (n)»', async () => {
+    renderDetails(
+      390,
+      publicSpace({
+        photos: [
+          { card: '/one-card.jpg', page: '/one-page.jpg' },
+          { card: '/two-card.jpg', page: '/two-page.jpg' },
+          { card: '/three-card.jpg', page: '/three-page.jpg' },
+        ],
+      }),
+    );
+
+    expect(await screen.findByRole('button', { name: 'عرض الصورة 1' })).toHaveAccessibleDescription(
+      'عرض كل الصور (3)',
+    );
+  });
+
+  it('says how old the status is once a refresh failed past 3 minutes, its badge neutral, until a success', async () => {
+    renderDetails(390, publicSpace(), <p>البريد</p>, 'FULL');
+    expect(await screen.findByText('ممتلئ')).toBeInTheDocument();
+
+    fakeTransport((request) =>
+      request.url?.endsWith('/occupancy') ? refused(403, { type: 'forbidden' }) : ok(publicSpace()),
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(screen.getByText('الحالة مباشرة الآن')).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(await screen.findByText('آخر تحديث قبل 4 دقائق')).toBeInTheDocument();
+    expect(screen.queryByText('الحالة مباشرة الآن')).not.toBeInTheDocument();
+    expect(screen.getByText('ممتلئ')).toHaveAttribute('data-variant', 'neutral');
+
+    fakeTransport((request) =>
+      request.url?.endsWith('/occupancy') ? ok({ status: 'FULL' }) : ok(publicSpace()),
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
+    expect(screen.getByText('ممتلئ')).toHaveAttribute('data-variant', 'warning');
+  });
+
   it('keeps the last live status when a later refresh fails', async () => {
     renderDetails(390, publicSpace());
     expect(await screen.findByText('متاح')).toBeInTheDocument();

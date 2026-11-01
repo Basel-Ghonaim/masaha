@@ -1,6 +1,6 @@
 # 82. The users feature keeps several operations flat
 
-**Status:** Open · **Date:** 2026-10-18
+**Status:** Resolved · **Date:** 2026-10-18 · **Resolved:** 2026-10-29
 
 **Evidence:** architecture §3 asks for one folder per operation under a feature's `hooks/` and
 `components/`. `features/users` keeps several operations flat at the top of both
@@ -11,3 +11,5 @@ refactor, and nothing here depends on them living in folders.
 
 **Resolves when:** the flat files move into per-operation folders, or the owner accepts the flat
 shape for a capability this small.
+
+**Resolution (#132):** The users feature keeps one folder per operation (D9.1).

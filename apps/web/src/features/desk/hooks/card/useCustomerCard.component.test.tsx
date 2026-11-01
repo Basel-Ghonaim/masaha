@@ -15,7 +15,18 @@ describe('useCustomerCard', () => {
   it('names the customer, their phone, their current subscription with its status and end, and what they owe', () => {
     const row = customerRow({
       debtAgorot: 3660,
-      current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-10-21', status: 'EXPIRED' },
+      current: {
+        id: 1,
+        name: 'Exams',
+        packageId: 4,
+        endsOn: '2026-10-21',
+        status: 'EXPIRED',
+        totalDays: null,
+        daysPerWeek: null,
+        hoursPerDay: null,
+        totalHours: null,
+        progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+      },
     });
     const { result } = renderHook(() => useCustomerCard(row));
 
@@ -42,7 +53,18 @@ describe('useCustomerCard', () => {
     const open = renderHook(() =>
       useCustomerCard(
         customerRow({
-          current: { id: 2, name: '20 hours', packageId: null, endsOn: null, status: 'ACTIVE' },
+          current: {
+            id: 2,
+            name: '20 hours',
+            packageId: null,
+            endsOn: null,
+            status: 'ACTIVE',
+            totalDays: null,
+            daysPerWeek: null,
+            hoursPerDay: null,
+            totalHours: null,
+            progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+          },
         }),
       ),
     );

@@ -29,6 +29,7 @@ export function useSpaceShell() {
     spaceId,
     slug,
     navigation: link && {
+      role: link.role,
       base: spaceOverviewPath(link.spaceId),
       items: SPACE_NAV.filter((item) => item.roles.includes(link.role)),
     },

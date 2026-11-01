@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -60,5 +60,27 @@ describe('the local storage', () => {
     const storage = createLocalStorage({ root, urlBase: '/api/v1/files' });
 
     expect(storage.url('spaces/abc/card.webp')).toBe('/api/v1/files/spaces/abc/card.webp');
+  });
+
+  it('lists its files under a prefix with their dates, and none under a prefix it never wrote', async () => {
+    const storage = createLocalStorage({ root, urlBase: '/api/v1/files' });
+    await storage.put('spaces/abc/card.webp', file);
+    await storage.put('spaces/abc/page.webp', file);
+    await storage.put('spaces/def/card.webp', file);
+    await storage.put('avatars/xyz/card.webp', file);
+    const old = new Date('2026-10-01T09:00:00.000Z');
+    await utimes(path.join(root, 'spaces', 'def', 'card.webp'), old, old);
+
+    const listed = [];
+    for await (const entry of storage.list('spaces/')) listed.push(entry);
+
+    expect(listed.sort((a, b) => a.key.localeCompare(b.key))).toEqual([
+      { key: 'spaces/abc/card.webp', createdAt: expect.any(Date) as Date },
+      { key: 'spaces/abc/page.webp', createdAt: expect.any(Date) as Date },
+      { key: 'spaces/def/card.webp', createdAt: old },
+    ]);
+    const none = [];
+    for await (const entry of storage.list('logos/')) none.push(entry);
+    expect(none).toEqual([]);
   });
 });

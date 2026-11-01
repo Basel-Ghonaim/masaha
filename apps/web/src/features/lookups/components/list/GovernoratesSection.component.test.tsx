@@ -90,10 +90,10 @@ describe('GovernoratesSection', () => {
 
     const gaza = await cardOf('Gaza City');
     expect(
-      within(gaza).getByRole('button', { name: heard('Move up: Gaza City') }),
+      within(gaza).getByRole('button', { name: heard('Move up: Gaza City — 1 of 2') }),
     ).toBeInTheDocument();
     expect(
-      within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal') }),
+      within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal — 1 of 2') }),
     ).toBeInTheDocument();
     expect(within(gaza).getByRole('switch', { name: heard('Shown: Al-Rimal') })).toBeChecked();
     expect(
@@ -125,7 +125,7 @@ describe('GovernoratesSection', () => {
     const answered = deferred<FakeAnswer>();
     renderSection((request) => (request.method === 'get' ? ok(list) : answered.promise));
     const gaza = await cardOf('Gaza City');
-    const down = within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal') });
+    const down = within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal — 1 of 2') });
 
     down.focus();
     await userEvent.keyboard('{Enter}');
@@ -148,9 +148,43 @@ describe('GovernoratesSection', () => {
     await waitFor(() => {
       expect(document.activeElement).not.toBe(document.body);
     });
-    expect(document.activeElement?.getAttribute('aria-label')?.replace(/[⁦-⁩]/g, '')).toMatch(
-      /: Al-Rimal$/,
+    expect(document.activeElement?.getAttribute('aria-label')?.replace(/[⁦-⁩]/g, '')).toBe(
+      'Move up: Al-Rimal — 2 of 2',
     );
+  });
+
+  it('an arrow’s name holds its position; a move is announced', async () => {
+    let list = [GAZA, RAFAH];
+    renderSection((request) => {
+      if (request.method === 'get') return ok(list);
+      list = [{ ...GAZA, areas: [...GAZA.areas].reverse() }, RAFAH];
+      return { status: 204 };
+    });
+    const gaza = await cardOf('Gaza City');
+    const [rimal, shujaiyya] = within(gaza).getAllByRole('listitem') as [HTMLElement, HTMLElement];
+    expect(
+      within(shujaiyya).getByRole('button', { name: heard('Move up: Ash-Shuja’iyya — 2 of 2') }),
+    ).toBeInTheDocument();
+    // Nothing is said before a move.
+    expect(within(rimal).getByRole('status')).toHaveTextContent('');
+
+    await userEvent.click(
+      within(rimal).getByRole('button', { name: heard('Move down: Al-Rimal — 1 of 2') }),
+    );
+
+    await waitFor(() => {
+      expect(within(rimal).getByRole('status').textContent.replace(/[⁦-⁩]/g, '')).toBe(
+        'Al-Rimal: 2 of 2',
+      );
+    });
+    expect(
+      within(rimal).getByRole('button', { name: heard('Move up: Al-Rimal — 2 of 2') }),
+    ).toBeInTheDocument();
+    // The row that made room moved too, but said nothing: only the row moved is announced.
+    expect(within(shujaiyya).getByRole('status')).toHaveTextContent('');
+    expect(
+      within(shujaiyya).getByRole('button', { name: heard('Move up: Ash-Shuja’iyya — 1 of 2') }),
+    ).toBeInTheDocument();
   });
 
   it('shows placeholders in a busy status named Loading while the list loads', async () => {

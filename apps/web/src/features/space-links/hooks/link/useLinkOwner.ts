@@ -14,7 +14,7 @@ type LinkToast = { person: string; space: SpaceNameView; wasVerified: boolean };
 /**
  * Links a person to a space as its owner. It stays pending until the admin's views have arrived
  * again — the lists and the space's editor, whose verification the link changes — then says so, and
- * that the space is verified now when it was not.
+ * that the space is verified now when it was not, or that it has gained an owner when it had one.
  */
 export function useLinkOwner() {
   const refresh = useRefreshAdmin();
@@ -30,7 +30,7 @@ export function useLinkOwner() {
           ({ name }) => lines.linked({ person: isolate(toast.person), space: name }),
           toast.space,
         ),
-        toast.wasVerified ? undefined : lines.nowVerified,
+        toast.wasVerified ? lines.ownerAdded : lines.nowVerified,
       );
     },
   });

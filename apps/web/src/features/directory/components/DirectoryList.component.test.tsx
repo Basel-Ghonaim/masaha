@@ -1,6 +1,7 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -49,7 +50,11 @@ function answerFor(params: unknown) {
 }
 
 /** The list on the directory's page at `path`, its slots as the page sets them. */
-function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown = answerFor) {
+function renderDirectory(
+  path = '/spaces',
+  answer: (params: unknown) => unknown = answerFor,
+  placeFilter: () => ReactNode = () => null,
+) {
   const requests = fakeTransport((request) => answer(request.params) as FakeAnswer);
   const router = createMemoryRouter(
     [
@@ -61,7 +66,7 @@ function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown 
             <DirectoryList
               spaceLink={(slug) => `/spaces/${slug}`}
               areaName={() => 'الرمال · غزة'}
-              placeFilter={() => null}
+              placeFilter={placeFilter}
             />
           </main>
         ),
@@ -81,6 +86,7 @@ function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown 
 afterEach(() => {
   restoreTransport();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('DirectoryList', () => {
@@ -130,6 +136,90 @@ describe('DirectoryList', () => {
 
     await screen.findByRole('link', { name: 'مساحة 3' });
     expect(heading).toHaveFocus();
+  });
+
+  it('?filters=open opens the filters’ sheet below 1024 px, then leaves the address', async () => {
+    startPreferences('ar');
+    stubScreenWidth(390);
+    const { router } = renderDirectory('/spaces?filters=open');
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+  });
+
+  it('?filters=open focuses the place filter in the sidebar from 1024 px, then leaves the address', async () => {
+    startPreferences('ar');
+    stubScreenWidth(1440);
+    const { router } = renderDirectory('/spaces?filters=open', answerFor, () => (
+      <button type="button">المنطقة</button>
+    ));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'المنطقة' })).toHaveFocus();
+    });
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('scrolls to the results and focuses them only once the new page has arrived', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView');
+    let arrive: () => void = () => undefined;
+    renderDirectory('/spaces', (params) =>
+      (params as { page?: number }).page === 2
+        ? new Promise((resolve) => {
+            arrive = () => {
+              resolve(answerFor(params));
+            };
+          })
+        : answerFor(params),
+    );
+    const heading = await screen.findByRole('heading', { level: 2, name: 'النتائج' });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+
+    await user.click(screen.getByRole('link', { name: 'الصفحة 2' }));
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'النتائج' })).toHaveAttribute('aria-busy', 'true');
+    });
+
+    expect(screen.getByRole('link', { name: 'مساحة 1' })).toBeInTheDocument();
+    expect(scrolled).not.toHaveBeenCalled();
+    expect(heading).not.toHaveFocus();
+    arrive();
+    await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect(heading).toHaveFocus();
+  });
+
+  it('dims the cards shown while the page asked loads, until its answer replaces them', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    let arrive: () => void = () => undefined;
+    renderDirectory('/spaces', (params) =>
+      (params as { page?: number }).page === 2
+        ? new Promise((resolve) => {
+            arrive = () => {
+              resolve(answerFor(params));
+            };
+          })
+        : answerFor(params),
+    );
+    const first = await screen.findByRole('link', { name: 'مساحة 1' });
+    expect(first.closest('[data-refreshing]')).toBeNull();
+
+    await user.click(screen.getByRole('link', { name: 'الصفحة 2' }));
+
+    // Page 1's cards stay, dimmed, so they are not read or pressed as page 2's (finding 132).
+    await waitFor(() => {
+      expect(
+        screen.getByRole('link', { name: 'مساحة 1' }).closest('[data-refreshing]'),
+      ).not.toBeNull();
+    });
+    arrive();
+    const third = await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(third.closest('[data-refreshing]')).toBeNull();
   });
 
   it('leaves the focus in the search when a search typed on page 2 brings the first page back', async () => {

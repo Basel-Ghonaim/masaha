@@ -1,13 +1,12 @@
 import { ResumeFavorite } from '@features/favorites';
+import { SkipLink, useMainFocus } from '@shared/routing';
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 import type { SiteOutletContext } from './footerRoom';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
-import { SkipLink } from './SkipLink';
 import { useGuestIntents } from './useGuestIntents';
-import { useMainFocus } from './useMainFocus';
 
 /**
  * The site's shell: the skip link, the full header and the footer around the page, whose `main`

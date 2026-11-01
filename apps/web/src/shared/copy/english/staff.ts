@@ -8,7 +8,19 @@ export const STAFF = {
   label: 'Staff',
   count: ({ count }: { count: number }) =>
     englishPlural(count, { one: '1 staff member', other: `${String(count)} staff members` }),
-  columns: { name: 'Name', status: 'Status', actions: 'Actions' },
+  columns: {
+    name: 'Name',
+    status: 'Status',
+    added: 'Added',
+    collected: 'Collected this month',
+    actions: 'Actions',
+  },
+  /** A card's lines below 768 px: when the person was added, and what they collected this month. */
+  addedOn: ({ date }: { date: string }) => `Added ${date}`,
+  thisMonth: ({ amount }: { amount: string }) => `This month ${amount}`,
+  /** The month's collections could not be read. */
+  noCollections: '—',
+  viewCollections: 'View collections',
   badges: {
     active: 'Active',
     inactive: 'No access',
@@ -78,6 +90,8 @@ export const STAFF = {
     heldSettled:
       'They’ve changed the temporary password; if they forget their password, they recover it by email.',
     heldInactive: 'Give their access back first.',
+    /** The re-issue's own line for an account that became an admin's. */
+    refusedAdmin: 'This is an admin’s account; no temporary password is issued for it here.',
   },
   /** A staff member's refusals, in the owner's words: a 404 cannot tell its two causes apart. */
   refusals: {

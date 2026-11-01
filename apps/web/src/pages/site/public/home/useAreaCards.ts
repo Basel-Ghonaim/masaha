@@ -10,7 +10,8 @@ export type AreaCard = { key: string; title: string; line: string; to: string };
 /**
  * «تصفّح حسب المنطقة»: the public catalogue's areas that hold at least one space, in its order, each
  * with its governorate and its count, leading to the Directory filtered by it; then «كل المناطق»,
- * the Strip and the total, leading to the whole Directory. While either read loads, it is loading;
+ * the Strip and the total, leading to the whole Directory. Past the pins' ceiling, the counts fall
+ * short, so each line names its place alone (finding 137). While either read loads, it is loading;
  * once either has failed, one retry reads both again.
  */
 export function useAreaCards(): {
@@ -25,7 +26,7 @@ export function useAreaCards(): {
   const areas = usePublicAreas();
   const counts = useAreaCounts();
   const lineOf = (place: string, count: number) =>
-    words.line({ place: isolate(place), count: words.count({ count }) });
+    counts.truncated ? place : words.line({ place: isolate(place), count: words.count({ count }) });
 
   const cards: AreaCard[] = areas.areas.flatMap((area) => {
     const count = counts.counts.get(area.id) ?? 0;

@@ -204,6 +204,22 @@ export function createDataReportsRepository() {
       return { rows, total };
     },
 
+    /** The space's report with this id, without its reporter; `null` for another space's or none. */
+    findInSpace(spaceId: number, id: number): Promise<ReportRow | null> {
+      return prisma.dataReport.findFirst({ where: { id, spaceId }, select: REPORT });
+    },
+
+    /**
+     * The report with this id, with who reported and who decided it; `null` for none, or for a
+     * soft-deleted space's, as the admin's list leaves those out (ADR 0007).
+     */
+    findLive(id: number): Promise<ReportWithPeople | null> {
+      return prisma.dataReport.findFirst({
+        where: { id, space: { deletedAt: null } },
+        select: WITH_PEOPLE,
+      });
+    },
+
     /** One report with who reported and who decided it, as it is now. */
     findWithPeople(id: number): Promise<ReportWithPeople> {
       return prisma.dataReport.findUniqueOrThrow({ where: { id }, select: WITH_PEOPLE });

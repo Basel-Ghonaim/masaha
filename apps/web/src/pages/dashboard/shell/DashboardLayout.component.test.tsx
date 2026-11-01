@@ -1,5 +1,6 @@
 import { useActionBarShown } from '@shared/routing';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stubScreenWidth } from '../../../test/screenWidth';
@@ -18,7 +19,7 @@ function renderShell(path: string) {
     [
       {
         element: (
-          <DashboardLayout label="Space dashboard" header={null}>
+          <DashboardLayout label="Space dashboard" role="Owner" header={null}>
             {null}
           </DashboardLayout>
         ),
@@ -43,7 +44,39 @@ function renderShell(path: string) {
       <BarProbe />
     </>,
   );
+  return router;
 }
+
+describe("the dashboard's skip link and focus", () => {
+  it('offers «Skip to content» first, before the sidebar, leading to main', async () => {
+    stubScreenWidth(1280);
+    const user = userEvent.setup();
+    renderShell('/plain');
+    await screen.findByText('A page');
+
+    await user.tab();
+
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('moves the focus to main when another page opens, not on the first', async () => {
+    stubScreenWidth(1280);
+    const router = renderShell('/plain');
+    await screen.findByText('A page');
+    expect(screen.getByRole('main')).not.toHaveFocus();
+
+    await act(async () => {
+      await router.navigate('/desk');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('main')).toHaveFocus();
+    });
+  });
+});
 
 beforeEach(() => {
   startPreferences('en');

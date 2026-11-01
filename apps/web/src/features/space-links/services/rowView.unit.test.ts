@@ -132,7 +132,7 @@ describe('rowView', () => {
     ]);
     expect(arabic(stale).freshness).toEqual([
       { label: 'قديمة: الأسعار، التواصل', variant: 'warning' },
-      { label: 'غير مُدخلة: ساعات العمل', variant: 'warning' },
+      { label: 'ناقصة: ساعات العمل', variant: 'warning' },
     ]);
   });
 

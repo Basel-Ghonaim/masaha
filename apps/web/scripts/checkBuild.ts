@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { DASHBOARD_CHUNK, isDashboardModule } from './dashboardOnly.ts';
+import { DASHBOARD_CHUNK, DASHBOARD_SHARED_CHUNK, isDashboardModule } from './dashboardOnly.ts';
 import { LIBRARY_CHUNKS } from './libraryChunks.ts';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
@@ -58,7 +58,9 @@ export type ManifestChunk = {
   name?: string;
   src?: string;
   isEntry?: boolean;
+  isDynamicEntry?: boolean;
   imports?: string[];
+  dynamicImports?: string[];
   css?: string[];
 };
 
@@ -66,10 +68,10 @@ export type ManifestChunk = {
 // download (docs/frontend/design-system/foundation.md §3).
 const LEAFLET_CSS = '.leaflet-container';
 
-/** The manifest's keys of the first download's chunks: each entry and its static imports, deeply. */
-export function firstDownload(manifest: Record<string, ManifestChunk>): string[] {
+/** The manifest's keys of the chunks `starts` load: each of them and its static imports, deeply. */
+function staticReach(manifest: Record<string, ManifestChunk>, starts: readonly string[]): string[] {
   const reached = new Set<string>();
-  const pending = Object.keys(manifest).filter((key) => manifest[key]?.isEntry === true);
+  const pending = [...starts];
   for (let key = pending.pop(); key !== undefined; key = pending.pop()) {
     if (!reached.has(key)) {
       reached.add(key);
@@ -79,15 +81,28 @@ export function firstDownload(manifest: Record<string, ManifestChunk>): string[]
   return [...reached];
 }
 
+/** The manifest's keys of the first download's chunks: each entry and its static imports, deeply. */
+export function firstDownload(manifest: Record<string, ManifestChunk>): string[] {
+  return staticReach(
+    manifest,
+    Object.keys(manifest).filter((key) => manifest[key]?.isEntry === true),
+  );
+}
+
 /** The stylesheets of the first download: each of its chunks' own (Vite's `css`). */
 export function firstDownloadCss(manifest: Record<string, ManifestChunk>): string[] {
   return [...new Set(firstDownload(manifest).flatMap((key) => manifest[key]?.css ?? []))];
 }
 
-/** Whether a chunk holds dashboard code: the dashboard's chunk, or a chunk made from its module. */
+/**
+ * Whether a chunk holds dashboard code: the dashboard's chunk, the chunk of what only the dashboard
+ * imports, or a chunk made from a dashboard module.
+ */
 function isDashboardChunk(chunk: ManifestChunk | undefined): boolean {
   return (
-    chunk?.name === DASHBOARD_CHUNK || (chunk?.src !== undefined && isDashboardModule(chunk.src))
+    chunk?.name === DASHBOARD_CHUNK ||
+    chunk?.name === DASHBOARD_SHARED_CHUNK ||
+    (chunk?.src !== undefined && isDashboardModule(chunk.src))
   );
 }
 
@@ -105,6 +120,22 @@ export function dashboardProblems(manifest: Record<string, ManifestChunk>): stri
   return firstDownload(manifest)
     .filter((key) => isDashboardChunk(manifest[key]))
     .map((key) => `${key} is dashboard code in the site's first download.`);
+}
+
+/**
+ * What is wrong with what the dashboard imports (finding 27): each chunk the dashboard's chunk
+ * reaches through its static imports, deeply, that imports the dashboard's chunk back. Such a cycle
+ * holds only while every use across it waits inside a function; a module-level use would fail when
+ * the chunk is the first one loaded.
+ */
+export function dashboardCycleProblems(manifest: Record<string, ManifestChunk>): string[] {
+  const dashboard = Object.keys(manifest).find((key) => manifest[key]?.name === DASHBOARD_CHUNK);
+  if (dashboard === undefined) {
+    return [];
+  }
+  return staticReach(manifest, manifest[dashboard]?.imports ?? [])
+    .filter((key) => key !== dashboard && (manifest[key]?.imports ?? []).includes(dashboard))
+    .map((key) => `${key} imports the dashboard chunk (${dashboard}), which imports it.`);
 }
 
 /**
@@ -127,6 +158,32 @@ export function libraryProblems(
       : [];
   });
   return [...missing, ...reached];
+}
+
+// A site page: a chunk made from a module of the site's page group, each of its pages, shells and
+// layouts loaded lazily by the site's routes.
+const SITE_PAGE = /^src\/pages\/site\//;
+
+/**
+ * What is wrong with the site pages' place in the build (finding 180): each site page whose chunk,
+ * with its static imports, deeply, reaches the chunk of one of `names`. A page draws none of those
+ * libraries; what loads one lazily (the map's Leaflet part) is not a static import, so it is not
+ * held against the page.
+ */
+export function sitePageProblems(
+  manifest: Record<string, ManifestChunk>,
+  names: readonly string[],
+): string[] {
+  return Object.entries(manifest)
+    .filter(([, chunk]) => chunk.src !== undefined && SITE_PAGE.test(chunk.src))
+    .flatMap(([page]) =>
+      staticReach(manifest, [page]).flatMap((key) => {
+        const name = manifest[key]?.name;
+        return name !== undefined && names.includes(name)
+          ? [`${page} reaches ${name}'s chunk (${key}).`]
+          : [];
+      }),
+    );
 }
 
 /** The forbidden strings that a build file contains. */
@@ -164,7 +221,7 @@ function main() {
     ? (JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>)
     : undefined;
   const problems = manifest
-    ? dashboardProblems(manifest)
+    ? [...dashboardProblems(manifest), ...dashboardCycleProblems(manifest)]
     : [`${MANIFEST} does not exist: the build writes no manifest.`];
   for (const problem of problems) {
     console.error(problem);
@@ -177,6 +234,10 @@ function main() {
     }
   }
   for (const problem of libraryFaults) {
+    console.error(problem);
+  }
+  const pageFaults = manifest ? sitePageProblems(manifest, libraries) : [];
+  for (const problem of pageFaults) {
     console.error(problem);
   }
 
@@ -194,11 +255,13 @@ function main() {
   if (problems.length > 0) {
     console.error(
       `
-The site's first download must not reach the dashboard (ADR 0011): look for a static import of dashboard code outside the dashboard.`,
+The site's first download must not reach the dashboard (ADR 0011): look for a static import of dashboard code outside the dashboard. No chunk the dashboard imports may import it back (finding 27): look for what only the dashboard imports that the dashboard-shared group no longer takes.`,
     );
     process.exitCode = 1;
   } else {
-    console.log("No dashboard code in the site's first download.");
+    console.log(
+      "No dashboard code in the site's first download, and no chunk the dashboard imports imports it back.",
+    );
   }
 
   if (libraryFaults.length > 0) {
@@ -211,6 +274,16 @@ Each heavy library (${libraries.join(', ')}) must be a chunk of its own, and it 
     console.log(
       `No ${libraries.join(' or ')}, nor Leaflet's stylesheet, in the site's first download.`,
     );
+  }
+
+  if (pageFaults.length > 0) {
+    console.error(
+      `
+A site page draws none of the heavy libraries (${libraries.join(', ')}), so its chunk must not reach theirs through its static imports (finding 180): look for a site page importing a capability's index.ts where the capability has a public.ts entry, or a public entry exporting what the dashboard draws.`,
+    );
+    process.exitCode = 1;
+  } else if (manifest) {
+    console.log(`No site page reaches ${libraries.join(' or ')} through its static imports.`);
   }
 }
 

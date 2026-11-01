@@ -63,6 +63,10 @@ describe('DropdownMenu', () => {
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
 
     expect(screen.getByRole('menuitemcheckbox', { name: 'Follow the report' })).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Open the space page' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('keeps the focus inside while open', async () => {
@@ -143,6 +147,57 @@ describe('DropdownMenu', () => {
       expect(subTrigger).toHaveFocus();
     },
   );
+
+  describe('a held item', () => {
+    function HeldActions({ onRemove = () => undefined }: { onRemove?: () => void }) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Actions for Sara Helou">
+              <EllipsisIcon aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Edit the name</DropdownMenuItem>
+            <DropdownMenuItem held onSelect={onRemove}>
+              Remove from the staff
+              <span>She is signed in at the desk now</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>Show her receipts</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+
+    it('is reached by the arrow keys and typeahead, its reason read', async () => {
+      render(<HeldActions />);
+      await userEvent.click(screen.getByRole('button', { name: 'Actions for Sara Helou' }));
+
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+      const held = screen.getByRole('menuitem', {
+        name: /^Remove from the staff.*She is signed in at the desk now$/,
+      });
+      expect(held).toHaveFocus();
+      expect(held).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('menuitem', { name: 'Show her receipts' })).toHaveFocus();
+      await userEvent.keyboard('r');
+      expect(held).toHaveFocus();
+    });
+
+    it('does nothing when selected', async () => {
+      const onRemove = vi.fn();
+      render(<HeldActions onRemove={onRemove} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Actions for Sara Helou' }));
+
+      await userEvent.click(screen.getByRole('menuitem', { name: /Remove from the staff/ }));
+      await userEvent.keyboard('{Enter}');
+
+      expect(onRemove).not.toHaveBeenCalled();
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    });
+  });
 
   it('has no accessibility violations while open', async () => {
     render(<RowActions />);

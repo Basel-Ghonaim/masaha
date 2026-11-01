@@ -89,6 +89,11 @@ export interface AdminSpace {
   prices: Price[];
   /** The ids of its amenities, retired ones included. */
   amenityIds: number[];
+  /**
+   * The amenities among `amenityIds` the platform retired, named, in the platform's order: a form
+   * shows each, marked, until a save leaves it out.
+   */
+  retiredAmenities: { id: number; nameAr: string; nameEn: string; iconKey: string }[];
   /** Its own amenities, beyond the platform's list, in the order they are shown in. */
   ownAmenities: OwnAmenity[];
   /** In the order they are shown in. */

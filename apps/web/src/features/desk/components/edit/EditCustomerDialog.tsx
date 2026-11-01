@@ -10,6 +10,7 @@ import {
   Input,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import { useEditDialog } from '../../hooks/edit/useEditDialog';
 
 /**
@@ -66,7 +67,7 @@ export function EditCustomerDialog({
             helper={dialog.phone.help}
             error={dialog.phone.error}
           >
-            <Input type="tel" dir="ltr" autoComplete="off" {...dialog.phone.field} />
+            <PhoneInput {...dialog.phone.field} />
           </Field>
           {dialog.unchanged !== null && (
             <p role="status" className="text-body-sm text-muted-foreground">

@@ -8,6 +8,12 @@ const RETURN_PARAMETER = 'next';
 export const CHANGE_PASSWORD_PATH = '/change-password';
 
 /**
+ * The signed-in user's own settings (screen 9): the site routes it, and the dashboard's account menu
+ * links to it, so its path lives where both groups read it.
+ */
+export const ACCOUNT_SETTINGS_PATH = '/me';
+
+/**
  * Where a reset link opens, its token in the fragment (docs/frontend/architecture.md §2). No guard
  * wraps it and the gate lets it through, so the fragment never travels into a return URL.
  */

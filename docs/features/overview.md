@@ -1,8 +1,8 @@
 # Overview
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** The `overview` capability: the overview screens' reads, each composed from the modules that own its figures ([conventions › `overview`](../backend/conventions.md#overview)). Its endpoints are owned by the [API contract](../api/api-contract.md#overview); it owns no entity. The API is built; no screen yet.
-> **Scope:** the API module `overview` (L5); `@masaha/shared/overview`.
+> **Authority:** The `overview` capability: the overview screens' reads, each composed from the modules that own its figures ([conventions › `overview`](../backend/conventions.md#overview)). Its endpoints are owned by the [API contract](../api/api-contract.md#overview); it owns no entity. The API is built; on the web, the owner's overview (screen 12) and the admin's (screen 25).
+> **Scope:** the API module `overview` (L5); `@masaha/shared/overview`; the web feature `features/overview`, dashboard-only.
 
 ## What it does
 
@@ -12,8 +12,8 @@
 
 ## Who uses it
 
-- **The space's owner,** under `/manage/spaces/:spaceId/overview`. Reception has none and is refused (the owner's OV3). The owner's screen (12) is to come, worker A's.
-- **The admin,** under `/admin/overview`. The admin's screen (25) is to come, worker A's.
+- **The space's owner,** under `/manage/spaces/:spaceId/overview`. Reception has none and is refused (the owner's OV3). On the web, «نظرة عامة» at `/dashboard/spaces/:spaceId`, the owner's landing; reception gets the 403 there (2026-10-29, #132).
+- **The admin,** under `/admin/overview`. On the web, «نظرة عامة» at `/dashboard/admin`, the admin's landing (2026-10-29, #132).
 
 ## Responsibility boundary
 
@@ -31,6 +31,10 @@
 **The owner's overview** (`ownerOverview.ts`). One instant (`at`, the one clock's) for every figure; one `Promise.all` of nine reads, each its owner's: `listing.freshnessOf`, `dataReports.openCountOf`, `payments.uncollectedTotals`, `visits.unpricedCount`, `closures.summary`, `payments.balanceTotals`, `occupancy.glance`, `subscriptions.endingSoon` (five named) and `announcements.runningTypes`. The answer is assembled field by field: of the balances only how many customers owe, an archived one kept; of the uncollected visits only how many; the capacity is set when it is not `null`. An auto-closed visit left to a customer is counted in both: an uncollected visit, and its customer among those who owe, as the desk's list and the debts keep it ([finding 193](../architecture/findings/193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)). Read with no lock and no snapshot: each count equals its list read alone, to within a write between two of the reads.
 
 **The admin's overview** (`adminOverview.ts`). One instant; one `Promise.all` of four reads: `adminSpaces.counts` (verified, unverified, hidden, stale or missing, each its list's total), `adminSpaces.staleEditable` (five named), `dataReports.openCounts` and `users.countCreatedSince` from `lastDaysSince(at, 30)` — the Gaza midnight 29 days before today, the audit's own rule. «بلا مالك» is the unverified count: a space is verified exactly when it has an active owner (OD2).
+
+**The owner's screen** (`OwnerOverview`, screen 12). One read, never polled: read again each time the page opens, and on returning to the window once stale (OV7). In the top bar, the live status visitors see and its control, `occupancy`'s, as the desk's (P2). «يحتاج انتباهك» lists, in order, each fact group never saved («لم تُضف بعد»), each stale one with its days counted («قديمة»), the open reports, the uncollected visits, the unpriced ones, the customers who owe, the closures awaiting their extension — each a count above zero — and the capacity when it is not set; each row leads where it is acted on (the profile's section or Packages & prices' `#prices`, the reports `?status=open`, the desk `#uncollected` or `#unpriced`, Finance `?tab=debts`, the announcements, the settings `#attendance`), and nothing waiting reads «كل شيء على ما يرام». «الحاضرون الآن» shows the count over the capacity, with the meter only once a capacity is set, the subscribers and the visits counted, and what visitors see with its line. The announcements' tile counts the running ones and names their types. «اشتراكات تنتهي هذا الأسبوع» counts them, lists five — the name a link to the file, the subscription and when it ends («ينتهي اليوم», «ينتهي غدًا», «ينتهي بعد {n} يوم»), «تجديد» to the file — and «عرض الكل» leads to the customers `?status=ENDING_SOON`. Its states: three blocks while it loads; a failure, «تعذّر تحميل النظرة العامة» with «إعادة المحاولة»; offline, its own state.
+
+**The admin's screen** (`AdminOverview`, screen 25). One read, never polled, as the owner's. «ملخص المنصة», five tiles, each a link to the list it counts with its helper: the spaces (verified, unverified, hidden), the open reports (the admin's, the owners'), the stale or missing data (`?stale=true`), the unverified spaces with no owner (`?status=unverified`), and the new users of the last 30 days (the users list); two columns from 768 px, three from 1024 px, five from 1280 px. «اكتمال البيانات» lists five of the spaces the admin edits — the name in the interface's language, «غير موثّقة» and «مخفية» when hidden, a warning per missing group and per stale one with its days, «تعديل» to its editor — and «عرض الكل», with the total past five, to `?status=editable&stale=true`. Under it, the note that a space's operating data is its management's.
 
 ## Decisions
 
@@ -50,13 +54,31 @@
 - **New users: the last 30 Gaza days, every role** (OV5), by the audit log's own rule, moved to `@masaha/shared/core` (`lastDaysSince`) since `overview` cannot import `audit`. 2026-10-29, #131.
 - **Not polled** (OV7): the web reads it again on returning to the page; the route is not passive. 2026-10-29, #131.
 
+### Web decisions
+
+- **No amount anywhere** (O3): the answer holds none, and a component test reads the whole screen for one. 2026-10-29, #132.
+- **The unpriced visits have a row** (DI2), after the uncollected, to the desk's card of them; **«لم تُحصَّل» has no «اليوم»** (DI3): the count has no day. 2026-10-29, #132.
+- **«الآن: {المشتركين} و{الزيارات}» only** (DI5): no field says who left today. 2026-10-29, #132.
+- **The closures awaiting their extension are one counted row** (DI6) to the announcements page. 2026-10-29, #132.
+- **«تجديد» opens the customer's file** (DI26), where the renewal is; no address opens the sheet. 2026-10-29, #132.
+- **Every link is the page's** (architecture §3): `OwnerOverviewLinks`, `AdminOverviewLinks`. 2026-10-29, #132.
+- **A fifth tile, «مستخدمون جدد»** (DI7, OV4), to the users list, newest first: the list has no date filter, so it shows the list, not the 30 days. 2026-10-29, #132.
+- **The stale tile names no threshold** (DI8, OV6): «حسب حدود الحداثة في إعدادات المنصة، أو لم تُضف بعد». 2026-10-29, #132.
+- **A missing group is a warning, never destructive** (A8). 2026-10-29, #132.
+- **«عرض الكل» leads to `?status=editable&stale=true`** (158, the owner's OD3 (a)), so the card's total equals the list it opens. 2026-10-29, #132.
+
 ## Code map
 
 - `apps/api/src/modules/overview/` — the module: one file per screen (`ownerOverview.ts`, `adminOverview.ts`), the service joining them, its controller and its manage and admin routers.
 - `packages/shared/src/overview/` — the answers.
+- `apps/web/src/features/overview/`, entry `index.ts` (`OwnerOverview`, `OwnerOverviewLinks`, `AdminOverview`, `AdminOverviewLinks`), read by `pages/dashboard/space/overview/OverviewPage.tsx`, which passes the links and sets `occupancy`'s `LiveStatusControl` in the top bar, and `pages/dashboard/admin/overview/OverviewPage.tsx`: the repository in `repository/`; the keys, each screen's query and view (`owner/`, `admin/`) and the failure's view (`useLoadFailure`) in `hooks/`; the work queue's rows (`attentionRows`) and an end's words (`endsText`) in `services/`; each screen and its cards (`owner/`, `admin/`) and the failure in `components/`. Words: the catalogue's `overview` section.
 
 ## History
 
 ### API history
 
 - 2026-10-29, #131 — the owner's overview (`GET /manage/spaces/:spaceId/overview`) and the admin's (`GET /admin/overview`), with a set-based count added in each owning module.
+
+### Web history
+
+- 2026-10-29, #132 — the owner's overview (screen 12); the admin's (screen 25).

@@ -3,20 +3,12 @@ import type { FormFailureView } from '@shared/forms';
 import type { BaseSyntheticEvent } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import type { LookupNameField } from './LookupFormView';
-
-/** One of a sheet's switches, ready to render: its label, its hint and its state. */
-type SwitchFieldView = {
-  label: string;
-  hint: string;
-  checked: boolean;
-  disabled: boolean;
-  toggle: (checked: boolean) => void;
-};
+import type { PositionFieldView } from './PositionFieldView';
 
 /**
  * An amenity's form in the sheet, ready to render: its two names, its icon chosen from a grid, and
- * when editing its Active switch (a new one is always active), with their labels,
- * errors and states. Its key is never shown: the server derives it.
+ * when editing an amenity of a list of more than ten its position, with their labels, errors and
+ * states. Its key is never shown: the server derives it; whether it is offered is its row's switch.
  */
 export type AmenityFormView = {
   field: (name: LookupNameField) => UseFormRegisterReturn & { disabled: boolean };
@@ -37,5 +29,5 @@ export type AmenityFormView = {
     ref: (element: HTMLButtonElement | null) => void;
     choose: (value: string) => void;
   };
-  active?: SwitchFieldView;
+  position?: PositionFieldView;
 };

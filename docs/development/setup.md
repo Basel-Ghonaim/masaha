@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -59,7 +59,7 @@ All commands run from the repository root.
 | `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)). Also fails on arbitrary-value classes (`text-[13px]`, `bg-[#fff]`, `bg-(--token)` …) outside `shared/design-system/`; use a token utility ([foundation §2](../frontend/design-system/foundation.md#2-principles)) |
 | `npm run check:links` | Fails on a relative link, an image path or an anchor of any Markdown file that does not resolve, and on a `docs/….md` path cited in a source file that does not exist; paths are compared with the real files, case included. External links are not checked ([documentation rules §8](../architecture/documentation.md#8-link-integrity)) |
 | `npm run check:conflicts` | Fails when any git-tracked file holds a merge-conflict marker (`<<<<<<< `, `>>>>>>> `, or `=======` between them); skips binary files; prints each hit as `<file>:<line>` and a total |
-| `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code or a heavy library's chunk, or a library's chunk is missing ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
+| `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code or a heavy library's chunk, or a library's chunk is missing, or a site page's chunk reaches a heavy library's through its static imports, or a chunk the dashboard's reaches imports it back ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
 | `npm run format:check` | The same files, checked without writing: fails naming each file `format` would change |
 
@@ -78,7 +78,7 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
   - `masaha_dev`, used by the running API;
   - `masaha_test`, used only by the API test lane.
 - The user and password are both `masaha`. This is a local development secret, never used anywhere else.
-- `masaha_test` is created by [`docker/postgres/create-test-database.sql`](../../docker/postgres/create-test-database.sql) when the volume is first created.
+- `masaha_test` is created when the volume is first created, by an init script the Compose file holds inline (its `configs`), so the container depends on no folder (2026-10-29, #132). This needs Docker Compose 2.23.1 or later.
 - The Compose project is named `masaha`, so every checkout of the repository (including a git worktree) shares the same container and data.
 
 | Command | What it does |
@@ -117,7 +117,7 @@ The web needs no settings to run. Its optional settings are read from `apps/web/
 
 - `VITE_GOOGLE_CLIENT_ID` turns on Google sign-in. It must be **the same client id** as the API's `GOOGLE_CLIENT_ID` (below), whose Google Cloud OAuth client lists `http://localhost:5320` as an authorised JavaScript origin. Without it, the sign-in and register pages show no Google button. A Google answer from a client whose id the API does not hold is refused as `GOOGLE_TOKEN_INVALID`.
 
-- `VITE_CONTACT_EMAIL` and `VITE_CONTACT_WHATSAPP` are the platform's contact, shown on About and to an unverified space's owner on its page. Each shows only when set and valid (a WhatsApp number in either form people type it); an empty one is not shown. Online, they are set in the Vercel project's *Settings › Environment Variables* (Production and Preview), then the site is redeployed, since Vite reads them when it builds.
+- The platform's contact, shown on About and to an unverified space's owner on its page, is no setting of the web: the site reads it from the API (`GET /settings/public`), as the admin saves it in «إعدادات المنصة» (2026-10-29, #132).
 
 ### Running a second folder
 
@@ -125,7 +125,7 @@ A second folder, such as a worktree, runs its web and its API beside the first o
 - `apps/api/.env`: its `PORT`, and `CORS_ORIGIN` naming its web, for example `3321` and `http://localhost:5321`;
 - `apps/web/.env`: `WEB_PORT=5321` and `API_PROXY_TARGET=http://localhost:3321`.
 
-The database container is shared by every folder: in a second folder, never run `npm run db:up` (it recreates the container bound to that folder, [finding 48](../architecture/findings/48-db-up-from-another-folder-recreates-the-shared-container.md)); run `docker start masaha-postgres-1`.
+The database container is shared by every folder. Every folder now gives Compose the same configuration, so a second folder's `npm run db:up` leaves the running container as it is ([finding 48](../architecture/findings/48-db-up-from-another-folder-recreates-the-shared-container.md)). **Once,** on a machine whose container was created before the init script moved inline (it binds a folder's `docker/postgres/create-test-database.sql`), the first `npm run db:up` recreates the container with the new configuration; the data stays in the volume (2026-10-29, #132).
 
 Google sign-in there also needs that origin listed on the OAuth client. When done, stop both servers and check that their ports are free: on Windows, a `tsx watch` API can survive Ctrl+C.
 

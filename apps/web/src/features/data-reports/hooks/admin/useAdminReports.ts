@@ -1,5 +1,6 @@
 import {
   DATA_REPORT_FIELDS,
+  REPORT_HANDLERS,
   type AdminReport,
   type DataReportField,
 } from '@masaha/shared/data-reports';
@@ -12,8 +13,10 @@ import { paginationView, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { createDataReportsRepository } from '../../repository/dataReportsRepository';
 import { adminReportsParamsOf, adminReportsQueryOf } from '../../services/adminReportsQueryOf';
+import { reportIdOf } from '../../services/reportIdOf';
 import { REPORT_CHIPS, type ReportChip } from '../../services/reportsQueryOf';
 import { fieldLabel, messageView, reportDay, statusView } from '../../services/reportView';
 import type { AdminReportRowView } from '../../types/AdminReportRowView';
@@ -32,15 +35,18 @@ const ALL = 'all';
  * (S8), the space and the field in force shown as removable tags at every width with «مسح الفلاتر»
  * (DI-40). Each report its space (a link to its editor), field, message, the reporter by name (O12),
  * the day, the status and «يعالجه»: «الإدارة» while the space is unverified, «المالك» once verified
- * (DI-39; no filter of it, finding 167). An unverified space's report opens to be decided; a verified
+ * (DI-39), filtered by it too (D6.9, finding 167's screen). An unverified space's report opens to be decided; a verified
  * one's opens read-only, «عرض» on its button (DI-38). Its states as the owner's list's; a filter that
  * matches nothing offers «عرض الكل», which takes every filter off.
  */
 export function useAdminReports({
   editorLink,
 }: {
-  /** A space's editor, and the section where a field group is edited in it, as the page routes it. */
-  editorLink: (spaceId: number, field?: DataReportField) => string;
+  /**
+   * A space's editor; with a report's field and id, the section where its field is edited, carrying
+   * the report (`?report=`), as the page routes it.
+   */
+  editorLink: (spaceId: number, field?: DataReportField, reportId?: number) => string;
 }) {
   const copy = useCopy();
   const words = copy.dataReports;
@@ -64,10 +70,27 @@ export function useAdminReports({
     page: filters.filters.page,
     replacePage: filters.replacePage,
   });
-  const [opened, setOpened] = useState<AdminReport | null>(null);
+  const [clicked, setClicked] = useState<AdminReport | null>(null);
+  const [params, setParams] = useSearchParams();
+  const addressed = reportIdOf(params.get('open'));
   const now = new Date();
   const english = language === 'en';
   const reports = answer?.data ?? [];
+  // The report the address names, from the page when it shows it, else read by its id (S5).
+  const addressedOnPage = reports.find((report) => report.id === addressed);
+  const one = useQuery<AdminReport, AppError>({
+    queryKey: dataReportsKeys.adminOne(addressed ?? 0),
+    queryFn: () => repository.adminReport(addressed ?? 0),
+    enabled:
+      clicked === null &&
+      addressed !== undefined &&
+      answer !== undefined &&
+      addressedOnPage === undefined,
+    retry: false,
+  });
+  const opened =
+    clicked ?? (addressed === undefined ? null : (addressedOnPage ?? one.data ?? null));
+  const setOpened = setClicked;
   const rows = reports.map((report): AdminReportRowView => {
     const day = reportDay(report.createdAt, language, now);
     const { verified } = report.space;
@@ -92,7 +115,9 @@ export function useAdminReports({
         : { label: admin.handledBy.admin, tone: 'info' },
     };
   });
-  const { chip, field, spaceId } = filters.filters;
+  const { chip, field, spaceId, handledBy } = filters.filters;
+  const handlerWord = (handler: (typeof REPORT_HANDLERS)[number]) =>
+    handler === 'ADMIN' ? admin.handledByFilter.admin : admin.handledByFilter.owner;
   // The chosen space's name, from a report of it on the page; unknown while none is shown.
   const shownSpace = reports.find((report) => report.space.id === spaceId)?.space;
   const chosenName =
@@ -158,7 +183,25 @@ export function useAdminReports({
           filters.apply({ field: DATA_REPORT_FIELDS.find((each) => each === value) });
         },
       },
-      /** The phone's sheet that holds the space and the field. */
+      /** «يعالجه»: all, the admin's, or the owners' (`?handledBy=admin|owner`). */
+      handledBy: {
+        label: admin.handledByFilter.label,
+        value: handledBy?.toLowerCase() ?? ALL,
+        options: [
+          { value: ALL, label: admin.handledByFilter.all },
+          ...REPORT_HANDLERS.map((value) => ({
+            value: value.toLowerCase(),
+            label: handlerWord(value),
+          })),
+        ],
+        choose: (value: string) => {
+          // A chip pressed again clears itself: «الكل».
+          filters.apply({
+            handledBy: REPORT_HANDLERS.find((each) => each.toLowerCase() === value),
+          });
+        },
+      },
+      /** The phone's sheet that holds the space, the field and who handles them. */
       sheet: {
         title: admin.filters.title,
         label:
@@ -174,7 +217,7 @@ export function useAdminReports({
         closeLabel: words.sheet.close,
       },
     },
-    /** The space and the field in force, each removable, at every width (DI-40). */
+    /** The space, the field and who handles them in force, each removable, at every width (DI-40). */
     tags: [
       ...(spaceId === undefined
         ? []
@@ -185,6 +228,18 @@ export function useAdminReports({
               removeLabel: admin.tags.removeSpace,
               remove: () => {
                 filters.apply({ spaceId: undefined });
+              },
+            },
+          ]),
+      ...(handledBy === undefined
+        ? []
+        : [
+            {
+              key: 'handledBy',
+              label: admin.tags.handledBy({ who: handlerWord(handledBy) }),
+              removeLabel: admin.tags.removeHandledBy,
+              remove: () => {
+                filters.apply({ handledBy: undefined });
               },
             },
           ]),
@@ -248,9 +303,19 @@ export function useAdminReports({
     editLinkOf: (target: AdminReport) =>
       target.space.verified
         ? editorLink(target.space.id)
-        : editorLink(target.space.id, target.field),
+        : editorLink(target.space.id, target.field, target.id),
     close: () => {
       setOpened(null);
+      if (addressed !== undefined) {
+        setParams(
+          (current) => {
+            const next = new URLSearchParams(current);
+            next.delete('open');
+            return next;
+          },
+          { replace: true },
+        );
+      }
     },
     /** «عرض» in a decision's toast: the reports decided, the other filters kept (DI-41). */
     showDecided: () => {

@@ -1,3 +1,5 @@
+import { addDays, gazaInstant } from '@masaha/shared/core';
+
 import { isForeignKeyViolation, isUniqueViolation, prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
 import type { OwnAttendance } from './limits.ts';
@@ -29,6 +31,7 @@ export interface SubscriptionStateRow {
   id: number;
   customer_id: number;
   package_id: number | null;
+  published_period: 'WEEK' | 'MONTH' | null;
   name: string;
   starts_on: Date | null;
   ends_on: Date | null;
@@ -49,7 +52,8 @@ export interface SubscriptionStateRow {
   days_this_week: number;
   minutes_used: number;
   minutes_today: number;
-  due_agorot: number;
+  /** `bigint`, so no price within its bound overflows it (data model › Derived values). */
+  due_agorot: bigint;
 }
 
 /** A subscription to write: its customer, its terms and dates (Gaza dates), and its key. */
@@ -58,6 +62,8 @@ export interface SubscriptionToCreate {
   customerId: number;
   key: string;
   packageId: number | null;
+  /** The period of the published price it is sold from; `null` for a package's or a custom one. */
+  publishedPeriod: 'WEEK' | 'MONTH' | null;
   renewalOfId: number | null;
   name: string;
   startsOn: string | null;
@@ -121,6 +127,17 @@ const STAY_MINUTES = Prisma.sql`CASE WHEN checked_out_at IS NULL THEN NULL
 
 /** A check-in's Gaza date, dated by PostgreSQL as `subscription_usage` dates it. */
 const GAZA_DAY = Prisma.sql`(checked_in_at AT TIME ZONE 'Asia/Gaza')::date`;
+
+/**
+ * The space's check-ins whose Gaza date is from `from` to `to`, both included: checked in from the
+ * Gaza midnight that starts `from` up to the one that ends `to`, as instants from the shared
+ * calendar, so the `(space_id, checked_in_at)` index serves the range (finding 127). PostgreSQL's
+ * Gaza dates equal the calendar's (src/db/gazaZone.api.test.ts).
+ */
+export function checkInsOnDays(spaceId: number, { from, to }: { from: string; to: string }) {
+  return Prisma.sql`space_id = ${spaceId} AND checked_in_at >= ${gazaInstant(from, 0)}
+    AND checked_in_at < ${gazaInstant(addDays(to, 1), 0)}`;
+}
 
 /** A subscription's row as its lock answers it. */
 export interface LockedSubscription {
@@ -362,15 +379,15 @@ export function createSubscriptionsRepository() {
     },
 
     /**
-     * A page of the space's check-ins whose Gaza date (dated as `subscription_usage` dates them) is
-     * from `from` to `to`, both included, the latest first, then by id; and how many there are.
+     * A page of the space's check-ins whose Gaza date is from `from` to `to`, both included
+     * (`checkInsOnDays`), the latest first, then by id; and how many there are.
      */
     async checkInsBetween(
       spaceId: number,
       { from, to }: { from: string; to: string },
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: CheckInRow[]; total: number }> {
-      const where = Prisma.sql`space_id = ${spaceId} AND ${GAZA_DAY} BETWEEN ${from}::date AND ${to}::date`;
+      const where = checkInsOnDays(spaceId, { from, to });
       const [rows, [count]] = await Promise.all([
         prisma.$queryRaw<
           {
@@ -545,7 +562,8 @@ export function createSubscriptionsRepository() {
       tx: Tx = prisma,
     ): Promise<SubscriptionStateRow[]> {
       return tx.$queryRaw<SubscriptionStateRow[]>`
-        SELECT s.id, s.customer_id, s.package_id, s.name, s.starts_on, s.ends_on,
+        SELECT s.id, s.customer_id, s.package_id, s.published_period::text AS published_period,
+               s.name, s.starts_on, s.ends_on,
                s.total_days, s.days_per_week, s.hours_per_day, s.total_hours,
                s.billing::text AS billing, s.price_agorot, s.audience::text AS audience, s.shift_id,
                s.renewal_of_id, s.price_set_by_id, s.price_reason, s.ended_at, s.ended_by_id,

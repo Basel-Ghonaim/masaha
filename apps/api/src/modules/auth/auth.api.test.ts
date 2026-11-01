@@ -393,6 +393,19 @@ describe('POST /auth/refresh', () => {
     }
   });
 
+  it('a token presented twice within the grace gets one successor, the same token', async () => {
+    await createAccount();
+    const token = refreshTokenOf(await login());
+
+    const first = await refresh(token);
+    const second = await refresh(token);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(refreshTokenOf(second)).toBe(refreshTokenOf(first));
+    expect(await prisma.refreshToken.count({ where: { familyId: await familyOf(token) } })).toBe(2);
+  });
+
   it('ends only that session when a token is reused after the grace window', async () => {
     await createAccount();
     const phone = refreshTokenOf(await login());

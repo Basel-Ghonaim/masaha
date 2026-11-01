@@ -57,6 +57,45 @@ beforeEach(async () => {
 
 const stored = () => prisma.visit.findUniqueOrThrow({ where: { id: visitId } });
 
+/** The auto check-outs' batch (each service's `AUTO_CHECKOUT_BATCH`). */
+const AUTO_CHECKOUT_BATCH = 500;
+
+/** A run over a full batch closes (or fails) each stay in its own transaction: hundreds of them. */
+const FULL_BATCH_TIMEOUT_MS = 60_000;
+
+/** `count` open visits by name, opened on Saturday at 09:00 (before the beforeEach's), all due. */
+const insertOpenVisits = (count: number, hourRateAgorot: number | null = null) =>
+  prisma.$executeRaw`
+    INSERT INTO visits (space_id, request_id, visitor_name, hour_rate_agorot, checked_in_at, updated_at)
+    SELECT ${spaceId}, gen_random_uuid(), 'Omar', ${hourRateAgorot}::integer,
+           '2026-10-17T09:00:00+03:00'::timestamptz, now()
+    FROM generate_series(1, ${count}::integer)`;
+
+/** `count` customers, each with a subscription and an open check-in from Saturday at 09:00. */
+const insertOpenCheckIns = (count: number) =>
+  prisma.$executeRaw`
+    WITH c AS (
+      INSERT INTO customers (space_id, name, updated_at)
+      SELECT ${spaceId}, 'Sara', now() FROM generate_series(1, ${count}::integer)
+      RETURNING id
+    ), s AS (
+      INSERT INTO subscriptions (space_id, request_id, customer_id, name, billing, price_agorot, updated_at)
+      SELECT ${spaceId}, gen_random_uuid(), id, 'شهري', 'FIXED', 30000, now() FROM c
+      RETURNING id, customer_id
+    )
+    INSERT INTO check_ins (space_id, request_id, customer_id, subscription_id, checked_in_at, updated_at)
+    SELECT ${spaceId}, gen_random_uuid(), customer_id, id, '2026-10-17T09:00:00+03:00'::timestamptz, now()
+    FROM s`;
+
+/** The sweeps' answers when nothing has ended: every row here is live. */
+const SWEPT_NOTHING = {
+  sessions: {
+    name: 'sessions.sweepExpired',
+    done: { refreshTokens: 0, resetTokens: 0, recoveries: 0 },
+  },
+  rateLimits: { name: 'rateLimits.sweepExpired', done: { counters: 0 } },
+};
+
 describe('the jobs endpoint', () => {
   it('refuses a missing or wrong secret with 401 and runs nothing', async () => {
     for (const authorization of [undefined, `Bearer ${SECRET}x`, SECRET]) {
@@ -77,6 +116,9 @@ describe('the jobs endpoint', () => {
       jobs: [
         { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 0 } },
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 0, remaining: 0, failed: 0 } },
+        SWEPT_NOTHING.sessions,
+        SWEPT_NOTHING.rateLimits,
+        { name: 'photos.reclaimOrphans', done: { skipped: true } },
       ],
     });
     expect(await stored()).toMatchObject({ checkoutMethod: 'AUTO' });
@@ -119,6 +161,9 @@ describe('the jobs endpoint', () => {
       jobs: [
         { name: 'visits.autoCheckOut', done: { visits: 0, remaining: 0, failed: 1 } },
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 1, remaining: 0, failed: 0 } },
+        SWEPT_NOTHING.sessions,
+        SWEPT_NOTHING.rateLimits,
+        { name: 'photos.reclaimOrphans', done: { skipped: true } },
       ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
@@ -146,7 +191,13 @@ describe('the jobs endpoint', () => {
 
     expect(response.status).toBe(200);
     expect(dataOf(response)).toMatchObject({
-      jobs: [{ name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 1 } }, {}],
+      jobs: [
+        { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 1 } },
+        {},
+        {},
+        {},
+        {},
+      ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
       { level: 50, job: 'visits.autoCheckOut', stayId: failingId },
@@ -154,6 +205,9 @@ describe('the jobs endpoint', () => {
     expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
       { level: 30, job: 'visits.autoCheckOut', visits: 1, failed: 1 },
       { level: 30, job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
+      { level: 30, job: 'sessions.sweepExpired', refreshTokens: 0 },
+      { level: 30, job: 'rateLimits.sweepExpired', counters: 0 },
+      { level: 30, job: 'photos.reclaimOrphans', skipped: true },
     ]);
     expect(await prisma.visit.findUniqueOrThrow({ where: { id: failingId } })).toMatchObject({
       checkedOutAt: null,
@@ -163,4 +217,96 @@ describe('the jobs endpoint', () => {
       checkoutMethod: 'AUTO',
     });
   });
+
+  it('one stay that always fails, alone in its batch, answers 200 counting it, never stalled', async () => {
+    // The one due visit cannot be closed: a charge past the column's range fails its transaction.
+    await prisma.visit.update({ where: { id: visitId }, data: { hourRateAgorot: 2_000_000_000 } });
+    const { logger, lines } = recordingLogger();
+
+    const response = await request(withSecret(logger))
+      .post(RUN)
+      .set('Authorization', `Bearer ${SECRET}`);
+
+    expect(response.status).toBe(200);
+    const { jobs } = dataOf(response) as { jobs: { name: string; done: object }[] };
+    expect(jobs[0]).toEqual({
+      name: 'visits.autoCheckOut',
+      done: { visits: 0, remaining: 0, failed: 1 },
+    });
+    expect(lines.filter(({ msg }) => msg === 'job stalled')).toEqual([]);
+    expect(await stored()).toMatchObject({ checkedOutAt: null });
+  });
+
+  it(
+    'a run whose failures fill the batch answers 500, the job named stalled in the log, the others still run',
+    async () => {
+      // A full batch of due visits, earlier than the beforeEach's, that cannot be closed: a charge
+      // past the column's range fails each one's transaction.
+      await insertOpenVisits(AUTO_CHECKOUT_BATCH, 2_000_000_000);
+      const { logger, lines } = recordingLogger();
+
+      const response = await request(withSecret(logger))
+        .post(RUN)
+        .set('Authorization', `Bearer ${SECRET}`);
+
+      expect(response.status).toBe(500);
+      expect(errorOf(response).type).toBe('server');
+      expect(lines.filter(({ msg }) => msg === 'job stalled')).toMatchObject([
+        { level: 50, job: 'visits.autoCheckOut', failed: AUTO_CHECKOUT_BATCH },
+      ]);
+      expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
+        {
+          job: 'visits.autoCheckOut',
+          visits: 0,
+          remaining: 1,
+          failed: AUTO_CHECKOUT_BATCH,
+          stalled: true,
+        },
+        { job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
+        { job: 'sessions.sweepExpired', refreshTokens: 0 },
+        { job: 'rateLimits.sweepExpired', counters: 0 },
+        { job: 'photos.reclaimOrphans', skipped: true },
+      ]);
+      // Beyond the batch: still open, for a later run.
+      expect(await stored()).toMatchObject({ checkedOutAt: null });
+    },
+    FULL_BATCH_TIMEOUT_MS,
+  );
+
+  it(
+    'each auto check-out stalls alike: with every closing of a full batch refused, both are named, 500',
+    async () => {
+      const checkIn = await createCheckIn(await createSubscription(await createCustomer(spaceId)), {
+        checkedInAt: new Date('2026-10-17T09:00:00+03:00'),
+      });
+      // A full batch of each kind: with the beforeEach's visit and the check-in above.
+      await insertOpenVisits(AUTO_CHECKOUT_BATCH - 1);
+      await insertOpenCheckIns(AUTO_CHECKOUT_BATCH - 1);
+      // The database refuses the closing's audit entry, so the closing rolls back.
+      await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS
+      $$ BEGIN RAISE EXCEPTION 'audit refused'; END $$`);
+      await prisma.$executeRawUnsafe(
+        'CREATE TRIGGER refuse_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION refuse_audit()',
+      );
+      const { logger, lines } = recordingLogger();
+      try {
+        const response = await request(withSecret(logger))
+          .post(RUN)
+          .set('Authorization', `Bearer ${SECRET}`);
+        expect(response.status).toBe(500);
+      } finally {
+        await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS refuse_audit ON audit_logs');
+        await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS refuse_audit()');
+      }
+      expect(lines.filter(({ msg }) => msg === 'job stalled')).toMatchObject([
+        { level: 50, job: 'visits.autoCheckOut', failed: AUTO_CHECKOUT_BATCH },
+        { level: 50, job: 'subscriptions.autoCheckOut', failed: AUTO_CHECKOUT_BATCH },
+      ]);
+      expect(await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } })).toMatchObject({
+        checkedOutAt: null,
+      });
+    },
+    FULL_BATCH_TIMEOUT_MS,
+  );
 });

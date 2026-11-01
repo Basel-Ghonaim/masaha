@@ -94,7 +94,9 @@ describe("a space's state now", () => {
           {
             kind: 'VISIT',
             id: visit.id,
+            customerId: null,
             name: 'Omar',
+            audience: 'GENERAL',
             since: '2026-10-18T05:30:00.000Z',
             chargeNowAgorot: null,
           },
@@ -134,6 +136,17 @@ describe("a space's state now", () => {
     expect(people.map(({ id }) => id)).toEqual([openVisit.id, openCheckIn.id]);
   });
 
+  it('a present student visit says its audience', async () => {
+    const student = await createVisit(spaceId, {
+      visitorName: 'Layla',
+      audience: 'STUDENT',
+      checkedInAt: sunday('08:30'),
+    });
+
+    const { people } = dataOf(await occupancyNow(reception)) as { people: object[] };
+    expect(people).toMatchObject([{ kind: 'VISIT', id: student.id, audience: 'STUDENT' }]);
+  });
+
   it("lists the people present oldest first, a check-in by its customer's name", async () => {
     const latest = await createVisit(spaceId, {
       visitorName: 'Omar',
@@ -159,6 +172,25 @@ describe("a space's state now", () => {
       { kind: 'CHECK_IN', id: earliest.id, name: 'Layla' },
       { kind: 'VISIT', id: customersVisit.id, name: 'Mona' },
       { kind: 'VISIT', id: latest.id, name: 'Omar' },
+    ]);
+  });
+
+  it("a customer's visit names its customer, a visit by name none", async () => {
+    const customer = await createCustomer(spaceId, { name: 'Mona' });
+    const customersVisit = await createVisit(spaceId, {
+      visitorName: null,
+      customerId: customer.id,
+      checkedInAt: sunday('08:00'),
+    });
+    const byName = await createVisit(spaceId, {
+      visitorName: 'Omar',
+      checkedInAt: sunday('08:30'),
+    });
+
+    const { people } = dataOf(await occupancyNow(reception)) as { people: object[] };
+    expect(people).toMatchObject([
+      { kind: 'VISIT', id: customersVisit.id, customerId: customer.id, name: 'Mona' },
+      { kind: 'VISIT', id: byName.id, customerId: null, name: 'Omar' },
     ]);
   });
 

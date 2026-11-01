@@ -10,6 +10,8 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { UncollectedCard } from '../../components/uncollected/UncollectedCard';
 import type { DeskAbilities } from '../../types/DeskAbilities';
 
+const fileLink = (customerId: number) => `/file/${String(customerId)}`;
+
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string) => (content: string) => content.replace(/[⁦-⁩]/g, '') === expected;
 
@@ -25,7 +27,7 @@ function renderCard({
   render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[entry]}>
-        <UncollectedCard spaceId={7} abilities={abilities} />
+        <UncollectedCard spaceId={7} abilities={abilities} fileLink={fileLink} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -149,6 +151,7 @@ describe('useUncollectedCard', () => {
     fail = false;
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Nothing left to collect.')).toBeVisible();
-    expect(screen.getByRole('heading', { name: '0 visits not collected' })).toBeVisible();
+    // The card keeps its name and says it has none once (G13.3).
+    expect(screen.getByRole('heading', { name: 'Not collected' })).toBeVisible();
   });
 });

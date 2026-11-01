@@ -14,6 +14,7 @@ export const OCCUPANCY = {
       actions: 'إجراءات',
     },
     kinds: { VISIT: 'زيارة', CHECK_IN: 'اشتراك' },
+    studentVisit: 'زيارة · طالب',
     soFar: ({ amount }: { amount: string }) => `حتى الآن ${amount}`,
     atCheckOut: 'يُحدَّد عند الخروج',
     since: ({ time }: { time: string }) => `منذ ${time}`,
@@ -63,7 +64,7 @@ export const OCCUPANCY = {
     durations: {
       MINUTES_30: '30 د',
       HOUR_1: 'ساعة',
-      HOURS_2: 'ساعتان',
+      HOURS_2: 'ساعتين',
       UNTIL_CLOSING: 'حتى الإغلاق',
     },
     now: ({ state, left }: { state: string; left: string }) =>

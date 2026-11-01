@@ -1,7 +1,8 @@
-import { Badge } from '@shared/design-system';
+import { Badge, Button } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { ListPagination } from '@shared/lists';
 import { useMemo } from 'react';
+import { Link } from 'react-router';
 import { useOwnersList } from '../../hooks/owners-list/useOwnersList';
 import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { UserRowView } from '../../types/UserRowView';
@@ -76,7 +77,7 @@ export function OwnersList({ deletedSpacesLink }: { deletedSpacesLink: string })
         }),
         column.display({
           id: 'actions',
-          header: headers.actions,
+          header: () => <span className="sr-only">{headers.actions}</span>,
           cell: (info) => <OwnerActionsMenu row={info.row.original} />,
           meta: { className: 'w-px' },
         }),
@@ -95,6 +96,8 @@ export function OwnersList({ deletedSpacesLink }: { deletedSpacesLink: string })
     >
       <p className="text-body-sm text-muted-foreground">{list.intro}</p>
       <DataTable
+        // The rows of the page before stay dimmed while the page asked loads (finding 132).
+        refreshing={list.busy}
         label={list.label}
         columns={columns}
         data={list.rows}
@@ -107,7 +110,17 @@ export function OwnersList({ deletedSpacesLink }: { deletedSpacesLink: string })
           />
         )}
         loading={list.status === 'loading'}
-        empty={<ListState list={list} />}
+        empty={
+          <ListState
+            list={list}
+            emptyAction={
+              // The page's add sheet opens on `?sheet=add` (D6.11).
+              <Button asChild>
+                <Link to="?sheet=add">{list.addOwner}</Link>
+              </Button>
+            }
+          />
+        }
         toolbar={<UsersToolbar filters={list.filters} count={list.count} />}
         pagination={list.pagination !== null && <ListPagination pagination={list.pagination} />}
       />

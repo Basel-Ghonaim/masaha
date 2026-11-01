@@ -66,7 +66,7 @@ describe('useAddAmenityForm', () => {
 
     expect(result.current.form.icon.value).toBe('');
     expect(result.current.form).not.toHaveProperty('filter');
-    expect(result.current.form.active).toBeUndefined();
+    expect(result.current.form).not.toHaveProperty('active');
   });
 
   it('asks for an icon, and sends nothing until one is chosen', async () => {

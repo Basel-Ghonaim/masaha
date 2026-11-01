@@ -41,7 +41,7 @@ export function CustomTerms({ view, disabled }: { view: CustomTermsView; disable
       </Field>
       <Chips {...view.audience} disabled={disabled} />
       <Chips {...view.billing} disabled={disabled} />
-      <Field label={view.price.label} error={view.price.error}>
+      <Field label={view.price.label} helper={view.price.helper} error={view.price.error}>
         <Input
           dir="ltr"
           inputMode="decimal"
@@ -50,6 +50,9 @@ export function CustomTerms({ view, disabled }: { view: CustomTermsView; disable
           {...view.price.field}
         />
       </Field>
+      {view.byAttendance !== null && (
+        <p className="text-body-sm text-muted-foreground">{view.byAttendance}</p>
+      )}
       <div className="flex flex-col gap-2">
         <p className="text-label">{view.limits.label}</p>
         <div className="grid grid-cols-2 gap-3">

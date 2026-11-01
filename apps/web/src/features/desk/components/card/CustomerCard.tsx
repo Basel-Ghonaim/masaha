@@ -9,9 +9,12 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  LogInIcon,
 } from '@shared/design-system';
 import { useRef, type RefObject } from 'react';
+import { Link } from 'react-router';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
+import { useRenewEntry } from '../../hooks/card/useRenewEntry';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
 import type { OpenSheet } from '../../types/SheetEntry';
@@ -51,10 +54,18 @@ export function CustomerCard({
   const card = useCustomerCard(row);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const succeeded = useRef(false);
+  const renewing = useRenewEntry(spaceId, menu.subscribe);
   const checkIn = useSubscriberCheckIn(spaceId, row, {
     done: () => {
       succeeded.current = true;
       after.done();
+    },
+    // From the choice, the focus returns to «حضور» once the sheet closes.
+    sheet: {
+      renew: () => void renewing.renew(row, trigger.current),
+      subscribe: () => {
+        menu.subscribe({ mode: 'subscribe', customer: row }, trigger.current);
+      },
     },
   });
 
@@ -63,8 +74,15 @@ export function CustomerCard({
       <CardHeader>
         <CardTitle>
           {/* The name keeps its own direction inline, so the heading stays at the start (PR 1b). */}
+          {/* The name leads to the customer's file (G13.5). */}
           <h3>
-            <span dir="auto">{card.name}</span>
+            <Link
+              to={menu.fileLink(row.id)}
+              dir="auto"
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              {card.name}
+            </Link>
           </h3>
         </CardTitle>
         <CardDescription>
@@ -91,7 +109,15 @@ export function CustomerCard({
             <span className="text-muted-foreground">{card.subscription.until}</span>
           </div>
         )}
-        <div>
+        {card.progress.length > 0 && (
+          <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
+            {card.progress.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="neutral">{card.notHere}</Badge>
           <BalanceBadge balance={card.balance} />
         </div>
       </CardContent>
@@ -105,8 +131,20 @@ export function CustomerCard({
             checkIn.tap.run();
           }}
         >
+          <LogInIcon aria-hidden />
           {checkIn.tap.label}
         </Button>
+        {card.renew !== null && (
+          <Button
+            variant="outline"
+            loading={renewing.busy}
+            onClick={(event) => {
+              void renewing.renew(row, event.currentTarget);
+            }}
+          >
+            {card.renew}
+          </Button>
+        )}
         {card.receive !== null && (
           <Button
             variant="secondary"

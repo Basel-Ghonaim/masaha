@@ -2,7 +2,6 @@ import {
   Alert,
   AlertDescription,
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -11,11 +10,9 @@ import {
   DialogTitle,
   Field,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
 import type { VisitDialogView } from '../../hooks/check-in/useVisitDialog';
@@ -53,33 +50,29 @@ export function VisitDialog({ dialog }: { dialog: VisitDialogView }) {
           </Field>
           {student !== null && (
             <Field label={student.label} orientation="horizontal">
-              <Checkbox
+              <Switch
                 checked={student.checked}
-                onCheckedChange={(checked) => {
-                  student.change(checked === true);
-                }}
+                onCheckedChange={student.change}
                 disabled={dialog.submit.busy}
               />
             </Field>
           )}
           {shift !== null && (
             <Field label={shift.label} helper={shift.optional}>
-              <Select
+              {/* One chip or none: a chosen chip pressed again leaves no shift. */}
+              <ToggleGroup
+                type="single"
                 value={shift.value}
                 onValueChange={shift.change}
                 disabled={dialog.submit.busy}
+                className="flex-wrap justify-start"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {shift.options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {shift.options.map((option) => (
+                  <ToggleGroupItem key={option.value} value={option.value}>
+                    {option.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </Field>
           )}
           {dialog.rate !== '' && (

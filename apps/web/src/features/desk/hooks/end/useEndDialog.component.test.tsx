@@ -6,7 +6,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, SUBSCRIBED_AT, subscriptionState } from '../../../../test/deskCustomer';
 import { findToast } from '../../../../test/findToast';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -28,6 +28,7 @@ const RUNNING: SubscriptionWithMoney = {
   }),
   paidAgorot: 20000,
   balanceAgorot: 0,
+  createdAt: SUBSCRIBED_AT,
 };
 
 /** The card's «إنهاء الاشتراك» and its dialog, beside the file the card is read from. */

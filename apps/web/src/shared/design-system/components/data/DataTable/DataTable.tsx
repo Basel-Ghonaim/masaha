@@ -84,6 +84,11 @@ export type DataTableProps<TData extends RowData> = {
   empty: ReactNode;
   /** The rows are loading: placeholder rows stand in for them. */
   loading?: boolean;
+  /**
+   * Another page or filter is loading over the rows shown: they stay, dimmed, and the table or the
+   * list of cards is marked busy, so the list never blanks between two answers.
+   */
+  refreshing?: boolean;
   /** How many placeholder rows or cards stand in while loading. */
   loadingRows?: number;
   /** The sorting, when the caller holds it; with `onSortingChange`. */
@@ -141,6 +146,7 @@ export function DataTable<TData extends RowData>({
   cardsBelow = 'md',
   empty,
   loading = false,
+  refreshing = false,
   loadingRows = 5,
   sorting,
   defaultSorting,
@@ -175,6 +181,11 @@ export function DataTable<TData extends RowData>({
   const rows = table.getRowModel().rows;
   const columnCount = table.getAllLeafColumns().length;
   const placeholders = Array.from({ length: loadingRows }, (_, index) => index);
+  const busy = loading || refreshing || undefined;
+  const dimmed = {
+    'data-refreshing': refreshing && !loading ? '' : undefined,
+    className: 'transition-opacity data-refreshing:opacity-(--refreshing)',
+  };
 
   if (!tableUp) {
     return (
@@ -196,9 +207,14 @@ export function DataTable<TData extends RowData>({
         ) : rows.length === 0 ? (
           empty
         ) : (
-          <ul aria-label={label} className="flex flex-col gap-3">
+          <ul aria-label={label} aria-busy={busy} className="flex flex-col gap-3">
             {rows.map((row) => (
-              <li key={row.id} data-slot="data-table-card" className={CARD}>
+              <li
+                key={row.id}
+                data-slot="data-table-card"
+                data-refreshing={dimmed['data-refreshing']}
+                className={cn(CARD, dimmed.className)}
+              >
                 {renderCard(row.original)}
               </li>
             ))}
@@ -216,7 +232,7 @@ export function DataTable<TData extends RowData>({
           {toolbar}
         </div>
       )}
-      <Table aria-label={label} aria-busy={loading || undefined}>
+      <Table aria-label={label} aria-busy={busy}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -226,7 +242,7 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        <TableBody data-refreshing={dimmed['data-refreshing']} className={dimmed.className}>
           {loading ? (
             placeholders.map((index) => (
               <TableRow key={index} aria-hidden className="hover:bg-transparent">

@@ -1,16 +1,7 @@
 import { DAY_MINUTES } from '@masaha/shared/spaces';
-import { clockOf } from '@shared/lib';
+import { clockOf, toWesternDigits } from '@shared/lib';
 
 // A time of day as a field holds it: 24-hour, Western digits, typed as text, so 24:00 can end a day.
-
-const ARABIC_INDIC_ZERO = 0x0660;
-
-/** Reads Arabic-Indic digits (٠–٩) as Western ones. */
-function westernDigits(text: string): string {
-  return text.replace(/[٠-٩]/g, (digit) =>
-    String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
-  );
-}
 
 /**
  * The minute of the day a field's text names: `8`, `08`, `830`, `0830`, `8:30` or `08:30`, in Western
@@ -18,7 +9,7 @@ function westernDigits(text: string): string {
  * cannot read is handed back as typed, so the contract's schema refuses it as `invalid_format`.
  */
 export function minuteOf(text: string, { end }: { end: boolean }): number | string | undefined {
-  const typed = westernDigits(text.trim());
+  const typed = toWesternDigits(text.trim());
   if (typed === '') return undefined;
   const parts = /^(\d{1,2})(?::(\d{2}))?$/.exec(typed) ?? /^(\d{1,2})(\d{2})$/.exec(typed);
   if (parts === null) return text;

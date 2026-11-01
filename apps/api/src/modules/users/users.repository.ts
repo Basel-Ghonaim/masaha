@@ -50,6 +50,8 @@ export interface StaffAccount {
 export interface AccountsFilter {
   /** Part of the name or the email, whatever the case. */
   q?: string;
+  /** The email exactly, as stored (lowercased). */
+  email?: string;
   role?: Role;
   suspended?: boolean;
 }
@@ -67,7 +69,7 @@ const LISTED = {
 
 export type ListedAccount = Prisma.UserGetPayload<{ select: typeof LISTED }>;
 
-function accountsWhere({ q, role, suspended }: AccountsFilter): Prisma.UserWhereInput {
+function accountsWhere({ q, email, role, suspended }: AccountsFilter): Prisma.UserWhereInput {
   return {
     ...(q !== undefined && {
       OR: [
@@ -75,6 +77,7 @@ function accountsWhere({ q, role, suspended }: AccountsFilter): Prisma.UserWhere
         { email: { contains: q, mode: 'insensitive' } },
       ],
     }),
+    ...(email !== undefined && { email }),
     ...(role && { role }),
     ...(suspended !== undefined && { suspendedAt: suspended ? { not: null } : null }),
   };
@@ -86,9 +89,9 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return tx.user.findUnique({ where: { id }, select: ACCOUNT });
     },
 
-    /** The names of these users, in one query. */
-    findNames(ids: readonly number[], tx: Tx = db): Promise<UserName[]> {
-      return tx.user.findMany({
+    /** The names of these users, in one query, in the transaction named, or none (`undefined`). */
+    findNames(ids: readonly number[], tx: Tx | undefined): Promise<UserName[]> {
+      return (tx ?? db).user.findMany({
         where: { id: { in: [...ids] } },
         select: { id: true, name: true },
       });
@@ -311,6 +314,18 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     /** Sets the global role. */
     async setRole(id: number, role: Role, tx: Tx): Promise<void> {
       await tx.user.update({ where: { id }, data: { role }, select: { id: true } });
+    },
+
+    /** How the account signs in, without reading any hash. */
+    async findSignInMethods(
+      id: number,
+      tx: Tx = db,
+    ): Promise<{ hasPassword: boolean; hasGoogle: boolean }> {
+      const [hasPassword, hasGoogle] = [
+        await tx.user.count({ where: { id, passwordHash: { not: null } } }),
+        await tx.user.count({ where: { id, googleSubject: { not: null } } }),
+      ];
+      return { hasPassword: hasPassword === 1, hasGoogle: hasGoogle === 1 };
     },
 
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {

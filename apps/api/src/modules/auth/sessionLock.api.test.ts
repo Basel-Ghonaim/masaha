@@ -4,7 +4,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { cookieValue, createAccount, createTestApp, PASSWORD } from '../../../test/app.ts';
-import { lockUsers, waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { lockUsers, waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma, type Tx } from '../../db/index.ts';
 
@@ -28,7 +28,7 @@ async function whileLocked(
   call: () => Promise<request.Response>,
   meanwhile: (tx: Tx) => Promise<unknown>,
 ): Promise<request.Response> {
-  return whileHeld((tx) => lockUsers(tx, userId), call, meanwhile);
+  return whileHeld('users', (tx) => lockUsers(tx, userId), call, meanwhile);
 }
 
 function login() {
@@ -91,6 +91,26 @@ describe('the session lock', () => {
     expect(answer.body).toMatchObject({ error: { code: 'INVALID_CREDENTIALS' } });
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
   }, 20_000);
+
+  it(
+    'a temporary password that expires between the check and the lock is refused at confirm',
+    async () => {
+      const { id } = await createAccount({ mustChangePassword: true });
+
+      // The password matched while it was live; it expires before the lock is granted.
+      const response = await whileLocked(id, login, (tx) =>
+        tx.user.update({
+          where: { id },
+          data: { temporaryPasswordExpiresAt: new Date(Date.now() - 1_000) },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ error: { code: 'TEMPORARY_PASSWORD_EXPIRED' } });
+      expect(await prisma.refreshToken.count({ where: { userId: id } })).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('keeps a refresh waiting on a revocation from renewing the session', async () => {
     const user = await createAccount();
@@ -213,39 +233,45 @@ describe('the session lock', () => {
     expect(stored.passwordHash).toBe('changed-meanwhile');
   }, 20_000);
 
-  it('answers RESET_TOKEN_INVALID, not a 500, when the link ends while the check binds it', async () => {
-    const user = await createAccount();
-    const token = await resetLink(user.id);
-    // A browser holding a recovery that no link is bound to yet.
-    const key =
-      cookieValue(
-        await request(app)
-          .post('/api/v1/auth/password/forgot')
-          .send({ email: 'nobody@example.com' })
-          .then((response) => response),
-        'masaha_reset',
-      ) ?? '';
-    const recovery = await prisma.passwordRecovery.findFirstOrThrow();
+  it(
+    'answers RESET_TOKEN_INVALID, not a 500, when the link ends while the check binds it',
+    async () => {
+      const user = await createAccount();
+      const token = await resetLink(user.id);
+      // A browser holding a recovery that no link is bound to yet.
+      const key =
+        cookieValue(
+          await request(app)
+            .post('/api/v1/auth/password/forgot')
+            .send({ email: 'nobody@example.com' })
+            .then((response) => response),
+          'masaha_reset',
+        ) ?? '';
+      const recovery = await prisma.passwordRecovery.findFirstOrThrow();
 
-    let answer: Promise<request.Response> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        // The check reads the link, then waits to bind it to this recovery: meanwhile the link ends.
-        await tx.$queryRaw`SELECT id FROM password_recoveries WHERE id = ${recovery.id} FOR UPDATE`;
-        answer = request(app)
-          .post('/api/v1/auth/password/reset/check')
-          .set('Cookie', `masaha_reset=${key}`)
-          .send({ token })
-          .then((response) => response);
-        await waitingOnLock();
-        await endLinksMeanwhile(tx, user.id);
-      },
-      { timeout: 10_000 },
-    );
+      let answer: Promise<request.Response> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          // The check reads the link, then waits to bind it to this recovery: meanwhile the link ends.
+          await tx.$queryRaw`SELECT id FROM password_recoveries WHERE id = ${recovery.id} FOR UPDATE`;
+          answer = request(app)
+            .post('/api/v1/auth/password/reset/check')
+            .set('Cookie', `masaha_reset=${key}`)
+            .send({ token })
+            .then((response) => response);
+          await waitingOnLock({ on: 'password_recoveries' });
+          await endLinksMeanwhile(tx, user.id);
+        },
+        { timeout: 10_000 },
+      );
 
-    const response = await answer;
-    expect(response?.status).toBe(400);
-    expect(response?.body).toMatchObject({ error: { code: 'RESET_TOKEN_INVALID' } });
-    expect(await prisma.passwordRecovery.count({ where: { resetTokenId: { not: null } } })).toBe(0);
-  }, 20_000);
+      const response = await answer;
+      expect(response?.status).toBe(400);
+      expect(response?.body).toMatchObject({ error: { code: 'RESET_TOKEN_INVALID' } });
+      expect(await prisma.passwordRecovery.count({ where: { resetTokenId: { not: null } } })).toBe(
+        0,
+      );
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

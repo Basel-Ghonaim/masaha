@@ -8,7 +8,16 @@ export {
 export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteError';
 export { DocumentTitle } from './title/DocumentTitle';
 export { ForbiddenState } from './states/ForbiddenState';
-export { noteSitePage, onGuestLeaving } from './guest/guestLeaving';
+export { noteSitePage, onGuestLeaving, sitePage } from './guest/guestLeaving';
+export {
+  dropHeldIntent,
+  holdIntent,
+  noteRecoveryDone,
+  onIntentConfirmed,
+  takeIntentPath,
+  type HeldIntent,
+} from './guest/heldIntent';
+export { RETURN_TOAST_ID } from './guest/returnToast';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';
 export { rememberSpace } from './landing/lastSpace';
@@ -20,10 +29,18 @@ export { RequireGuest } from './guards/RequireGuest';
 export { RequirePasswordChange } from './guards/RequirePasswordChange';
 export { RequireRole } from './guards/RequireRole';
 export { RequireSpaceRole } from './guards/RequireSpaceRole';
-export { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH, SIGN_IN_PATH } from './returnUrl';
+export {
+  ACCOUNT_SETTINGS_PATH,
+  CHANGE_PASSWORD_PATH,
+  RESET_PASSWORD_PATH,
+  SIGN_IN_PATH,
+  returnUrlOf,
+} from './returnUrl';
 export { RecordTitleProvider } from './title/RecordTitleProvider';
 export { RouteErrorState } from './states/RouteErrorState';
 export { showActionBar, useActionBarShown } from './actionBar/actionBarShown';
+export { SkipLink } from './focus/SkipLink';
+export { useMainFocus } from './focus/useMainFocus';
 export type { PageTitle } from './title/PageTitle';
 export type { TitledHandle } from './title/titledHandle';
 export { usePageTitle } from './title/usePageTitle';

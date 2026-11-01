@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
+import { gazaClockOf } from '@masaha/shared/core';
 import { PHOTO_LIMIT, type SpacePhoto } from '@masaha/shared/spaces';
 import type { Logger } from 'pino';
 
@@ -12,6 +13,21 @@ import type { Storage } from '../../../shared/storage/index.ts';
 import { createSpaceRepository } from '../space/space.repository.ts';
 import { objectKeyOf, objectKeysOf, PHOTO_OUTPUTS, urlsOf } from './photoSizes.ts';
 import { createPhotosRepository, type PhotoRow } from './photos.repository.ts';
+
+/** A photo's file in the storage: `spaces/{key}/{size}.webp` (`objectKeyOf`). */
+const PHOTO_FILE = /^spaces\/([^/]+)\/[^/]+\.webp$/;
+
+/** The reclamation acts in Gaza's 03:00 hour only, so its listing runs a dozen times a day. */
+const RECLAIM_HOUR = 3;
+
+/** A file younger than this may belong to a photo whose row is still being written. */
+const RECLAIM_MIN_AGE_MS = 60 * 60 * 1000;
+
+/** At most this many files removed a run; the rest wait for the next. */
+const RECLAIM_BATCH = 200;
+
+/** How many removals the store is sent at once. */
+const RECLAIM_AT_ONCE = 10;
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -161,6 +177,52 @@ export function createPhotosService({ runInTransaction, audit, storage, logger }
      * else the gallery changed since it was read (409). The first is the cover. The same order
      * writes nothing.
      */
+    /**
+     * The timed job `photos.reclaimOrphans` (finding 63): in Gaza's 03:00 hour only (other runs
+     * answer `skipped`), lists the photos' files and removes each one whose key no photo row holds
+     * and that was stored more than an hour before `at` — a file whose photo was refused, failed or
+     * removed and whose removal failed then — at most `RECLAIM_BATCH` a run, ten at once, each logged
+     * `[storage:reclaimed]`. A removal that fails is logged and left to the next day. `kept`
+     * counts the files listed and not removed.
+     */
+    async reclaimOrphans(at: Date): Promise<{ removed: number; kept: number } | { skipped: true }> {
+      if (Math.floor(gazaClockOf(at).minute / 60) !== RECLAIM_HOUR) return { skipped: true };
+      const listed: { key: string; photoKey: string | null; old: boolean }[] = [];
+      for await (const { key, createdAt } of storage.list('spaces/')) {
+        listed.push({
+          key,
+          photoKey: PHOTO_FILE.exec(key)?.[1] ?? null,
+          old: createdAt.getTime() <= at.getTime() - RECLAIM_MIN_AGE_MS,
+        });
+      }
+      const candidates = listed.filter(({ photoKey, old }) => photoKey !== null && old);
+      const held = await photos.heldKeys([
+        ...new Set(candidates.map(({ photoKey }) => photoKey ?? '')),
+      ]);
+      const orphans = candidates
+        .filter(({ photoKey }) => photoKey !== null && !held.has(photoKey))
+        .slice(0, RECLAIM_BATCH);
+      let removed = 0;
+      // A few at once: one store call at a time would make a full batch outlast the run.
+      for (let i = 0; i < orphans.length; i += RECLAIM_AT_ONCE) {
+        const chunk = orphans.slice(i, i + RECLAIM_AT_ONCE);
+        const results = await Promise.allSettled(chunk.map(({ key }) => storage.remove(key)));
+        results.forEach((result, j) => {
+          const key = chunk[j]?.key;
+          if (result.status === 'fulfilled') {
+            removed += 1;
+            logger.info({ key }, '[storage:reclaimed]');
+          } else {
+            logger.warn(
+              { err: result.reason, key },
+              '[storage:orphan] a file no photo names could not be removed',
+            );
+          }
+        });
+      }
+      return { removed, kept: listed.length - removed };
+    },
+
     async reorder(actor: Actor, space: LoadedSpace, ids: readonly number[]): Promise<void> {
       await runInTransaction(async (tx) => {
         await lockFor(actor, space, tx);

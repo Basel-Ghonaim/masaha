@@ -1,4 +1,4 @@
-import { PlatformContact } from '@features/platform-settings';
+import { PlatformContact } from '@features/platform-settings/public';
 import { useCopy } from '@shared/copy';
 import {
   Button,
@@ -7,6 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CircleCheckIcon,
 } from '@shared/design-system';
 import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -17,7 +18,8 @@ import { StatusLegend } from './StatusLegend';
  * The about page (screen 4, U11), one column: what Masaha is and for whom, with «تصفّح المساحات»;
  * where its information comes from, a verified and an unverified space and the note on freshness;
  * what each live status means; «تواصل معنا» (`#contact`), then «لأصحاب المساحات» (`#owners`), its
- * three steps, each with the platform's configured contact, and only their text with none.
+ * three steps, each with the platform's configured contact, and only their text with none. A link
+ * to a section focuses its heading.
  */
 export function AboutPage() {
   const copy = useCopy();
@@ -29,17 +31,23 @@ export function AboutPage() {
         <h1 className="text-heading-1">{copy.site.links.about}</h1>
         <p>{words.intro}</p>
         <p className="text-muted-foreground">{words.audience}</p>
-        <Button asChild variant="outline" className="self-start">
+        <Button asChild className="w-full md:w-auto md:self-start">
           <Link to={SITE_PATHS.spaces}>{copy.site.browseSpaces}</Link>
         </Button>
       </div>
       <AboutSection title={words.source.title}>
         <div className="grid gap-4 md:grid-cols-2">
-          {[words.verified, words.unverified].map((kind) => (
+          {[
+            { kind: words.verified, icon: true },
+            { kind: words.unverified, icon: false },
+          ].map(({ kind, icon }) => (
             <Card key={kind.title}>
               <CardHeader>
                 <CardTitle>
-                  <h3>{kind.title}</h3>
+                  <h3 className="flex items-center gap-2">
+                    {icon && <CircleCheckIcon aria-hidden className="text-primary" />}
+                    {kind.title}
+                  </h3>
                 </CardTitle>
                 <CardDescription>{kind.subtitle}</CardDescription>
               </CardHeader>
@@ -48,10 +56,11 @@ export function AboutPage() {
           ))}
         </div>
         <p className="text-body-sm text-muted-foreground">
-          {words.source.note}{' '}
+          {words.source.note} {words.source.wrong}{' '}
           <a href={`#${CONTACT_ANCHOR}`} className="text-primary">
-            {words.contact.title}
+            {words.source.wrongLink}
           </a>
+          {words.source.wrongEnd}
         </p>
       </AboutSection>
       <AboutSection title={words.status.title}>
@@ -73,7 +82,10 @@ export function AboutPage() {
   );
 }
 
-/** One of About's sections: named by its heading, an anchor when `id` is given. */
+/**
+ * One of About's sections: named by its heading. With `id`, the heading is the anchor a link names,
+ * focusable (`tabIndex={-1}`) so the shell's focus rule moves the focus to it (carried 1).
+ */
 function AboutSection({
   id,
   title,
@@ -86,8 +98,12 @@ function AboutSection({
   const headingId = useId();
 
   return (
-    <section id={id} aria-labelledby={headingId} className="flex scroll-mt-20 flex-col gap-4">
-      <h2 id={headingId} className="text-heading-2">
+    <section aria-labelledby={id ?? headingId} className="flex flex-col gap-4">
+      <h2
+        id={id ?? headingId}
+        tabIndex={id === undefined ? undefined : -1}
+        className="scroll-mt-20 text-heading-2 outline-none"
+      >
         {title}
       </h2>
       {children}

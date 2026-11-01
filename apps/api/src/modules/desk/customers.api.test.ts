@@ -32,6 +32,15 @@ let admin: { id: number; authorization: string };
 beforeEach(async () => {
   await resetDatabase(prisma);
   ({ id: spaceId } = await createSpace());
+  // Every space has its settings row (space-settings); the file reads its reminder.
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'PER_MINUTE',
+      visitCapAtDayPrice: false,
+    },
+  });
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
   stranger = await signIn('USER', 'stranger@example.com');
@@ -142,7 +151,12 @@ describe('the customers list', () => {
       { ...row(lina), current: null, debtAgorot: 1_500, creditAgorot: 0 },
       {
         ...row(omar),
-        current: current(omars, null, '2026-10-25', 'ENDING_SOON'),
+        current: current(omars, null, '2026-10-25', 'ENDING_SOON', {
+          daysUsed: 1,
+          daysThisWeek: 1,
+          minutesUsed: 180,
+          minutesToday: 0,
+        }),
         debtAgorot: 0,
         creditAgorot: 2_500,
       },
@@ -169,6 +183,36 @@ describe('the customers list', () => {
     });
   });
 
+  it("a customer row's current subscription carries its progress and its limits", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    const limited = await createSubscription(sara, {
+      name: 'Three days a week',
+      startsOn: day('2026-10-01'),
+      endsOn: day('2026-10-31'),
+      totalDays: 12,
+      daysPerWeek: 3,
+      hoursPerDay: 6,
+      totalHours: 60,
+    });
+    // This week (from Saturday the 17th): two days, one of them today, open.
+    await createCheckIn(limited, stay('2026-10-18', '09:00', '11:00'));
+    await createCheckIn(limited, { checkedInAt: new Date('2026-10-21T09:00:00+03:00') });
+
+    expect(dataOf(await list(reception))).toMatchObject([
+      {
+        name: 'Sara',
+        current: {
+          id: limited.id,
+          totalDays: 12,
+          daysPerWeek: 3,
+          hoursPerDay: 6,
+          totalHours: 60,
+          progress: { daysUsed: 2, daysThisWeek: 2, minutesUsed: 120, minutesToday: 0 },
+        },
+      },
+    ]);
+  });
+
   it('q finds a name with its hamza or ta marbuta folded, and a phone by its last digits or whole in any form', async () => {
     await createCustomer(spaceId, { name: 'أسامة علي', phone: '+970599000205' });
     await createCustomer(spaceId, { name: 'سارة', phone: '+970599000777' });
@@ -185,6 +229,20 @@ describe('the customers list', () => {
     expect(names(await list(owner, '?q=00970599000205'))).toEqual(['أسامة علي']);
     expect(names(await list(owner, '?q=059-900-0777'))).toEqual(['سارة']);
     expect(names(await list(owner, '?q=02-05'))).toEqual(['أسامة علي']);
+  });
+
+  it('+970… typed finds a phone stored as +972…', async () => {
+    await createCustomer(spaceId, { name: 'Dana', phone: '+972591234567' });
+
+    expect(names(await list(owner, '?q=0591234567'))).toEqual(['Dana']);
+    expect(names(await list(owner, `?q=${encodeURIComponent('+970591234567')}`))).toEqual(['Dana']);
+  });
+
+  it('+972… typed finds a phone stored as +970…', async () => {
+    await createCustomer(spaceId, { name: 'Huda', phone: '+970521234567' });
+
+    expect(names(await list(owner, `?q=${encodeURIComponent('+972521234567')}`))).toEqual(['Huda']);
+    expect(names(await list(owner, '?q=0521234567'))).toEqual(['Huda']);
   });
 
   it('each filter applies before the page is cut: every page full, the total right', async () => {
@@ -219,6 +277,29 @@ describe('the customers list', () => {
     expect(names(await list(owner, '?kind=NONE'))).toEqual(['Hadi', 'Lina']);
     expect(names(await list(owner, '?payment=SETTLED'))).toEqual(['Hadi', 'Tala']);
     expect(names(await list(owner, '?kind=NONE&payment=SETTLED'))).toEqual(['Hadi']);
+  });
+
+  it("a subscription sold from a month's price is filtered MONTH, a custom one CUSTOM, a package's PACKAGE", async () => {
+    await seed();
+    await prisma.spacePrice.create({
+      data: { spaceId, period: 'MONTH', audience: 'GENERAL', amountAgorot: 25_000 },
+    });
+    const nour = await createCustomer(spaceId, { name: 'Nour' });
+    const sold = await request(app)
+      .post(`/api/v1/manage/spaces/${String(spaceId)}/customers/${String(nour.id)}/subscriptions`)
+      .set('Authorization', reception.authorization)
+      .set('Idempotency-Key', randomUUID())
+      .send({ published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' } });
+    expect(sold.status).toBe(201);
+    expect((dataOf(sold) as { subscription: object }).subscription).toMatchObject({
+      publishedPeriod: 'MONTH',
+    });
+
+    expect(names(await list(owner, '?kind=MONTH'))).toEqual(['Nour']);
+    expect(names(await list(owner, '?kind=WEEK'))).toEqual([]);
+    // Omar's is custom: neither a package's nor a published price's.
+    expect(names(await list(owner, '?kind=CUSTOM'))).toEqual(['Omar']);
+    expect(names(await list(owner, '?kind=PACKAGE'))).toEqual(['Sara', 'Tala']);
   });
 
   it('archived customers only under status ARCHIVED, the owner’s; reception 403; a stranger, another space’s owner and the admin not_found', async () => {
@@ -289,6 +370,62 @@ describe('the customers list', () => {
       unpaidVisits: [],
     });
   });
+
+  it("the list and the file answer a per-day subscription whose due is past the integer's range", async () => {
+    // The price's bound, a day, for 215 days: 2,150,000,000 agorot owed, past 2³¹ − 1.
+    const dana = await createCustomer(spaceId, { name: 'Dana' });
+    const perDay = await createSubscription(dana, { billing: 'PER_DAY', priceAgorot: 10_000_000 });
+    await prisma.$executeRaw`
+      INSERT INTO check_ins (space_id, customer_id, subscription_id, request_id, checked_in_at,
+                             checked_out_at, checkout_method, updated_at)
+      SELECT ${spaceId}, ${dana.id}, ${perDay.id}, gen_random_uuid(),
+             '2026-01-01T09:00:00+02:00'::timestamptz + n * interval '1 day',
+             '2026-01-01T10:00:00+02:00'::timestamptz + n * interval '1 day', 'MANUAL', now()
+      FROM generate_series(0, 214) n`;
+
+    const page = await list(owner);
+    expect(page.status).toBe(200);
+    expect(dataOf(page)).toMatchObject([{ name: 'Dana', debtAgorot: 2_150_000_000 }]);
+    expect(total(await list(owner, '?payment=OWES'))).toBe(1);
+    const file = await request(app)
+      .get(`/api/v1/manage/spaces/${String(spaceId)}/customers/${String(dana.id)}`)
+      .set('Authorization', owner.authorization);
+    expect(file.status).toBe(200);
+    expect(dataOf(file)).toMatchObject({
+      debtAgorot: 2_150_000_000,
+      subscriptions: [{ dueAgorot: 2_150_000_000, balanceAgorot: 2_150_000_000 }],
+    });
+  });
+
+  it("the list and the file answer a subscription whose paid sum is past the integer's range", async () => {
+    // The same due, paid in full: 215 payments at the payment's bound, 2,150,000,000 agorot paid.
+    const dana = await createCustomer(spaceId, { name: 'Dana' });
+    const perDay = await createSubscription(dana, { billing: 'PER_DAY', priceAgorot: 10_000_000 });
+    await prisma.$executeRaw`
+      INSERT INTO check_ins (space_id, customer_id, subscription_id, request_id, checked_in_at,
+                             checked_out_at, checkout_method, updated_at)
+      SELECT ${spaceId}, ${dana.id}, ${perDay.id}, gen_random_uuid(),
+             '2026-01-01T09:00:00+02:00'::timestamptz + n * interval '1 day',
+             '2026-01-01T10:00:00+02:00'::timestamptz + n * interval '1 day', 'MANUAL', now()
+      FROM generate_series(0, 214) n`;
+    await prisma.$executeRaw`
+      INSERT INTO payments (space_id, subscription_id, request_id, amount_agorot, method, recorded_by_id)
+      SELECT ${spaceId}, ${perDay.id}, gen_random_uuid(), 10000000, 'CASH', ${owner.id}
+      FROM generate_series(1, 215)`;
+
+    const page = await list(owner);
+    expect(page.status).toBe(200);
+    expect(dataOf(page)).toMatchObject([{ name: 'Dana', debtAgorot: 0 }]);
+    expect(total(await list(owner, '?payment=OWES'))).toBe(0);
+    const file = await request(app)
+      .get(`/api/v1/manage/spaces/${String(spaceId)}/customers/${String(dana.id)}`)
+      .set('Authorization', owner.authorization);
+    expect(file.status).toBe(200);
+    expect(dataOf(file)).toMatchObject({
+      debtAgorot: 0,
+      subscriptions: [{ dueAgorot: 2_150_000_000, paidAgorot: 2_150_000_000, balanceAgorot: 0 }],
+    });
+  });
 });
 
 /** A customer as a row shows them. */
@@ -302,6 +439,18 @@ function current(
   packageId: number | null,
   endsOn: string,
   status: string,
+  progress = { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
 ) {
-  return { id, name, packageId, endsOn, status };
+  return {
+    id,
+    name,
+    packageId,
+    endsOn,
+    status,
+    totalDays: null,
+    daysPerWeek: null,
+    hoursPerDay: null,
+    totalHours: null,
+    progress,
+  };
 }

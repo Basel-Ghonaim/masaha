@@ -102,6 +102,7 @@ import {
   createRecoveryCookie,
   createSessionCookies,
   createSessionsService,
+  successorKeyOf,
 } from './modules/sessions/index.ts';
 import {
   createAdminOwnersController,
@@ -194,6 +195,7 @@ import {
   FIFTEEN_MINUTES,
   createLimiter,
   limitRequests,
+  sweepEndedWindows,
   type RateLimitPolicy,
 } from './shared/rate-limit/index.ts';
 import {
@@ -328,7 +330,8 @@ export function createApi({
 
   const runInTransaction = createRunInTransaction();
 
-  const sessions = createSessionsService({ now: clock });
+  // A refresh token's successor is named under a key of its own, derived from the secret (S7).
+  const sessions = createSessionsService({ successorKey: successorKeyOf(jwtSecret), now: clock });
   const users = createUsersService({
     accessTokens,
     limiter,
@@ -372,6 +375,8 @@ export function createApi({
     runInTransaction,
     audit: writeAudit,
     platformSettings,
+    // The lookups name the retired amenities a space's read holds (finding 99).
+    lookups,
     ownersFor: (spaceId: number, tx: Tx) => adminSpaces.ownersFor(spaceId, tx),
     now: clock,
   };
@@ -461,7 +466,7 @@ export function createApi({
     packages,
     now: clock,
   });
-  const spaceLinks = createSpaceLinksService({ spaces, lookups });
+  const spaceLinks = createSpaceLinksService({ audit: writeAudit, now: clock, spaces, lookups });
   // The guard reads the account on every signed-in request (ADR 0003, revised), and a reception
   // account's links and session (docs/backend/security.md › Tokens and cookies).
   const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId), {
@@ -545,6 +550,9 @@ export function createApi({
     emailSender: createCappedEmailSender(email, { limiter, logger }),
     webOrigin,
     wait,
+    // Whether a person was created by someone else and never acted is the audit reader's (L5), a
+    // level above auth: passed in.
+    mustKeep: (userId: number, tx: Tx) => auditLog.mustKeep(userId, tx),
   });
 
   // The timed jobs (ADR 0014; conventions §12): each module closes its own stays.
@@ -552,6 +560,14 @@ export function createApi({
     jobs: [
       { name: 'visits.autoCheckOut', run: (at) => visits.autoCheckOut(at) },
       { name: 'subscriptions.autoCheckOut', run: (at) => subscriptions.autoCheckOut(at) },
+      // The ended rows of identity and of the rate limits, swept (finding 17).
+      { name: 'sessions.sweepExpired', run: (at) => sessions.sweepExpired(at) },
+      {
+        name: 'rateLimits.sweepExpired',
+        run: async (at) => ({ counters: await sweepEndedWindows(at) }),
+      },
+      // The storage's files no photo holds, removed once a day (finding 63).
+      { name: 'photos.reclaimOrphans', run: (at) => photos.reclaimOrphans(at) },
     ],
     now: clock,
     logger,

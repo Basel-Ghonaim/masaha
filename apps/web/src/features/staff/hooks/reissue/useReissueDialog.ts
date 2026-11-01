@@ -25,7 +25,11 @@ export function useReissueDialog(
   const client = useQueryClient();
   const reissue = useReissue(spaceId);
   const [refusal, setRefusal] = useState<AppError | null>(null);
-  const { view: failure, blocked } = useRefusalView(refusal, words.failed, copy.refusals);
+  // An admin's account has the re-issue's own line; the re-activation keeps the list's (D5.10).
+  const { view: failure, blocked } = useRefusalView(refusal, words.failed, {
+    ...copy.refusals,
+    ACCOUNT_IS_ADMIN: words.refusedAdmin,
+  });
 
   return {
     title: words.title({ name: isolate(member.name) }),

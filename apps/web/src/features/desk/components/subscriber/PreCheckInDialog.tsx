@@ -17,8 +17,8 @@ import type { SubscriberCheckInView } from '../../hooks/subscriber/useSubscriber
 
 /**
  * The choice before a check-in the row already questions (DI-14): why it asks — no subscription, or
- * its end, or its start — then «تسجيل كزيارة» with what it means, focused first, «تسجيل على أي حال»
- * on the subscription when there is one, and «رجوع». A coming subscription's start that could not be
+ * its end, or its start — then «تسجيل كزيارة», the customer's visit, focused first, «تسجيل على أي حال»
+ * on the subscription when there is one, «تجديد» or «اشتراك جديد» opening the sheet instead, and «رجوع». A coming subscription's start that could not be
  * read says so, with its retry. While a choice is sent nothing closes it; a
  * failure shows above the footer. Closed, `focusAfter` says where the focus goes.
  */
@@ -67,12 +67,16 @@ export function PreCheckInDialog({
             </AlertAction>
           </Alert>
         )}
-        <p className="text-body-sm text-muted-foreground">{dialog.asVisit.note}</p>
         {dialog.failure !== null && <FormFailure view={dialog.failure} />}
         <DialogFooter>
           <Button variant="ghost" disabled={dialog.busy} onClick={dialog.back.run}>
             {dialog.back.label}
           </Button>
+          {dialog.next !== null && (
+            <Button variant="outline" disabled={dialog.busy} onClick={dialog.next.run}>
+              {dialog.next.label}
+            </Button>
+          )}
           {dialog.anyway !== null && (
             <Button variant="outline" disabled={dialog.busy} onClick={dialog.anyway.run}>
               {dialog.anyway.label}

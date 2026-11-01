@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createSubscription } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -139,19 +139,24 @@ describe('correcting a subscription', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('a reception link ended while the correction waits is refused 403, writing nothing', async () => {
-    const response = await whileHeld(
-      lockSpace,
-      () => correct(reception, { daysPerWeek: 3 }),
-      (tx) =>
-        tx.spaceManager.updateMany({
-          where: { spaceId, userId: reception.id },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await stored()).toMatchObject({ daysPerWeek: 5 });
-  });
+  it(
+    'a reception link ended while the correction waits is refused 403, writing nothing',
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => correct(reception, { daysPerWeek: 3 }),
+        (tx) =>
+          tx.spaceManager.updateMany({
+            where: { spaceId, userId: reception.id },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await stored()).toMatchObject({ daysPerWeek: 5 });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('the owner corrects the price and billing with a reason, recorded as the price typed, audited subscription.priceCorrected; reception 403 before the body is read', async () => {
     const refused = await correctPrice(reception, { billing: 'NOT_A_BILLING' });
@@ -208,27 +213,32 @@ describe('correcting a subscription', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('a payment that waited while the owner lowered the price is refused PAYMENT_EXCEEDS_DUE', async () => {
-    await pay(5_000);
+  it(
+    'a payment that waited while the owner lowered the price is refused PAYMENT_EXCEEDS_DUE',
+    async () => {
+      await pay(5_000);
 
-    const response = await whileHeld(
-      lockSpace,
-      () =>
-        request(app)
-          .post(`/api/v1/manage/spaces/${String(spaceId)}/payments`)
-          .set('Authorization', reception.authorization)
-          .set('Idempotency-Key', randomUUID())
-          .send({ subscriptionId, amountAgorot: 20_000, method: 'CASH' }),
-      (tx) =>
-        tx.subscription.update({
-          where: { id: subscriptionId },
-          data: { priceAgorot: 10_000, priceSetById: owner.id, priceReason: 'Discount' },
-        }),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('PAYMENT_EXCEEDS_DUE');
-    expect(await prisma.payment.count()).toBe(1);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () =>
+          request(app)
+            .post(`/api/v1/manage/spaces/${String(spaceId)}/payments`)
+            .set('Authorization', reception.authorization)
+            .set('Idempotency-Key', randomUUID())
+            .send({ subscriptionId, amountAgorot: 20_000, method: 'CASH' }),
+        (tx) =>
+          tx.subscription.update({
+            where: { id: subscriptionId },
+            data: { priceAgorot: 10_000, priceSetById: owner.id, priceReason: 'Discount' },
+          }),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('PAYMENT_EXCEEDS_DUE');
+      expect(await prisma.payment.count()).toBe(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("another space's subscription is not_found; so is any to a stranger and the admin", async () => {
     const theirs = await createSubscription(await createCustomer(otherSpaceId));

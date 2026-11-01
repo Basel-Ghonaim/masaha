@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertDescription,
   Button,
   Field,
   Input,
@@ -14,15 +16,27 @@ import {
 import { FormFailure } from '@shared/forms';
 import { useCopy } from '@shared/copy';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { SpaceCombobox } from '../SpaceCombobox';
+import { LinkOwnerDialog } from '../link/LinkOwnerDialog';
 import { AddOwnerNotice } from './AddOwnerNotice';
 import { useAddOwnerForm } from '../../hooks/add-owner/useAddOwnerForm';
 import type { TemporaryPasswordSlot } from '../../types/TemporaryPasswordSlot';
 
-export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPasswordSlot }) {
+/**
+ * «إضافة مالك»: its button and its sheet, which `?sheet=add` opens too; a suspended account's email
+ * leads to the users list (`usersLink`), where it is restored.
+ */
+export function AddOwner({
+  temporaryPassword,
+  usersLink,
+}: {
+  temporaryPassword: TemporaryPasswordSlot;
+  usersLink: (q: string) => string;
+}) {
   const copy = useCopy();
   const lines = copy.spaceLinks.addOwner;
-  const form = useAddOwnerForm();
+  const form = useAddOwnerForm({ usersLink });
   // «إضافة مالك», where the page's password dialog returns the focus once done.
   const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
 
@@ -42,9 +56,22 @@ export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPa
               <Field label={form.labels.name} error={form.errors.name}>
                 <Input {...form.fields.name} />
               </Field>
-              <Field label={form.labels.email} error={form.errors.email}>
-                <Input type="email" dir="ltr" {...form.fields.email} />
-              </Field>
+              <div className="flex flex-col gap-1">
+                <Field label={form.labels.email} error={form.errors.email}>
+                  <Input type="email" dir="ltr" {...form.fields.email} />
+                </Field>
+                {form.linkOwner !== null && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="self-start"
+                    loading={!form.linkOwner.ready}
+                    onClick={form.linkOwner.run}
+                  >
+                    {form.linkOwner.label}
+                  </Button>
+                )}
+              </div>
               <Field label={form.labels.space} error={form.errors.spaceId}>
                 <SpaceCombobox
                   choices={form.spaceChoices}
@@ -55,6 +82,17 @@ export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPa
                 />
               </Field>
               <AddOwnerNotice notice={form.notice} />
+              {form.suspended !== null && (
+                <Alert variant="warning">
+                  <AlertDescription>
+                    {form.suspended.before}
+                    <Link to={form.suspended.link.to} className="underline underline-offset-4">
+                      {form.suspended.link.label}
+                    </Link>
+                    {form.suspended.after}
+                  </AlertDescription>
+                </Alert>
+              )}
               {form.failure !== null && <FormFailure view={form.failure} />}
             </SheetBody>
             <SheetFooter>
@@ -70,6 +108,13 @@ export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPa
           </form>
         </SheetContent>
       </Sheet>
+      {form.linkTarget !== null && (
+        <LinkOwnerDialog
+          target={form.linkTarget}
+          onClose={form.closeLink}
+          returnFocus={{ current: trigger }}
+        />
+      )}
       {/* Outside the sheet, which closes once the owner is added. */}
       {form.added !== null && temporaryPassword(form.added, form.done, { current: trigger })}
     </>

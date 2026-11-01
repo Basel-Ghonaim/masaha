@@ -54,8 +54,25 @@ export const DATA_REPORTS = {
     more: 'More pages',
   },
   /** The decision sheet. */
+  /** The notice of one open report, above the section its field is edited in (D6.8). */
+  notice: {
+    title: ({ field }: { field: string }) => `An open report on ${field}`,
+    /** The report's words, quoted. */
+    quoted: ({ message }: { message: string }) => `“${message}”`,
+    /** The words, who reported (never named to the owner) and the day. */
+    said: ({ text, who, day }: { text: string; who: string; day: string }) =>
+      `${text} — ${who}, ${day}`,
+    visitor: 'a visitor',
+    resolve: 'Corrected',
+    open: 'Open the report to reply',
+    resolved: 'Marked «Corrected»',
+    back: 'Back to the reports',
+    failed: 'The report wasn’t marked',
+  },
   sheet: {
     title: ({ field }: { field: string }) => `Report about ${field}`,
+    /** The admin's sheet: the space, then the field. */
+    adminTitle: ({ space, field }: { space: string; field: string }) => `${space} · ${field}`,
     report: 'The report',
     editField: 'Edit the field',
     replySpace: 'Reply from the space',
@@ -96,6 +113,8 @@ export const DATA_REPORTS = {
       actions: 'Actions',
     },
     handledBy: { admin: 'Admin', owner: 'Owner' },
+    /** «يعالجه»'s chips (finding 167's filter). */
+    handledByFilter: { label: 'Handled by', all: 'All', admin: 'The admin', owner: 'The owner' },
     space: 'Space',
     chosen: 'A chosen space',
     field: 'Field',
@@ -105,6 +124,8 @@ export const DATA_REPORTS = {
       field: ({ field }: { field: string }) => `Field: ${field}`,
       removeSpace: 'Remove the space filter',
       removeField: 'Remove the field filter',
+      handledBy: ({ who }: { who: string }) => `Handled by: ${who}`,
+      removeHandledBy: 'Remove the handled-by filter',
       clear: 'Clear filters',
     },
     filters: {
@@ -139,6 +160,8 @@ export const DATA_REPORTS = {
     /** None under a chip. */
     none: 'No reports here',
     loadFailed: 'We couldn’t load your reports',
+    /** Which reports the page shows, of how many, beside the pages (GX.1); each value isolated. */
+    range: ({ range, total }: { range: string; total: string }) => `Showing ${range} of ${total}`,
   },
   /** A space's page: «الإبلاغ عن معلومة غير صحيحة» and its dialog. */
   report: {

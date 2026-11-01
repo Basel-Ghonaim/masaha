@@ -7,30 +7,65 @@ import {
   EllipsisVerticalIcon,
 } from '@shared/design-system';
 import { useRef } from 'react';
+import { Link } from 'react-router';
 import type { UncollectedRowView } from '../../hooks/uncollected/useUncollectedCard';
 
 /**
- * One uncollected visit (DI-24): who, how and when it closed, what it still owes; «تحصيل» the primary
- * (DI-4), «تسجيل دين» outlined, and the owner's «⋯», named by the visit, holding «لن يُحصَّل…»,
- * destructive (DI-27). The actions take the layer's default size, 44 px on touch (DI-16). `opened`
+ * One uncollected visit (DI-24): who — a customer's name leading to their file —, how and when it
+ * closed, what it still owes; «تحصيل» the primary (DI-4), «تسجيل دين» outlined, and the owner's «⋯»,
+ * named by the visit, holding «لن يُحصَّل…», destructive (DI-27). The actions take the layer's default size, 44 px on touch (DI-16). `opened`
  * hears which control opened a dialog, so the focus goes back to it (DI-30).
  */
 export function UncollectedRow({
   row,
   opened,
+  fileLink,
+  payments = [],
 }: {
   row: UncollectedRowView;
   opened: (trigger: HTMLElement) => void;
+  /** Where a customer's file is; none in the file itself, whose rows name no customer. */
+  fileLink?: (customerId: number) => string;
+  /** What was paid on it, the file's: each amount, its method, who recorded it, a void's line. */
+  payments?: readonly {
+    key: string;
+    amount: string;
+    method: string;
+    recordedBy: string;
+    voided: string | null;
+  }[];
 }) {
   const menu = useRef<HTMLButtonElement | null>(null);
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="self-start text-label" dir="auto">
-          {row.name}
-        </span>
+        {row.customerId === null || fileLink === undefined ? (
+          <span className="self-start text-label" dir="auto">
+            {row.name}
+          </span>
+        ) : (
+          <Link
+            to={fileLink(row.customerId)}
+            dir="auto"
+            className="self-start text-label text-foreground underline-offset-4 hover:underline"
+          >
+            {row.name}
+          </Link>
+        )}
         <span className="text-caption text-muted-foreground">{row.how}</span>
+        {payments.length > 0 && (
+          <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
+            {payments.map((payment) => (
+              <li key={payment.key} className="flex flex-col">
+                <span className={payment.voided === null ? undefined : 'line-through'}>
+                  {payment.amount} · {payment.method} · {payment.recordedBy}
+                </span>
+                {payment.voided !== null && <span>{payment.voided}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-label">{row.amount}</span>

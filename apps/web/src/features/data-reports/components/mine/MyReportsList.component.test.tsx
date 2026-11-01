@@ -64,7 +64,10 @@ describe('MyReportsList', () => {
     );
 
     const region = await screen.findByRole('region', { name: 'Reports' });
-    const cards = await within(region).findAllByRole('listitem');
+    // The cards, not the page steps under them, which a one-page list keeps (P6).
+    const cards = (await within(region).findAllByRole('listitem')).filter(
+      (item) => item.closest('nav') === null,
+    );
     expect(cards).toHaveLength(2);
     const [long, short] = cards as [HTMLElement, HTMLElement];
 
@@ -102,10 +105,21 @@ describe('MyReportsList', () => {
       reportsPage([myReport({}, { nameEn: 'Old Hub', nameAr: null, listed: false })]),
     );
 
-    const card = within(await screen.findByRole('listitem'));
+    const [first] = (await screen.findAllByRole('listitem')).filter(
+      (item) => item.closest('nav') === null,
+    );
+    if (first === undefined) throw new Error('no card');
+    const card = within(first);
     expect(card.getByRole('heading', { level: 2, name: 'Old Hub' })).toBeInTheDocument();
     expect(card.queryByRole('link')).not.toBeInTheDocument();
     expect(card.getByText('This space is no longer listed in the directory')).toBeInTheDocument();
+  });
+
+  it('says which reports the page shows, of how many, beside the pages', async () => {
+    renderList(() => reportsPage([myReport()], { total: 45, currentPage: 1 }));
+
+    const range = await screen.findByText(/^Showing/);
+    expect(range.textContent.replace(/[\u2066-\u2069]/g, '')).toBe('Showing 1–20 of 45');
   });
 
   it('offers «Browse spaces» when none is sent yet', async () => {

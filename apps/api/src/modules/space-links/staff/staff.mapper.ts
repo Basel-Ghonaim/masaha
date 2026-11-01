@@ -11,6 +11,7 @@ export function toStaffMember(link: ReceptionLink, account: StaffAccount): Staff
     name: account.name,
     email: account.email,
     isActive: link.deactivatedAt === null,
+    addedAt: link.createdAt.toISOString(),
     temporaryPassword: expiresAt ? { expiresAt: expiresAt.toISOString() } : null,
   };
 }

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '../../../lib/cn';
 import { useFieldControl } from '../Field';
 
-export type InputProps = Omit<ComponentProps<'input'>, 'dir'> & {
+export type InputProps = Omit<ComponentProps<'input'>, 'dir' | 'size'> & {
   /**
    * `ltr` for a value that reads left to right in either language: an email, a phone number, a URL
    * (docs/frontend/design-system/foundation.md §8).
@@ -17,6 +17,8 @@ export type InputProps = Omit<ComponentProps<'input'>, 'dir'> & {
   endIcon?: ReactNode;
   /** A button at the very end of the box (clear, show the password): an InputAction. */
   action?: ReactNode;
+  /** `lg` for a page's main field, such as the front desk's search: 48px high, 52px on touch. */
+  size?: 'md' | 'lg';
 };
 
 const SLOT_ICON = "flex shrink-0 text-muted-foreground [&_svg:not([class*='size-'])]:size-4";
@@ -34,6 +36,7 @@ export function Input({
   startIcon,
   endIcon,
   action,
+  size = 'md',
   ...props
 }: InputProps) {
   const fieldProps = useFieldControl({
@@ -47,8 +50,10 @@ export function Input({
   return (
     <div
       data-slot="input-group"
+      data-size={size}
       className={cn(
-        'flex h-(--control-height) w-full min-w-0 items-center gap-2 rounded-(--radius-control) border border-input bg-background px-3 text-foreground transition-colors has-[[data-slot=input-action]]:pe-1 has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:outline-offset-2 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible:not([aria-invalid=true])]:border-ring has-[[data-slot=input][aria-invalid=true]]:border-destructive has-[[data-slot=input]:disabled]:cursor-not-allowed has-[[data-slot=input]:disabled]:opacity-50',
+        size === 'lg' ? 'h-(--control-height-lg)' : 'h-(--control-height)',
+        'flex w-full min-w-0 items-center gap-2 rounded-(--radius-control) border border-input bg-background px-3 text-foreground transition-colors has-[[data-slot=input-action]]:pe-1 has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:outline-offset-2 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible:not([aria-invalid=true])]:border-ring has-[[data-slot=input][aria-invalid=true]]:border-destructive has-[[data-slot=input]:disabled]:cursor-not-allowed has-[[data-slot=input]:disabled]:opacity-50',
         className,
       )}
     >

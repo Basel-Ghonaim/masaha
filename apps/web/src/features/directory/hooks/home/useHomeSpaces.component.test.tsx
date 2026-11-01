@@ -1,5 +1,5 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
@@ -87,6 +87,36 @@ describe('useHomeSpaces', () => {
     expect(requests[0]?.headers['Masaha-Near']).toBe('31.501,34.467');
     expect(result.current.near.button.on).toBe(true);
     expect(result.current.viewAll).toEqual({ label: 'عرض الكل', to: 'list' });
+  });
+
+  it('keeps the title of the spaces shown while the nearest are on their way', async () => {
+    let answer: (value: unknown) => void = () => undefined;
+    const requests = fakeTransport((config) =>
+      (config.params as { sort?: string } | undefined)?.sort === 'distance'
+        ? new Promise((resolve) => {
+            answer = resolve;
+          }).then(() => page([space(4)]))
+        : page([space(1)]),
+    );
+    const { result } = renderHook(() => useHomeSpaces({ chooseArea: vi.fn(), openMap: vi.fn() }), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => {
+      expect(result.current.state).toBe('ready');
+    });
+
+    act(() => {
+      nearMeStore.granted({ lat: 31.501, lng: 34.467 }, 'device');
+    });
+    await waitFor(() => {
+      expect(requests).toHaveLength(2);
+    });
+
+    expect(result.current.title).toBe('متاحة الآن');
+    answer(undefined);
+    await waitFor(() => {
+      expect(result.current.title).toBe('المساحات الأقرب إليك');
+    });
   });
 
   it('with none available now, says so and offers browsing all the spaces', async () => {

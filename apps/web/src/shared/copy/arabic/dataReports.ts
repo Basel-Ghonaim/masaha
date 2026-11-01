@@ -56,8 +56,21 @@ export const DATA_REPORTS = {
       `صفحة ${String(page)} من ${String(total)}`,
     more: 'صفحات أخرى',
   },
+  notice: {
+    title: ({ field }: { field: string }) => `بلاغ مفتوح على ${field}`,
+    quoted: ({ message }: { message: string }) => `“${message}”`,
+    said: ({ text, who, day }: { text: string; who: string; day: string }) =>
+      `${text} — ${who}، ${day}`,
+    visitor: 'زائر',
+    resolve: 'تم التصحيح',
+    open: 'فتح البلاغ للرد',
+    resolved: 'عُلّم «تم التصحيح»',
+    back: 'العودة إلى البلاغات',
+    failed: 'لم يُعلَّم البلاغ',
+  },
   sheet: {
     title: ({ field }: { field: string }) => `بلاغ عن ${field}`,
+    adminTitle: ({ space, field }: { space: string; field: string }) => `${space} · ${field}`,
     report: 'البلاغ',
     editField: 'تعديل الحقل',
     replySpace: 'ردّ إدارة المساحة',
@@ -96,6 +109,7 @@ export const DATA_REPORTS = {
       actions: 'إجراءات',
     },
     handledBy: { admin: 'الإدارة', owner: 'المالك' },
+    handledByFilter: { label: 'يعالجه', all: 'الكل', admin: 'الإدارة', owner: 'المالك' },
     space: 'المساحة',
     chosen: 'مساحة محددة',
     field: 'الحقل',
@@ -105,6 +119,8 @@ export const DATA_REPORTS = {
       field: ({ field }: { field: string }) => `الحقل: ${field}`,
       removeSpace: 'إزالة فلتر المساحة',
       removeField: 'إزالة فلتر الحقل',
+      handledBy: ({ who }: { who: string }) => `يعالجه: ${who}`,
+      removeHandledBy: 'إزالة فلتر «يعالجه»',
       clear: 'مسح الفلاتر',
     },
     filters: {
@@ -139,6 +155,7 @@ export const DATA_REPORTS = {
     },
     none: 'لا توجد بلاغات هنا',
     loadFailed: 'تعذّر تحميل بلاغاتك',
+    range: ({ range, total }: { range: string; total: string }) => `عرض ${range} من ${total}`,
   },
   report: {
     trigger: 'الإبلاغ عن معلومة غير صحيحة',

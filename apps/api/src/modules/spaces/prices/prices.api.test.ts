@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createTestApp } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
-import { waitingOnLock } from '../../../../test/locks.ts';
+import { waitingOnLock, RACE_TIMEOUT_MS } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
@@ -165,23 +165,27 @@ describe('PUT /admin/spaces/:spaceId/prices', () => {
     expect((await auditEntries()).map(({ action }) => action)).toEqual(['space.pricesEdited']);
   });
 
-  it('waits for the space’s lock, then checks the shifts as they are: a shift removed meanwhile is refused', async () => {
-    const morning = await shiftOf(spaceId);
-    let pending: Promise<{ status: number; body: unknown }> | undefined;
+  it(
+    'waits for the space’s lock, then checks the shifts as they are: a shift removed meanwhile is refused',
+    async () => {
+      const morning = await shiftOf(spaceId);
+      let pending: Promise<{ status: number; body: unknown }> | undefined;
 
-    // An hours save in progress: it holds the space and removes the shift, and commits only after
-    // the prices' save has started.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      await tx.spaceShift.delete({ where: { id: morning.id } });
-      pending = save([{ ...MONTH, shiftId: morning.id }]);
-      await waitingOnLock();
-    });
-    const response = await pending;
+      // An hours save in progress: it holds the space and removes the shift, and commits only after
+      // the prices' save has started.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        await tx.spaceShift.delete({ where: { id: morning.id } });
+        pending = save([{ ...MONTH, shiftId: morning.id }]);
+        await waitingOnLock({ on: 'spaces' });
+      });
+      const response = await pending;
 
-    expect(response?.status).toBe(422);
-    expect(await stored()).toEqual({ prices: [], pricesUpdatedAt: BEFORE });
-  });
+      expect(response?.status).toBe(422);
+      expect(await stored()).toEqual({ prices: [], pricesUpdatedAt: BEFORE });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('refuses the admin once an owner has joined, writing nothing', async () => {
     await signInOwnerOf(spaceId);

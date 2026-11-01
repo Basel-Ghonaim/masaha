@@ -45,7 +45,8 @@ export const SPACE_SETTINGS = {
     capacityHelp:
       'Never shown to visitors. It decides when the space shows “Full”; without it there is no live status.',
     autoOut: 'Automatic check-out at closing',
-    autoOutHelp: 'Whoever is still in is checked out at closing time.',
+    autoOutHelp:
+      'Whoever is still in is checked out at closing. Unpaid visits show under «Uncollected».',
     maxStay: 'Automatic check-out after (hours)',
     maxStayHelp:
       'Whoever stays longer is checked out, before closing. Leave it empty to check out at closing only.',
@@ -69,13 +70,15 @@ export const SPACE_SETTINGS = {
   },
   reminder: {
     title: 'Reminder message',
-    description: 'A ready WhatsApp message to remind a customer of a debt; you send it yourself.',
+    description:
+      'A ready WhatsApp message reminding a customer of their debt; it opens from the customer’s file and from Finance, and you send it.',
     text: 'Message text',
     insert: 'Insert:',
+    /** Each insert button's name holds the token it shows (WCAG 2.5.3, finding 106). */
     insertNamed: {
-      name: 'Insert the name',
-      amount: 'Insert the amount',
-      space: 'Insert the space',
+      name: 'Insert {الاسم}',
+      amount: 'Insert {المبلغ}',
+      space: 'Insert {المساحة}',
     },
     preview: 'Preview',
     /** The customer's name the preview shows. */
@@ -92,6 +95,12 @@ export const SPACE_SETTINGS = {
         `${token} isn’t one of the words you can use; use the buttons to insert {الاسم}, {المبلغ} or {المساحة}.`,
       badCharacters: 'Remove the characters that aren’t allowed',
     },
+  },
+  /** The last card: the owner's own account, kept on the personal settings page. */
+  account: {
+    title: 'My account',
+    description: 'Your name, password, language and theme.',
+    action: 'Personal settings',
   },
   /** A save's refusals, in the owner's words: the space's route, whose 404 is the space's. */
   refusals: {

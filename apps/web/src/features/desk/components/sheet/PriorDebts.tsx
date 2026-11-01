@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from '@shared/design-system';
 import type { SubscriptionSheetView } from '../../hooks/sheet/useSubscriptionSheet';
 
 /**
@@ -7,16 +8,19 @@ import type { SubscriptionSheetView } from '../../hooks/sheet/useSubscriptionShe
  */
 export function PriorDebts({ prior }: { prior: NonNullable<SubscriptionSheetView['prior']> }) {
   return (
-    <section className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
-      <h3 className="text-label">{prior.title}</h3>
-      {prior.items.length > 0 && (
-        <ul className="flex flex-col gap-0.5 text-body-sm text-muted-foreground">
-          {prior.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      )}
-      <p className="text-caption text-muted-foreground">{prior.note}</p>
-    </section>
+    // A warning (G16.3): what the desk receives goes to these first.
+    <Alert variant="warning">
+      <AlertTitle>{prior.title}</AlertTitle>
+      <AlertDescription>
+        {prior.items.length > 0 && (
+          <ul className="flex flex-col gap-0.5">
+            {prior.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        )}
+        <p>{prior.note}</p>
+      </AlertDescription>
+    </Alert>
   );
 }

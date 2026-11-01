@@ -124,9 +124,9 @@ export function toastDebtRecorded(item: UncollectedItem, visit: DeskVisit) {
 }
 
 /**
- * Says a visit was written off, and stays until it is closed (DI-29): its «تراجع» is the only way back,
- * since no screen lists a written-off visit (finding 164). The undo is sent once, never again by
- * itself (S3), and says whether it was undone.
+ * Says a visit was written off, and stays until it is closed (DI-29): its «تراجع» undoes it, as the
+ * owner's «لن تُحصَّل» view does (finding 164). The undo is sent once, never again by itself (S3),
+ * and says whether it was undone.
  */
 export function toastWrittenOff(
   item: UncollectedItem,
@@ -139,20 +139,23 @@ export function toastWrittenOff(
     action: {
       label: words.undo,
       onClick: () => {
-        undo().then(
-          () => {
-            toast.success(currentCopy().desk.writeOff.undone);
-          },
-          (error: unknown) => {
-            const failure = currentCopy().desk.writeOff.undoFailed;
-            toast.error(failure, {
-              description: <RefusalText refusal={toAppError(error)} title={failure} />,
-              duration: Infinity,
-            });
-          },
-        );
+        undo().then(toastUndone, toastUndoFailed);
       },
     },
+  });
+}
+
+/** Says a write-off was undone: the visit is uncollected again. */
+export function toastUndone() {
+  toast.success(currentCopy().desk.writeOff.undone);
+}
+
+/** Says an undo failed, with the refusal's words; it stays until it is closed. */
+export function toastUndoFailed(error: unknown) {
+  const failure = currentCopy().desk.writeOff.undoFailed;
+  toast.error(failure, {
+    description: <RefusalText refusal={toAppError(error)} title={failure} />,
+    duration: Infinity,
   });
 }
 

@@ -1,7 +1,9 @@
 # 132. A paged list shows no sign of the next page loading
 
-**Status:** Open · **Date:** 2026-10-21
+**Status:** Resolved · **Date:** 2026-10-21 · **Resolved:** 2026-10-29
 
 **Evidence:** every paged list on the web keeps the rows or cards shown while the next page or filter loads (`keepPreviousData`), and marks the list only with `aria-busy`: the site's Directory (`features/directory`, #101) and the admin's spaces, owners and users lists (`features/space-links`). `ListPagination` (`shared/lists`) still marks the old page as current until the answer comes, since it reads the shown answer's page. On a weak connection a tap on «2» changes nothing on screen for seconds, which invites a second tap. This follows the decision that the list never blanks between two answers (the Directory's S13, the admin lists' own); it is a design point, not a defect of one list (#101's review, item 9; #103).
 
 **Resolves when:** the design gives a paged list a quiet loading sign, such as a subdued state on the rows or cards, or the chosen page marked at once, and every paged list takes it from `shared/lists`; the owner's call.
+
+**Resolution (#132):** A paged list marks the asked page at once and dims its rows until the answer (D3.6, the design's choice DI4): `ListPagination` (`shared/lists`) marks the page the address asks for current before its answer arrives, for every paged list; `DataTable`'s `refreshing` and the layer's `Refreshing` keep the rows or cards shown, dimmed and marked busy, each list passing its placeholder state: the tables of the customers, the ledger, «دفعاتي اليوم», both data-report lists, the admin's spaces, owners and users, the audit log and the desk's log; the cards of the Directory, «بلاغاتي» and the announcements; the rows of «غير محصّل», «لن تُحصَّل» and finance's who owes and who is in credit (completed 2026-11-01, the review of #132, R14-F1).

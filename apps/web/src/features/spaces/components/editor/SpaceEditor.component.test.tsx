@@ -1,4 +1,5 @@
-import type { AdminSpace } from '@masaha/shared/spaces';
+import { stubScreenWidth } from '../../../../test/screenWidth';
+import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { createQueryClient } from '@shared/api';
 import {
   Select,
@@ -12,10 +13,12 @@ import {
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
+import { deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { findToast } from '../../../../test/findToast';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -62,6 +65,7 @@ const SPACE: AdminSpace = {
   hours: null,
   prices: [],
   amenityIds: [],
+  retiredAmenities: [],
   ownAmenities: [],
   contacts: [],
 };
@@ -128,11 +132,15 @@ function renderEditor({
   photos = () => ok(PHOTOS),
   write = () => ok(savedNow(SPACE)),
   owner = false,
+  noticeFor,
+  entry = '/spaces/7',
 }: {
   read?: () => FakeAnswer | Promise<FakeAnswer>;
   photos?: () => FakeAnswer | Promise<FakeAnswer>;
   write?: (request: Request) => FakeAnswer | Promise<FakeAnswer>;
   owner?: boolean;
+  noticeFor?: (group: FactGroup) => ReactNode;
+  entry?: string;
 } = {}) {
   const requests = fakeTransport((request) => {
     if (request.method !== 'get') return write(request);
@@ -158,6 +166,7 @@ function renderEditor({
                     kind: 'admin',
                     ownerActions,
                     amenitiesListLink: '/lookups?tab=amenities',
+                    reportsLink: (id: number) => `/reports?space=${String(id)}`,
                     areaName: (areaId) => `Area ${String(areaId)}`,
                     amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
                   }
@@ -165,12 +174,13 @@ function renderEditor({
             areaField={areaField}
             amenitiesField={amenitiesField}
             publicLink={(slug) => `/spaces/${slug}`}
+            noticeFor={noticeFor}
           />
         ),
       },
       { path: '/elsewhere', element: <p>Elsewhere</p> },
     ],
-    { initialEntries: ['/spaces/7'] },
+    { initialEntries: [entry] },
   );
   render(
     <QueryClientProvider client={createQueryClient()}>
@@ -370,6 +380,44 @@ describe('the space editor', () => {
   });
 });
 
+describe('the editor’s landing and notices', () => {
+  it('a report in the address shows its notice above its section', async () => {
+    renderEditor({
+      noticeFor: (group) => (group === 'hours' ? <p>The report’s notice</p> : null),
+    });
+
+    const hours = (await screen.findByRole('heading', { level: 2, name: 'Opening hours' })).closest(
+      '[data-slot=card]',
+    );
+    const marker = screen.getByText('The report’s notice');
+    expect(screen.getAllByText('The report’s notice')).toHaveLength(1);
+    // Drawn just before the section, inside the sections' column.
+    expect(marker.nextElementSibling).toBe(hours);
+  });
+
+  it('the editor scrolls to and focuses the card its hash names once drawn', async () => {
+    const read = deferred<FakeAnswer>();
+    renderEditor({ read: () => read.promise, entry: '/spaces/7?report=5#hours' });
+
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+    read.resolve(ok(SPACE));
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    await waitFor(() => {
+      expect(heading).toHaveFocus();
+    });
+  });
+
+  it('lands on a section’s inner part by its heading', async () => {
+    renderEditor({ entry: '/spaces/7#location' });
+
+    const location = await screen.findByRole('heading', { level: 3, name: 'Location' });
+    await waitFor(() => {
+      expect(location).toHaveFocus();
+    });
+  });
+});
+
 describe('a section of the editor', () => {
   it('shows its date, and the confirmation while it is unchanged', async () => {
     renderEditor();
@@ -507,6 +555,7 @@ describe('the contacts section', () => {
 
 describe('the opening hours section', () => {
   it('shows each day with its state and switch, its two times when open, and the copy in its header', async () => {
+    stubScreenWidth(768);
     renderEditor();
     const hours = await waitFor(() => section('Opening hours'));
 
@@ -522,6 +571,32 @@ describe('the opening hours section', () => {
     expect(within(friday.closest('li') as HTMLElement).queryByRole('textbox')).toBeNull();
     const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
     expect(within(header).getByRole('button', { name: 'Copy to all days' })).toBeEnabled();
+  });
+
+  it('a section’s header action leads its content below 768', async () => {
+    stubScreenWidth(390);
+    renderEditor();
+    const hours = await waitFor(() => section('Opening hours'));
+
+    const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
+    expect(within(header).queryByRole('button', { name: 'Copy to all days' })).toBeNull();
+    const content = hours.querySelector('[data-slot=card-content]') as HTMLElement;
+    const copy = within(content).getByRole('button', { name: 'Copy to all days' });
+    // First in the content, before the days.
+    const saturday = within(content).getByRole('switch', { name: 'Open on Saturday' });
+    expect(copy.compareDocumentPosition(saturday) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a verified space’s notice leads to its reports, to correct a fact', async () => {
+    renderEditor({
+      read: () => ok({ ...SPACE, isVerified: true, owners: [{ id: 6, name: 'Sami' }] }),
+    });
+
+    const link = await screen.findByRole('link', { name: /reports$/ });
+    expect(link).toHaveAttribute('href', '/reports?space=7');
+    expect(link.parentElement?.textContent.replace(/[\u2066-\u2069]/g, '')).toBe(
+      'To correct a fact: Focus Hub’s reports',
+    );
   });
 
   it('shows why a shift cannot be removed beside its Remove', async () => {

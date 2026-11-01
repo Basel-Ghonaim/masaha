@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma, type Tx } from '../../db/index.ts';
@@ -55,6 +55,28 @@ const decide = (reportId: number, body: object) =>
   adminRequest(app, admin, 'patch', `/data-reports/${String(reportId)}`, body);
 const lockSpace = (spaceId: number) => (tx: Tx) =>
   tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR UPDATE`;
+
+describe("one report, the admin's", () => {
+  it('the admin reads one report by its id, as the list shows it; an unknown one, or a deleted space’s, 404', async () => {
+    const one = await report({ field: 'HOURS' });
+    const { id: goneId } = await createSpace('gone');
+    const gone = await report({ spaceId: goneId });
+    await prisma.space.update({ where: { id: goneId }, data: { deletedAt: NOW } });
+
+    const response = await adminRequest(app, admin, 'get', `/data-reports/${String(one.id)}`);
+    expect(response.status).toBe(200);
+    const listed = await adminRequest(app, admin, 'get', '/data-reports');
+    expect(dataOf(response)).toEqual((dataOf(listed) as object[])[0]);
+    expect(dataOf(response)).toMatchObject({ id: one.id, reporter: { name: 'Rima Haddad' } });
+
+    for (const id of [gone.id, 999_999]) {
+      const missing = await adminRequest(app, admin, 'get', `/data-reports/${String(id)}`);
+      expect(missing.status).toBe(404);
+    }
+    const asOwner = await adminRequest(app, owner, 'get', `/data-reports/${String(one.id)}`);
+    expect(asOwner.status).toBe(403);
+  });
+});
 
 describe("the admin's reports", () => {
   it('the admin lists every report with the reporter’s and decider’s names, the space and whether it is verified; filtered by status, field and space; a deleted space’s left out; a non-admin 403', async () => {
@@ -206,55 +228,65 @@ describe("the admin's reports", () => {
     expect(await auditEntries()).toHaveLength(1);
   });
 
-  it("an owner linked while the admin's decision waits makes it 403", async () => {
-    const { id } = await report();
-    const { id: newOwnerId } = await signIn('OWNER', 'new-owner@example.com');
+  it(
+    "an owner linked while the admin's decision waits makes it 403",
+    async () => {
+      const { id } = await report();
+      const { id: newOwnerId } = await signIn('OWNER', 'new-owner@example.com');
 
-    const response = await whileHeld(
-      lockSpace(unverifiedId),
-      () => decide(id, { status: 'RESOLVED' }),
-      (tx) =>
-        tx.spaceManager.create({
-          data: { spaceId: unverifiedId, userId: newOwnerId, role: 'OWNER' },
-        }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        lockSpace(unverifiedId),
+        () => decide(id, { status: 'RESOLVED' }),
+        (tx) =>
+          tx.spaceManager.create({
+            data: { spaceId: unverifiedId, userId: newOwnerId, role: 'OWNER' },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      status: 'OPEN',
-    });
-  });
+      expect(response.status).toBe(403);
+      expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
+        status: 'OPEN',
+      });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('the owner and the admin at once: the second sees a decided report', async () => {
-    const { id } = await report({ spaceId: verifiedId });
+  it(
+    'the owner and the admin at once: the second sees a decided report',
+    async () => {
+      const { id } = await report({ spaceId: verifiedId });
 
-    // The owner's decision commits while the admin's waits; the test then unlinks the owner, so
-    // the admin may decide the space, and must find the report decided.
-    const response = await whileHeld(
-      lockSpace(verifiedId),
-      () => decide(id, { status: 'DISMISSED', note: 'صحيح' }),
-      async (tx) => {
-        await tx.dataReport.update({
-          where: { id },
-          data: {
-            status: 'RESOLVED',
-            resolvedAt: minutesAgo(1),
-            resolvedById: owner.id,
-            resolvedAs: 'OWNER',
-          },
-        });
-        await tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId: verifiedId, userId: owner.id } },
-          data: { deactivatedAt: NOW },
-        });
-      },
-    );
+      // The owner's decision commits while the admin's waits; the test then unlinks the owner, so
+      // the admin may decide the space, and must find the report decided.
+      const response = await whileHeld(
+        'spaces',
+        lockSpace(verifiedId),
+        () => decide(id, { status: 'DISMISSED', note: 'صحيح' }),
+        async (tx) => {
+          await tx.dataReport.update({
+            where: { id },
+            data: {
+              status: 'RESOLVED',
+              resolvedAt: minutesAgo(1),
+              resolvedById: owner.id,
+              resolvedAs: 'OWNER',
+            },
+          });
+          await tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId: verifiedId, userId: owner.id } },
+            data: { deactivatedAt: NOW },
+          });
+        },
+      );
 
-    expect(response.status).toBe(409);
-    expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'REPORT_ALREADY_DECIDED' });
-    expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      status: 'RESOLVED',
-      resolvedAs: 'OWNER',
-    });
-  });
+      expect(response.status).toBe(409);
+      expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'REPORT_ALREADY_DECIDED' });
+      expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
+        status: 'RESOLVED',
+        resolvedAs: 'OWNER',
+      });
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

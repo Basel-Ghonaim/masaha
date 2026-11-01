@@ -5,7 +5,7 @@ import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
 import { image } from '../../../test/images.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -253,23 +253,30 @@ describe('the managed read and its races', () => {
     expect((await manage(reception, 'get', '/photos')).status).toBe(200);
   });
 
-  it('decides a managed save on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
-    // A link change in progress holds the space's lock, as every link change does, and ends the
-    // owner's link only after the save has read the links and started waiting for the lock.
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => manage(owner, 'put', '/contacts', { contacts: [] }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    'decides a managed save on the links under the space’s lock: an owner unlinked meanwhile is refused',
+    async () => {
+      // A link change in progress holds the space's lock, as every link change does, and ends the
+      // owner's link only after the save has read the links and started waiting for the lock.
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => manage(owner, 'put', '/contacts', { contacts: [] }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    const { contactsUpdatedAt } = await prisma.space.findUniqueOrThrow({ where: { id: spaceId } });
-    expect(contactsUpdatedAt).toBeNull();
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      const { contactsUpdatedAt } = await prisma.space.findUniqueOrThrow({
+        where: { id: spaceId },
+      });
+      expect(contactsUpdatedAt).toBeNull();
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

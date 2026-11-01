@@ -4,6 +4,7 @@ import { useRefusalView } from '@shared/forms';
 import { clockOf, dayText, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
+import { paymentLines } from '../../services/paymentLines';
 import type { VoidTarget } from '../../types/VoidTarget';
 import { useStatementQuery } from './useStatementQuery';
 
@@ -69,29 +70,36 @@ export function useStatement(
     payments: {
       title: words.payments,
       none: words.noPayments,
-      rows: (statement?.payments ?? []).map((payment) => ({
-        key: String(payment.id),
-        date: day(payment.receivedAt),
-        amount: isolate(priceText(payment.amountAgorot, language)),
-        method: copy.desk.money.methods[payment.method],
-        voided:
-          payment.voided === null
-            ? null
-            : {
-                label: words.voided,
-                reason: words.voidedReason({ reason: payment.voided.reason }),
-              },
-        void:
-          abilities.void && payment.voided === null && statement !== undefined
-            ? ({
-                id: payment.id,
-                amountAgorot: payment.amountAgorot,
-                method: payment.method,
-                receivedAt: payment.receivedAt,
-                who: statement.customer.name,
-              } satisfies VoidTarget)
-            : null,
-      })),
+      rows: (statement?.payments ?? []).map((payment) => {
+        const lines = paymentLines(payment, {
+          recordedBy: words.recordedBy,
+          voidedBy: copy.payments.ledger.voided.line,
+        });
+        return {
+          key: String(payment.id),
+          date: day(payment.receivedAt),
+          amount: isolate(priceText(payment.amountAgorot, language)),
+          method: copy.desk.money.methods[payment.method],
+          recordedBy: lines.recordedBy,
+          voided:
+            lines.voided === null
+              ? null
+              : {
+                  label: words.voided,
+                  reason: lines.voided,
+                },
+          void:
+            abilities.void && payment.voided === null && statement !== undefined
+              ? ({
+                  id: payment.id,
+                  amountAgorot: payment.amountAgorot,
+                  method: payment.method,
+                  receivedAt: payment.receivedAt,
+                  who: statement.customer.name,
+                } satisfies VoidTarget)
+              : null,
+        };
+      }),
     },
     renewal:
       statement?.renewal == null

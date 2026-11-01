@@ -1,6 +1,6 @@
 # 95. A link from the editor words the space from the editor's read
 
-**Status:** Open · **Date:** 2026-10-19
+**Status:** Resolved · **Date:** 2026-10-19 · **Resolved:** 2026-10-29
 
 **Evidence:** the link dialog opened from a space's editor is offered only while the editor's read says
 the space is unverified, and it says before the act, and in its toast, that the space becomes verified
@@ -12,3 +12,5 @@ search answer, so a refreshed answer corrects it there. The link is not destruct
 
 **Resolves when:** the dialog reads the space's owners when it opens from a space, as the unlink does, and
 words the line and the toast from that read; or the owner accepts the editor's read as enough.
+
+**Resolution (#132):** The link dialog reads the space's owners when it opens from a space, and words the line and the toast from it (D6.7): with owners, «يُضاف مالكًا آخر لهذه المساحة.» and «أُضيف مالك للمساحة»; with none, «تصبح موثّقة ويعدّلها مالكها» and «المساحة موثّقة الآن»; the submit waits for the read.

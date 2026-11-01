@@ -128,6 +128,59 @@ describe('the directory’s map', () => {
     expect(mark).toHaveFocus();
   });
 
+  it('keeps «الفلاتر» on the row at 390: the search may shrink, the trigger never does', async () => {
+    renderDirectory('/spaces?view=map', 390);
+
+    const search = await screen.findByRole('searchbox');
+    const trigger = screen.getByRole('button', { name: /الفلاتر/ });
+    const field = search.closest('[data-slot="field"]') as HTMLElement;
+    const row = field.parentElement as HTMLElement;
+    expect(row).toContainElement(trigger);
+    // A flex item keeps its content's width unless told otherwise: the field would push it out.
+    expect(field).toHaveClass('min-w-0', 'flex-1');
+    expect(row.lastElementChild).toHaveClass('shrink-0');
+  });
+
+  it('says how many spaces it shows, in the list’s words, beside «الأقرب إليّ»', async () => {
+    renderDirectory('/spaces?view=map', 1440);
+
+    const count = await screen.findByText('مساحتان في قطاع غزة');
+    expect(count).toHaveAttribute('aria-live', 'polite');
+    expect(count.parentElement).toContainElement(
+      screen.getByRole('button', { name: 'الأقرب إليّ' }),
+    );
+  });
+
+  it('says no count past the pins’ ceiling, where the total is not known', async () => {
+    renderDirectory('/spaces?view=map', 1440, () => pins([pin(1), pin(2)], true));
+
+    await screen.findByRole('button', { name: 'مساحة 1 — متاح' });
+    expect(screen.queryByText('مساحتان في قطاع غزة')).not.toBeInTheDocument();
+  });
+
+  it('the chosen space says how far it is while a point is set', async () => {
+    nearMeStore.granted({ lat: 31.501, lng: 34.45 }, 'device');
+    renderDirectory('/spaces?view=map', 1440);
+    const mark = await screen.findByRole('button', { name: 'مساحة 1 — متاح' });
+
+    mark.focus();
+    fireEvent.keyDown(mark, { key: 'Enter' });
+
+    const card = await screen.findByRole('region', { name: 'مساحة 1' });
+    expect(within(card).getByText(/^على بعد .+ كم$/)).toBeInTheDocument();
+  });
+
+  it('the chosen space says no distance without a point', async () => {
+    renderDirectory('/spaces?view=map', 1440);
+    const mark = await screen.findByRole('button', { name: 'مساحة 1 — متاح' });
+
+    mark.focus();
+    fireEvent.keyDown(mark, { key: 'Enter' });
+
+    const card = await screen.findByRole('region', { name: 'مساحة 1' });
+    expect(within(card).queryByText(/^على بعد/)).not.toBeInTheDocument();
+  });
+
   it('Escape closes the card from 768 px, and the focus returns to its mark', async () => {
     const user = userEvent.setup();
     renderDirectory('/spaces?view=map', 1024);

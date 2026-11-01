@@ -28,6 +28,16 @@ export function createPhotosRepository() {
       return new Map(rows.map((row) => [row.space_id, row.path]));
     },
 
+    /** Which of these keys a photo row holds, of any space, a deleted one's too: one query. */
+    async heldKeys(keys: readonly string[]): Promise<Set<string>> {
+      if (keys.length === 0) return new Set();
+      const rows = await prisma.spacePhoto.findMany({
+        where: { path: { in: [...keys] } },
+        select: { path: true },
+      });
+      return new Set(rows.map(({ path }) => path));
+    },
+
     count(spaceId: number, tx: Tx = prisma): Promise<number> {
       return tx.spacePhoto.count({ where: { spaceId } });
     },

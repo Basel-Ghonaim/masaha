@@ -17,8 +17,8 @@ export type PublishedOption = {
  * The space's published week and month prices as the sheet offers them (spec D): the standard ones
  * only (a custom label is not subscribable), in the order the space shows them, each named «أسبوعي»
  * or «شهري», then «· للطلاب» for students and its shift's name — the name the subscription is given,
- * in the desk's language — and sent by its key (`published`), never by a price's id: the server reads
- * its amount when the subscription is made.
+ * in the desk's language — and sent by its key (`published`), never by a price's id, with the amount
+ * the sheet showed: the server refuses it once the price has changed (`PUBLISHED_PRICE_CHANGED`).
  */
 export function publishedChoices(
   prices: readonly Price[],
@@ -55,6 +55,8 @@ export function publishedChoices(
           audience: one.audience,
           ...(one.shiftId !== null && { shiftId: one.shiftId }),
           name: name.slice(0, 60),
+          // The amount shown: a price changed since is refused, never sold unseen (finding 171).
+          amountAgorot: one.amountAgorot,
         },
         amountAgorot: one.amountAgorot,
         days,

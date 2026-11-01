@@ -96,10 +96,10 @@ describe('AmenitiesSection', () => {
     ).not.toBeChecked();
     expect(within(internet).getByText('Active')).toBeVisible();
     expect(
-      within(internet).getByRole('button', { name: heard('Move up: Internet') }),
+      within(internet).getByRole('button', { name: heard('Move up: Internet — 1 of 2') }),
     ).toBeDisabled();
     expect(
-      within(halls).getByRole('button', { name: heard('Move down: Halls for rent') }),
+      within(halls).getByRole('button', { name: heard('Move down: Halls for rent — 2 of 2') }),
     ).toBeDisabled();
     expect(
       within(internet).getByRole('button', { name: heard('Edit: Internet') }),
@@ -165,7 +165,7 @@ describe('AmenitiesSection', () => {
     const [internet] = (await rows()) as [HTMLElement];
 
     await userEvent.click(
-      within(internet).getByRole('button', { name: heard('Move down: Internet') }),
+      within(internet).getByRole('button', { name: heard('Move down: Internet — 1 of 2') }),
     );
 
     const section = screen.getByRole('region', { name: 'Amenities' });

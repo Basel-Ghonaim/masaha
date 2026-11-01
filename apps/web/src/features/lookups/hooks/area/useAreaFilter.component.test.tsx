@@ -62,14 +62,14 @@ describe('useAreaFilter', () => {
         key: 2,
         heading: 'غزة',
         items: [
-          { value: '11', text: 'الرمال', keywords: ['الرمال', 'Al-Rimal'] },
-          { value: '12', text: 'النصر', keywords: ['النصر', 'An-Nasr'] },
+          { value: '11', text: 'الرمال', keywords: ['الرمال', 'Al-Rimal'], held: false },
+          { value: '12', text: 'النصر', keywords: ['النصر', 'An-Nasr'], held: false },
         ],
       },
       {
         key: 5,
         heading: 'خان يونس',
-        items: [{ value: '51', text: 'المواصي', keywords: ['المواصي', 'Al-Mawasi'] }],
+        items: [{ value: '51', text: 'المواصي', keywords: ['المواصي', 'Al-Mawasi'], held: false }],
       },
     ]);
     expect(requests.map((request) => request.url)).toEqual(['/lookups']);

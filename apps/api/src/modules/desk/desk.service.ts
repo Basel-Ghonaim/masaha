@@ -192,6 +192,7 @@ export function createDeskService({
         audience: pack.audience,
         shiftId: pack.shiftId,
         packageId: pack.id,
+        publishedPeriod: null,
         endsOn: addDays(startsOn, pack.validityDays - 1),
         priceTyped: null,
       };
@@ -210,6 +211,7 @@ export function createDeskService({
         audience: price.audience,
         shiftId: price.shiftId,
         packageId: null,
+        publishedPeriod: published.period,
         endsOn: addDays(startsOn, PUBLISHED_PERIOD_DAYS[published.period] - 1),
         priceTyped: null,
       };
@@ -230,6 +232,7 @@ export function createDeskService({
       audience: custom.audience,
       shiftId: custom.shiftId ?? null,
       packageId: null,
+      publishedPeriod: null,
       endsOn: custom.endsOn ?? null,
       priceTyped: { byId: actor.id, reason: custom.reason },
     };
@@ -249,10 +252,13 @@ export function createDeskService({
     if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
     const items = await payments.itemBalances(space.id, customerId, at, tx);
     const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
+    // Every subscription of the space is one of its customer's items (`subscription_usage`).
+    if (!money) throw new Error(`The subscription ${String(id)} has no balance.`);
     return {
       ...state,
-      paidAgorot: money?.paidAgorot ?? 0,
-      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
+      paidAgorot: money.paidAgorot,
+      balanceAgorot: money.balanceAgorot ?? state.dueAgorot,
+      createdAt: money.createdAt.toISOString(),
     };
   }
 
@@ -415,9 +421,11 @@ export function createDeskService({
   return {
     /**
      * Checks a visitor in, in one transaction: the space's lock and `can()`; the visit this key
-     * already made, for a retry; else the visit, with the rates of its audience and shift as they
-     * are now. Answers it with what the check-in warns of now (a retry counts the visit present),
-     * which never refuses it.
+     * already made, for a retry; else, for a customer named (`customerId`), that customer of the
+     * space (`invalid_choice` on `customerId` otherwise), not archived (`CUSTOMER_ARCHIVED`), not
+     * present by an open check-in or visit (`MEMBER_ALREADY_CHECKED_IN`); then the visit, the
+     * customer's when named, with the rates of its audience and shift as they are now. Answers it
+     * with what the check-in warns of now (a retry counts the visit present), which never refuses it.
      */
     checkInVisit(
       actor: Actor,
@@ -429,21 +437,31 @@ export function createDeskService({
         await lockAtDesk(actor, space, tx);
         const checkedInAt = now();
         const warnings = await occupancy.checkInWarnings(space.id, checkedInAt, tx);
-        const visit =
-          (await visits.findByKey(space.id, key, tx)) ??
-          (await visits.create(
-            actor.id,
-            {
-              spaceId: space.id,
-              key,
-              visitorName: request.visitorName,
-              audience: request.audience,
-              shiftId: request.shiftId ?? null,
-              rates: await visits.ratesAt(space.id, request, tx),
-              checkedInAt,
-            },
-            tx,
-          ));
+        const made = await visits.findByKey(space.id, key, tx);
+        if (made) return { visit: made, warnings };
+        const customerId = request.customerId ?? null;
+        if (customerId !== null) {
+          const customer = await customers.findIn(space.id, customerId, tx);
+          if (!customer) throw AppError.validation({ customerId: ['invalid_choice'] });
+          if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+          if (await occupancy.isPresent(space.id, customerId, tx)) {
+            throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+          }
+        }
+        const visit = await visits.create(
+          actor.id,
+          {
+            spaceId: space.id,
+            key,
+            visitorName: request.visitorName,
+            audience: request.audience,
+            shiftId: request.shiftId ?? null,
+            rates: await visits.ratesAt(space.id, request, tx),
+            checkedInAt,
+            customerId,
+          },
+          tx,
+        );
         return { visit, warnings };
       });
     },
@@ -759,7 +777,8 @@ export function createDeskService({
      * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
      * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
      * on `packageId`), or the space's standard published price of the key sent (else
-     * `invalid_choice` on `published`), or the typed terms (`termsOf`); the start date, the one
+     * `invalid_choice` on `published`; an amount sent that is not its own →
+     * `PUBLISHED_PRICE_CHANGED`), or the typed terms (`termsOf`); the start date, the one
      * sent, else the renewal's proposal (`proposedStart`); the subscription, audited; then the payment, allocated
      * over the customer's older debts oldest first and the rest to the new one, one payment each
      * under a key derived from the request's, which the ledger checks. Warns `CUSTOMER_HAS_DEBT`
@@ -807,6 +826,10 @@ export function createDeskService({
         if (request.published !== undefined) {
           price = await spaces.standardPrice(space.id, request.published, tx);
           if (!price) throw AppError.validation({ published: ['invalid_choice'] });
+          const shown = request.published.amountAgorot;
+          if (shown !== undefined && shown !== price.amountAgorot) {
+            throw AppError.conflict('PUBLISHED_PRICE_CHANGED');
+          }
         }
         const mayType =
           pack === null &&
@@ -920,6 +943,11 @@ export function createDeskService({
                   packageId: state.packageId,
                   endsOn: state.endsOn,
                   status: state.status,
+                  totalDays: state.totalDays,
+                  daysPerWeek: state.daysPerWeek,
+                  hoursPerDay: state.hoursPerDay,
+                  totalHours: state.totalHours,
+                  progress: state.progress,
                 }
               : null,
             ...(balances.get(customer.id) ?? { debtAgorot: 0, creditAgorot: 0 }),
@@ -933,7 +961,8 @@ export function createDeskService({
      * The customer's file: the customer (not the space's → `not_found`); their debt and credit; who
      * of them is present; every subscription with its state and money; their unpaid visits — closed,
      * not written off, a balance above zero or none (unpriced) — the oldest first, each with its
-     * payments, voided ones marked. The money from `payments`' one query. Read without a lock, in one
+     * payments, voided ones marked; and the space's payment reminder, read by the staff for the
+     * file's «تذكير على واتساب». The money from `payments`' one query. Read without a lock, in one
      * snapshot (finding 124).
      */
     async customerFile(space: LoadedSpace, customerId: number): Promise<CustomerFile> {
@@ -941,12 +970,13 @@ export function createDeskService({
         const customer = await customers.findIn(space.id, customerId, tx);
         if (!customer) throw AppError.notFound(undefined, 'Customer not found');
         const at = now();
-        const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
+        const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }, settings] =
           await Promise.all([
             subscriptions.statesOf(space.id, { customerId }, at, tx),
             payments.itemBalances(space.id, customerId, at, tx),
             payments.customerBalances(space.id, [customerId], at, tx),
             occupancy.presentIn(space.id, tx),
+            spaceSettings.read(space.id, tx),
           ]);
 
         const subscriptionMoney = new Map(
@@ -980,8 +1010,14 @@ export function createDeskService({
           present,
           subscriptions: states.map((state) => {
             const money = subscriptionMoney.get(state.id);
-            const paidAgorot = money?.paidAgorot ?? 0;
-            return { ...state, paidAgorot, balanceAgorot: money?.balanceAgorot ?? state.dueAgorot };
+            // Every subscription of the space is one of its customer's items (`subscription_usage`).
+            if (!money) throw new Error(`The subscription ${String(state.id)} has no balance.`);
+            return {
+              ...state,
+              paidAgorot: money.paidAgorot,
+              balanceAgorot: money.balanceAgorot ?? state.dueAgorot,
+              createdAt: money.createdAt.toISOString(),
+            };
           }),
           unpaidVisits: unpaid.flatMap(({ id, paidAgorot, balanceAgorot }): UnpaidVisit[] => {
             const deskVisit = deskVisits.get(id);
@@ -996,6 +1032,7 @@ export function createDeskService({
                 ]
               : [];
           }),
+          reminderTemplate: settings.reminderTemplate,
         };
       });
     },

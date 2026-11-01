@@ -1,5 +1,5 @@
 import type { Catalogue } from '@shared/copy';
-import { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH } from '@shared/routing';
+import { ACCOUNT_SETTINGS_PATH, CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH } from '@shared/routing';
 
 /** The anchor of the about page's contact section. */
 export const CONTACT_ANCHOR = 'contact';
@@ -31,6 +31,8 @@ export const SITE_PATHS = {
   myReports: '/me/reports',
   /** The signed-in user's favourites (screen 10), under the account's layout. */
   myFavorites: '/me/favorites',
+  /** The signed-in user's own settings (screen 9), under the account's layout. */
+  mySettings: ACCOUNT_SETTINGS_PATH,
 } as const;
 
 type SiteLink = {
@@ -57,4 +59,5 @@ type AccountLink = {
 export const ACCOUNT_LINKS: readonly AccountLink[] = [
   { key: 'favorites', to: SITE_PATHS.myFavorites },
   { key: 'reports', to: SITE_PATHS.myReports },
+  { key: 'settings', to: SITE_PATHS.mySettings },
 ];

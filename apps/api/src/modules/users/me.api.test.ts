@@ -40,6 +40,8 @@ describe('GET /me', () => {
         email: 'user@example.com',
         language: 'ar',
         role: 'USER',
+        hasPassword: true,
+        hasGoogle: false,
       });
     }
     expect(dataOf(await readMe(other.authorization))).toEqual({
@@ -48,7 +50,24 @@ describe('GET /me', () => {
       email: 'owner@example.com',
       language: 'en',
       role: 'OWNER',
+      hasPassword: true,
+      hasGoogle: false,
     });
+  });
+
+  it('GET /me answers hasPassword and hasGoogle', async () => {
+    const sara = await signIn('USER');
+    const read = async () =>
+      dataOf(await readMe(sara.authorization)) as { hasPassword: boolean; hasGoogle: boolean };
+
+    await prisma.user.update({
+      where: { id: sara.id },
+      data: { googleSubject: 'google-sara', passwordHash: null },
+    });
+    expect(await read()).toMatchObject({ hasPassword: false, hasGoogle: true });
+
+    await prisma.user.update({ where: { id: sara.id }, data: { passwordHash: 'x' } });
+    expect(await read()).toMatchObject({ hasPassword: true, hasGoogle: true });
   });
 });
 
@@ -66,6 +85,8 @@ describe('PATCH /me', () => {
       email: 'user@example.com',
       language: 'ar',
       role: 'USER',
+      hasPassword: true,
+      hasGoogle: false,
     });
     expect(await auditEntries()).toEqual([
       {

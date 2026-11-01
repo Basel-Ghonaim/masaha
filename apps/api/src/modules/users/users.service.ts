@@ -14,7 +14,7 @@ import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { AccessClaims, AccessTokens, SignedInAccount } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
-import { createSessionsService, type SessionsService } from '../sessions/index.ts';
+import type { SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
 import {
   temporaryPassword,
@@ -48,8 +48,34 @@ interface Dependencies {
   /** The space whose reception the account is, if any (`space-links`, a level above): passed in. */
   receptionSpaceOf: (userId: number, tx: Tx) => Promise<number | null>;
   repository?: UsersRepository;
-  sessions?: SessionsService;
+  sessions: SessionsService;
   runInTransaction?: RunInTransaction;
+}
+
+/**
+ * Frees an address held by an account its holder may replace (S1), in the caller's transaction,
+ * after `users` found the holder replaceable by its own rule: the orchestrator above (`auth`) locks
+ * what the replacement changes, checks what `users` cannot see (the links, whether it ever acted),
+ * and retires it (`retireReplaced`). The account as it was, or nothing when it may not be replaced.
+ */
+export type FreeAddress = (holderId: number, tx: Tx) => Promise<Account | undefined>;
+
+/**
+ * Whether the account may be replaced by whoever creates an account at its address, by the
+ * account's own rule (finding 91, S1): its temporary password is pending and has expired, so no one
+ * ever chose a password for it, and no Google account was ever linked. Its links and its footprint
+ * are its orchestrator's to check.
+ */
+export function replaceableHolder(
+  holder: { account: Account; googleSubject: string | null },
+  now: Date,
+): boolean {
+  return holder.googleSubject === null && temporaryPasswordExpired(holder.account, now);
+}
+
+/** The address a replaced account takes, so its own is free: `.invalid` is reserved (RFC 2606). */
+export function replacedEmail(id: number): string {
+  return `replaced-${String(id)}@replaced.invalid`;
 }
 
 /** A person Google has verified (the auth module's Google port). */
@@ -139,6 +165,18 @@ export interface PasswordChange {
  * The account (ADR 0013): identity, credentials, the temporary password and the forced change,
  * suspension and the role. Every rule about who may sign in lives here.
  */
+/** A new Google-only USER: Google's name when it is valid user text, else the email's local part. */
+function googleAccount(google: GoogleAccount, language: Language | undefined) {
+  const parsedName = googleName.safeParse(google.name);
+  return {
+    email: google.email,
+    name: parsedName.success ? parsedName.data : (google.email.split('@')[0] ?? google.email),
+    passwordHash: null,
+    googleSubject: google.subject,
+    language,
+  };
+}
+
 export function createUsersService({
   accessTokens,
   limiter,
@@ -146,7 +184,7 @@ export function createUsersService({
   now,
   receptionSpaceOf,
   repository = createUsersRepository(),
-  sessions = createSessionsService(),
+  sessions,
   runInTransaction = createRunInTransaction(),
 }: Dependencies) {
   /** A suspended account cannot sign in or refresh (docs/backend/security.md). */
@@ -216,6 +254,36 @@ export function createUsersService({
   async function issueTemporaryPassword(): Promise<TemporaryPassword> {
     const password = temporaryPassword();
     return { password, hash: await hashPassword(password) };
+  }
+
+  /**
+   * The holder of `email`, replaced through `free` when it may be (S1): the account as it was;
+   * `undefined` when no one holds the address; `null` when its holder keeps it.
+   */
+  async function replaceHolder(
+    email: string,
+    free: FreeAddress | undefined,
+    tx: Tx,
+  ): Promise<Account | null | undefined> {
+    const holder = await repository.findByEmail(email, tx);
+    if (!holder) return undefined;
+    if (!free || !replaceableHolder(holder, now())) return null;
+    return (await free(holder.account.id, tx)) ?? null;
+  }
+
+  /** The new account `replacedById` took the replaced one's address: audited, with no actor. */
+  async function recordReplaced(replaced: Account, replacedById: number, tx: Tx): Promise<void> {
+    await audit(
+      {
+        actorId: null,
+        action: 'user.replaced',
+        entityType: 'user',
+        entityId: replaced.id,
+        before: { email: replaced.email },
+        after: { replacedById },
+      },
+      tx,
+    );
   }
 
   /** The account, or a 401 when it no longer exists. */
@@ -325,12 +393,27 @@ export function createUsersService({
     lockAccount,
     lockForAdminChange,
 
-    /** A new USER with a password. A taken email is EMAIL_TAKEN. */
-    async register({ name, email, password, language }: Registration): Promise<Account> {
+    /**
+     * A new USER with a password, hashed before the transaction. A taken email is EMAIL_TAKEN,
+     * unless its holder may be replaced (`free`, S1): it is then retired and the account created in
+     * one transaction. The holder is read first, so the insert meets no unique violation, which would
+     * end the transaction; a racing registration still meets the unique key, EMAIL_TAKEN too.
+     */
+    async register(
+      { name, email, password, language }: Registration,
+      free?: FreeAddress,
+    ): Promise<Account> {
       const passwordHash = await hashPassword(password);
-      const created = await repository.create({ name, email, passwordHash, language });
-      if ('account' in created) return created.account;
-      throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
+      const taken = () =>
+        AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
+      return runInTransaction(async (tx) => {
+        const replaced = await replaceHolder(email, free, tx);
+        if (replaced === null) throw taken();
+        const created = await repository.create({ name, email, passwordHash, language }, tx);
+        if (!('account' in created)) throw taken();
+        if (replaced) await recordReplaced(replaced, created.account.id, tx);
+        return created.account;
+      });
     },
 
     /**
@@ -366,26 +449,43 @@ export function createUsersService({
     /**
      * The account a verified Google identity opens (docs/backend/security.md › Sign-in methods): the
      * one already linked to it; else the account with its email, which is to be linked (`link`)
-     * only where Google is authoritative for the address; else a new USER without a password.
+     * only where Google is authoritative for the address; else a new USER without a password
+     * (`created`).
      * Nothing here locks: the session is opened, and a link made, under the lock (`linkGoogle`).
      */
     async accountForGoogle(
       google: GoogleAccount,
       language: Language | undefined,
-    ): Promise<{ userId: number; link: boolean }> {
+      free?: FreeAddress,
+    ): Promise<{ userId: number; link: boolean; created: boolean }> {
       for (let attempt = 0; ; attempt++) {
         const known = await repository.findByGoogleSubject(google.subject);
-        if (known) return { userId: known.id, link: false };
+        if (known) return { userId: known.id, link: false, created: false };
 
         const byEmail = await repository.findByEmail(google.email);
         if (byEmail) {
           if (byEmail.googleSubject) {
             // Linked to this identity: a racing first sign-in created it after the read above.
             if (byEmail.googleSubject === google.subject) {
-              return { userId: byEmail.account.id, link: false };
+              return { userId: byEmail.account.id, link: false, created: false };
             }
             // Another Google account is already linked to this email's account: never replaced.
             throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
+          }
+          // An expired pending account its holder may replace (S1): retired, and the Google
+          // account created in its place, in one transaction.
+          if (free && replaceableHolder(byEmail, now())) {
+            const userId = await runInTransaction(async (tx) => {
+              const replaced = await replaceHolder(google.email, free, tx);
+              if (!replaced) return undefined;
+              const created = await repository.create(googleAccount(google, language), tx);
+              if (!('account' in created)) {
+                throw AppError.conflict(undefined, 'Account created concurrently');
+              }
+              await recordReplaced(replaced, created.account.id, tx);
+              return created.account.id;
+            });
+            if (userId !== undefined) return { userId, link: false, created: true };
           }
           assertMayLinkGoogle(byEmail.account);
           if (!googleIsAuthoritative(google)) {
@@ -394,18 +494,11 @@ export function createUsersService({
               'Google is not the address authority',
             );
           }
-          return { userId: byEmail.account.id, link: true };
+          return { userId: byEmail.account.id, link: true, created: false };
         }
 
-        const parsedName = googleName.safeParse(google.name);
-        const created = await repository.create({
-          email: google.email,
-          name: parsedName.success ? parsedName.data : (google.email.split('@')[0] ?? google.email),
-          passwordHash: null,
-          googleSubject: google.subject,
-          language,
-        });
-        if ('account' in created) return { userId: created.account.id, link: false };
+        const created = await repository.create(googleAccount(google, language));
+        if ('account' in created) return { userId: created.account.id, link: false, created: true };
         // A concurrent first sign-in, or a registration, created it meanwhile: read it again, once.
         if (attempt > 0) throw AppError.conflict(undefined, 'Account created concurrently');
       }
@@ -435,6 +528,30 @@ export function createUsersService({
     },
 
     get,
+
+    /**
+     * The account under its session lock, still replaceable by its own rule (S1): read again under
+     * the lock, so a password set or a Google link made meanwhile keeps it. Nothing otherwise.
+     */
+    async lockReplaceable(id: number, tx: Tx): Promise<Account | undefined> {
+      const locked = await lockAccount(id, tx);
+      if (!locked) return undefined;
+      const googleSubject = await repository.findGoogleSubject(id, tx);
+      return replaceableHolder({ account: locked, googleSubject }, now()) ? locked : undefined;
+    },
+
+    /**
+     * Retires a replaced account, under its session lock, which the caller took: every session
+     * ends, it is suspended, and its address becomes `replaced-{id}@replaced.invalid`, so the person
+     * who holds the address may create their own (finding 91).
+     */
+    async retireReplaced(account: Account, tx: Tx): Promise<void> {
+      await endSessions(account.id, tx);
+      await repository.setSuspendedAt(account.id, now(), tx);
+      if ((await repository.setEmail(account.id, replacedEmail(account.id), tx)) === 'taken') {
+        throw new Error(`The replaced address of account ${String(account.id)} is taken`);
+      }
+    },
 
     /**
      * Changes the account's global role, under its session lock, which the caller took: with
@@ -488,8 +605,12 @@ export function createUsersService({
       return repository.countCreatedSince(since);
     },
 
-    /** The names of these users, in one query, for a list that names them (the spaces' owners). */
-    namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
+    /**
+     * The names of these users, in one query, for a list that names them (the spaces' owners). Each
+     * caller says which transaction it reads in, `undefined` for none, so a read under a lock never
+     * takes the names on another connection by omission (finding 79).
+     */
+    namesFor(ids: readonly number[], tx: Tx | undefined): Promise<UserName[]> {
       return repository.findNames(ids, tx);
     },
 
@@ -631,9 +752,10 @@ export function createUsersService({
       return toUserView(account, await repository.hasPassword(account.id, tx));
     },
 
-    /** The signed-in user's own account, for its settings. */
+    /** The signed-in user's own account, for its settings, with how it signs in. */
     async myAccount(userId: number): Promise<MyAccount> {
-      return toMyAccount(await get(userId));
+      const account = await get(userId);
+      return toMyAccount(account, await repository.findSignInMethods(userId));
     },
 
     /**
@@ -655,7 +777,8 @@ export function createUsersService({
           before.language = account.language;
           after.language = edit.language;
         }
-        if (Object.keys(after).length === 0) return toMyAccount(account);
+        const methods = await repository.findSignInMethods(userId, tx);
+        if (Object.keys(after).length === 0) return toMyAccount(account, methods);
         const edited = await repository.setProfile(userId, after, tx);
         await audit(
           {
@@ -668,7 +791,7 @@ export function createUsersService({
           },
           tx,
         );
-        return toMyAccount(edited);
+        return toMyAccount(edited, methods);
       });
     },
 

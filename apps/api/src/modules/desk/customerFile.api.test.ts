@@ -13,7 +13,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -34,6 +34,15 @@ let admin: { id: number; authorization: string };
 beforeEach(async () => {
   await resetDatabase(prisma);
   ({ id: spaceId } = await createSpace());
+  // Every space has its settings row (space-settings); the file reads its reminder.
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'PER_MINUTE',
+      visitCapAtDayPrice: false,
+    },
+  });
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
   stranger = await signIn('USER', 'stranger@example.com');
@@ -90,7 +99,7 @@ async function seedSara() {
   const voided = await pay({ visitId: owing.id }, 1_500);
   await prisma.payment.update({
     where: { id: voided.id },
-    data: { voidedAt: RECEIVED_AT, voidedById: owner.id, voidReason: 'Counted twice' },
+    data: { voidedAt: RECEIVED_AT, voidedById: reception.id, voidReason: 'Counted twice' },
   });
   const unpriced = await closedVisit(sara.id, '2026-10-19', null);
   await pay({ visitId: (await closedVisit(sara.id, '2026-10-19', 1_000)).id }, 1_000);
@@ -118,6 +127,7 @@ describe("the customer's file", () => {
           id: monthly.id,
           customerId: sara.id,
           packageId: null,
+          publishedPeriod: null,
           renewalOfId: null,
           name: 'Monthly',
           startsOn: '2026-10-01',
@@ -137,6 +147,8 @@ describe("the customer's file", () => {
           dueAgorot: 30_000,
           paidAgorot: 10_000,
           balanceAgorot: 20_000,
+          // When it was made: with a visit's, the order its customer's debts are taken in.
+          createdAt: monthly.createdAt.toISOString(),
         },
       ],
       unpaidVisits: [
@@ -155,6 +167,7 @@ describe("the customer's file", () => {
               note: null,
               receivedAt: RECEIVED_AT.toISOString(),
               recordedById: owner.id,
+              recordedBy: { id: owner.id, name: 'Ahmad' },
               voided: null,
             },
             {
@@ -164,7 +177,13 @@ describe("the customer's file", () => {
               note: null,
               receivedAt: RECEIVED_AT.toISOString(),
               recordedById: owner.id,
-              voided: { at: RECEIVED_AT.toISOString(), byId: owner.id, reason: 'Counted twice' },
+              recordedBy: { id: owner.id, name: 'Ahmad' },
+              // Voided by reception: each name is the account's.
+              voided: {
+                at: RECEIVED_AT.toISOString(),
+                by: { id: reception.id, name: 'Sara' },
+                reason: 'Counted twice',
+              },
             },
           ],
           paidAgorot: 500,
@@ -177,6 +196,20 @@ describe("the customer's file", () => {
           balanceAgorot: null,
         },
       ],
+      reminderTemplate: null,
+    });
+  });
+
+  it("the customer's file carries the space's reminder, null for the default", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+
+    expect(dataOf(await file(reception, sara.id))).toMatchObject({ reminderTemplate: null });
+    await prisma.spaceSettings.update({
+      where: { spaceId },
+      data: { reminderTemplate: 'مرحبًا {name}، عليك {amount} لدى {space}.' },
+    });
+    expect(dataOf(await file(reception, sara.id))).toMatchObject({
+      reminderTemplate: 'مرحبًا {name}، عليك {amount} لدى {space}.',
     });
   });
 
@@ -220,68 +253,73 @@ describe("the customer's file", () => {
     }
   });
 
-  it('reads one snapshot: a check-in and a payment committed while it waits leave its sums agreeing', async () => {
-    const sara = await createCustomer(spaceId, { name: 'Sara' });
-    const hours = await createSubscription(sara, { billing: 'PER_HOUR', priceAgorot: 500 });
-    await createCheckIn(hours, stay('2026-10-19', '09:00', '11:00'));
-    await pay({ subscriptionId: hours.id }, 300);
-    const owing = await closedVisit(sara.id, '2026-10-18', 2_000);
-    await pay({ visitId: owing.id }, 500);
+  it(
+    'reads one snapshot: a check-in and a payment committed while it waits leave its sums agreeing',
+    async () => {
+      const sara = await createCustomer(spaceId, { name: 'Sara' });
+      const hours = await createSubscription(sara, { billing: 'PER_HOUR', priceAgorot: 500 });
+      await createCheckIn(hours, stay('2026-10-19', '09:00', '11:00'));
+      await pay({ subscriptionId: hours.id }, 300);
+      const owing = await closedVisit(sara.id, '2026-10-18', 2_000);
+      await pay({ visitId: owing.id }, 500);
 
-    // The file's money reads (the items' and the customer's balances) are the first to read the
-    // visits: the test holds that table, so the file waits there, past its subscriptions' states,
-    // while a check-in and a payment of the subscription commit.
-    const response = await whileHeld(
-      (tx) => tx.$executeRaw`LOCK TABLE visits IN ACCESS EXCLUSIVE MODE`,
-      () => file(reception, sara.id),
-      async (tx) => {
-        await tx.checkIn.create({
-          data: {
-            spaceId,
-            customerId: sara.id,
-            subscriptionId: hours.id,
-            idempotencyKey: randomUUID(),
-            ...stay('2026-10-20', '09:00', '10:00'),
-          },
-        });
-        await tx.payment.create({
-          data: {
-            spaceId,
-            subscriptionId: hours.id,
-            idempotencyKey: randomUUID(),
-            recordedById: owner.id,
-            method: 'CASH',
-            amountAgorot: 200,
-            receivedAt: RECEIVED_AT,
-          },
-        });
-      },
-    );
-    expect(response.status).toBe(200);
-    const answer = dataOf(response) as {
-      debtAgorot: number;
-      subscriptions: { dueAgorot: number; paidAgorot: number; balanceAgorot: number }[];
-      unpaidVisits: {
-        paidAgorot: number;
-        balanceAgorot: number | null;
-        payments: { amountAgorot: number; voided: unknown }[];
-      }[];
-    };
-    for (const { dueAgorot, paidAgorot, balanceAgorot } of answer.subscriptions) {
-      expect(balanceAgorot).toBe(dueAgorot - paidAgorot);
-    }
-    for (const { paidAgorot, payments } of answer.unpaidVisits) {
-      const listed = payments.filter(({ voided }) => voided === null);
-      expect(paidAgorot).toBe(listed.reduce((sum, { amountAgorot }) => sum + amountAgorot, 0));
-    }
-    const balances = [
-      ...answer.subscriptions.map(({ balanceAgorot }) => balanceAgorot),
-      ...answer.unpaidVisits.map(({ balanceAgorot }) => balanceAgorot ?? 0),
-    ];
-    expect(answer.debtAgorot).toBe(
-      balances.filter((balance) => balance > 0).reduce((sum, balance) => sum + balance, 0),
-    );
-  });
+      // The file's money reads (the items' and the customer's balances) are the first to read the
+      // visits: the test holds that table, so the file waits there, past its subscriptions' states,
+      // while a check-in and a payment of the subscription commit.
+      const response = await whileHeld(
+        'visits',
+        (tx) => tx.$executeRaw`LOCK TABLE visits IN ACCESS EXCLUSIVE MODE`,
+        () => file(reception, sara.id),
+        async (tx) => {
+          await tx.checkIn.create({
+            data: {
+              spaceId,
+              customerId: sara.id,
+              subscriptionId: hours.id,
+              idempotencyKey: randomUUID(),
+              ...stay('2026-10-20', '09:00', '10:00'),
+            },
+          });
+          await tx.payment.create({
+            data: {
+              spaceId,
+              subscriptionId: hours.id,
+              idempotencyKey: randomUUID(),
+              recordedById: owner.id,
+              method: 'CASH',
+              amountAgorot: 200,
+              receivedAt: RECEIVED_AT,
+            },
+          });
+        },
+      );
+      expect(response.status).toBe(200);
+      const answer = dataOf(response) as {
+        debtAgorot: number;
+        subscriptions: { dueAgorot: number; paidAgorot: number; balanceAgorot: number }[];
+        unpaidVisits: {
+          paidAgorot: number;
+          balanceAgorot: number | null;
+          payments: { amountAgorot: number; voided: unknown }[];
+        }[];
+      };
+      for (const { dueAgorot, paidAgorot, balanceAgorot } of answer.subscriptions) {
+        expect(balanceAgorot).toBe(dueAgorot - paidAgorot);
+      }
+      for (const { paidAgorot, payments } of answer.unpaidVisits) {
+        const listed = payments.filter(({ voided }) => voided === null);
+        expect(paidAgorot).toBe(listed.reduce((sum, { amountAgorot }) => sum + amountAgorot, 0));
+      }
+      const balances = [
+        ...answer.subscriptions.map(({ balanceAgorot }) => balanceAgorot),
+        ...answer.unpaidVisits.map(({ balanceAgorot }) => balanceAgorot ?? 0),
+      ];
+      expect(answer.debtAgorot).toBe(
+        balances.filter((balance) => balance > 0).reduce((sum, balance) => sum + balance, 0),
+      );
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("the file's debt is the sum of its rows' positive balances, each its due less what was paid", async () => {
     const { sara } = await seedSara();

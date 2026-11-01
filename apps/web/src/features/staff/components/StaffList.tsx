@@ -1,11 +1,13 @@
 import { Badge, Button, EmptyState } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
+import { useRowTriggers } from '@shared/lists';
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useAddStaffForm } from '../hooks/add/useAddStaffForm';
 import { useStaffList } from '../hooks/list/useStaffList';
-import { useMenuTriggers } from '../hooks/menu/useMenuTriggers';
 import { useShownPassword } from '../hooks/password/useShownPassword';
 import type { ShownPassword } from '../types/ShownPassword';
+import type { StaffCollections } from '../types/StaffCollections';
 import type { StaffDialog } from '../types/StaffDialog';
 import type { BadgeView, StaffRowView } from '../types/StaffRowView';
 import { DeactivateDialog } from './access/DeactivateDialog';
@@ -41,9 +43,19 @@ function Person({ row }: { row: StaffRowView }) {
   );
 }
 
+/** What a person collected this month, a link to the ledger of it. */
+function Collected({ row }: { row: StaffRowView }) {
+  return (
+    <Link to={row.collected.href} className="underline-offset-4 hover:underline" dir="ltr">
+      {row.collected.amount}
+    </Link>
+  );
+}
+
 /**
  * The space's reception accounts: a table from 768 px, a card per person below it — the name with
- * the email under it, the state, and the row's menu — with their count and «إضافة موظف» above it,
+ * the email under it, the state, when they were added, what they collected this month (a link to
+ * that ledger, `collections`, the page's), and the row's menu — with their count and «إضافة موظف» above it,
  * or an empty state that offers it. Adding one opens the add sheet; the account's temporary
  * password then shows once, in the one-time dialog the page draws (`temporaryPassword`), which
  * returns the focus to «إضافة موظف» once it is done. A row's menu removes or gives back the access,
@@ -54,11 +66,13 @@ function Person({ row }: { row: StaffRowView }) {
 export function StaffList({
   spaceId,
   temporaryPassword,
+  collections,
 }: {
   spaceId: number;
   temporaryPassword: (shown: ShownPassword) => ReactNode;
+  collections: StaffCollections;
 }) {
-  const list = useStaffList(spaceId);
+  const list = useStaffList(spaceId, collections);
   const password = useShownPassword(spaceId);
   // «إضافة موظف» above the list, where the dialog returns the focus once done.
   const addButton = useRef<HTMLButtonElement | null>(null);
@@ -71,7 +85,7 @@ export function StaffList({
   const open = () => {
     add.setOpen(true);
   };
-  const triggers = useMenuTriggers();
+  const triggers = useRowTriggers();
   const [dialog, setDialog] = useState<StaffDialog | null>(null);
   const close = useCallback(() => {
     setDialog(null);
@@ -82,6 +96,7 @@ export function StaffList({
       <StaffActionsMenu
         spaceId={spaceId}
         member={row.member}
+        collectionsLink={row.collected.href}
         open={setDialog}
         triggerRef={triggers.register(row.key)}
       />
@@ -102,6 +117,16 @@ export function StaffList({
           id: 'status',
           header: headers.status,
           cell: (info) => <Badges badges={info.row.original.badges} />,
+        }),
+        column.display({
+          id: 'added',
+          header: headers.added,
+          cell: (info) => info.row.original.added,
+        }),
+        column.display({
+          id: 'collected',
+          header: headers.collected,
+          cell: (info) => <Collected row={info.row.original} />,
         }),
         column.display({
           id: 'actions',
@@ -125,6 +150,13 @@ export function StaffList({
             <div className="flex min-w-0 flex-col gap-2">
               <Person row={row} />
               <Badges badges={row.badges} />
+              <span className="text-caption text-muted-foreground">{list.addedOn(row.added)}</span>
+              <Link
+                to={row.collected.href}
+                className="text-caption underline-offset-4 hover:underline"
+              >
+                {list.thisMonth(row.collected.amount)}
+              </Link>
             </div>
             {menuOf(row)}
           </div>

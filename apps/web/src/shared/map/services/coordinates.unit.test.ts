@@ -11,6 +11,7 @@ describe('parseCoordinates', () => {
     // As an Arabic keyboard types them: Arabic-Indic digits, the decimal separator and the comma.
     ['٣١٫٥٢، ٣٤٫٤٥', { lat: 31.52, lng: 34.45 }],
     ['٣١.٥٢،٣٤.٤٥', { lat: 31.52, lng: 34.45 }],
+    ['۳۱٫۵۲، ۳۴٫۴۵', { lat: 31.52, lng: 34.45 }],
   ])('reads %j as a point', (text, point) => {
     expect(parseCoordinates(text)).toEqual(point);
   });

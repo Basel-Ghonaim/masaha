@@ -12,9 +12,16 @@ import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { siteRoutes } from '../routes';
 
-/** The site's routes, as the app mounts them, at `path`, the recovery at `position`. */
-function renderSite(path: string, position: RecoveryPosition = { step: 'request' }) {
-  fakeTransport(() => ok(position));
+/**
+ * The site's routes, as the app mounts them, at `path`, the recovery at `position`, and the
+ * platform's public contact `contact` (none set by default).
+ */
+function renderSite(
+  path: string,
+  position: RecoveryPosition = { step: 'request' },
+  contact: object = { email: null, whatsapp: null },
+) {
+  fakeTransport((request) => ok(request.url === '/settings/public' ? contact : position));
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
     initialEntries: [path],
   });
@@ -70,6 +77,47 @@ describe('the forgot password page', () => {
       'href',
       '/about#contact',
     );
+  });
+
+  it('opens the platform’s WhatsApp for someone who cannot reach their email, when it is set', async () => {
+    renderSite('/forgot-password', { step: 'request' }, { email: null, whatsapp: '+970599000000' });
+    const main = within(await screen.findByRole('main'));
+
+    await waitFor(() => {
+      expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute(
+        'href',
+        'https://wa.me/970599000000',
+      );
+    });
+    expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute('target', '_blank');
+  });
+
+  it('carries the return page back to sign in', async () => {
+    renderSite('/forgot-password?next=%2Fspaces%2Fnoor-hub');
+    const main = within(await screen.findByRole('main'));
+
+    expect(await main.findByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+      'href',
+      '/login?next=%2Fspaces%2Fnoor-hub',
+    );
+  });
+
+  it('carries the return page on to the new password', async () => {
+    renderSite('/forgot-password?next=%2Fspaces%2Fnoor-hub', {
+      step: 'password',
+      email: MASKED_EMAIL,
+    });
+    expect(await screen.findByRole('link', { name: 'Set a new password' })).toHaveAttribute(
+      'href',
+      '/reset-password?next=%2Fspaces%2Fnoor-hub',
+    );
+  });
+
+  it('drops a return page that leaves the site', async () => {
+    renderSite('/forgot-password?next=%2F%2Fevil.example');
+    expect(
+      await within(await screen.findByRole('main')).findByRole('link', { name: 'Back to sign in' }),
+    ).toHaveAttribute('href', '/login');
   });
 
   it('links on to the new password once a link is open in this browser', async () => {

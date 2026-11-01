@@ -27,7 +27,11 @@ const TOTALS = paymentTotals({
   voided: { count: 2, amountAgorot: 4000 },
 });
 
-function renderLedger(answer: () => FakeAnswer | Promise<FakeAnswer>, path = '/p') {
+function renderLedger(
+  answer: () => FakeAnswer | Promise<FakeAnswer>,
+  path = '/p',
+  people: LedgerPerson[] = PEOPLE,
+) {
   const requests = fakeTransport(answer);
   const client = createQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -35,7 +39,7 @@ function renderLedger(answer: () => FakeAnswer | Promise<FakeAnswer>, path = '/p
       <MemoryRouter initialEntries={[path]}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
-  return { ...renderHook(() => useLedger(7, { people: PEOPLE }), { wrapper }), requests, client };
+  return { ...renderHook(() => useLedger(7, { people }), { wrapper }), requests, client };
 }
 
 beforeEach(() => {
@@ -174,5 +178,23 @@ describe('useLedger', () => {
       expect(requests.at(-1)?.params).toMatchObject({ recordedById: 35, voided: 'EXCLUDE' });
     });
     expect(requests[0]?.params).toEqual({ voided: 'EXCLUDE', page: 1, limit: 20 });
+  });
+
+  it('names the space’s other owners after the owner signed in, each «· owner», before reception', async () => {
+    const { result } = renderLedger(() => paymentsPage([paymentRow()], TOTALS), '/p', [
+      { id: 14, name: 'Ahmad', self: true, active: true },
+      { id: 16, name: 'Mona', self: false, active: true, owner: true },
+      { id: 15, name: 'Laila', self: false, active: true },
+    ]);
+    await waitFor(() => {
+      expect(result.current.state).toBe('ready');
+    });
+
+    expect(result.current.toolbar.staff.options.map(({ label }) => label)).toEqual([
+      'All staff',
+      'Ahmad (you)',
+      'Mona · owner',
+      'Laila',
+    ]);
   });
 });

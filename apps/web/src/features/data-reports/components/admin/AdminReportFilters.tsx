@@ -14,6 +14,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
   useMediaQuery,
 } from '@shared/design-system';
 import { useState } from 'react';
@@ -21,6 +23,24 @@ import type { AdminReportsView } from '../../hooks/admin/useAdminReports';
 import type { AdminSpaceFilterSlot } from '../../types/AdminSpaceFilterSlot';
 
 type Filters = AdminReportsView['filters'];
+
+/** «يعالجه»'s chips: all, the admin's, the owners'. */
+function HandledBy({ handledBy }: { handledBy: Filters['handledBy'] }) {
+  return (
+    <ToggleGroup
+      type="single"
+      value={handledBy.value}
+      onValueChange={handledBy.choose}
+      aria-label={handledBy.label}
+    >
+      {handledBy.options.map((option) => (
+        <ToggleGroupItem key={option.value} value={option.value}>
+          {option.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
 
 /** The space (the page's search) and the field, each applied at once. */
 function Fields({ filters, spaceFilter }: { filters: Filters; spaceFilter: AdminSpaceFilterSlot }) {
@@ -53,8 +73,8 @@ function Fields({ filters, spaceFilter }: { filters: Filters; spaceFilter: Admin
 }
 
 /**
- * The phone's filters (P5): a button that shows how many apply, opening a bottom sheet with the space
- * and the field, which apply at once, «عرض {n} بلاغ», which closes it on the list they leave, and
+ * The phone's filters (P5): a button that shows how many apply, opening a bottom sheet with the space,
+ * the field and «يعالجه», which apply at once, «عرض {n} بلاغ», which closes it on the list they leave, and
  * «مسح الفلاتر».
  */
 function FiltersSheet({
@@ -85,6 +105,7 @@ function FiltersSheet({
         </SheetHeader>
         <SheetBody className="flex flex-col gap-4">
           <Fields filters={filters} spaceFilter={spaceFilter} />
+          <HandledBy handledBy={filters.handledBy} />
         </SheetBody>
         <SheetFooter>
           <Button
@@ -105,7 +126,10 @@ function FiltersSheet({
   );
 }
 
-/** The admin's filters: the space and the field in a row from 768 px, in a bottom sheet below it. */
+/**
+ * The admin's filters: the space and the field in a row from 768 px, «يعالجه»'s chips under them; in
+ * a bottom sheet below it.
+ */
 export function AdminReportFilters({
   filters,
   spaceFilter,
@@ -115,8 +139,11 @@ export function AdminReportFilters({
 }) {
   const wide = useMediaQuery('(min-width: 768px)');
   return wide ? (
-    <div className="grid items-start gap-3 md:grid-cols-2">
-      <Fields filters={filters} spaceFilter={spaceFilter} />
+    <div className="flex flex-col gap-3">
+      <div className="grid items-start gap-3 md:grid-cols-2">
+        <Fields filters={filters} spaceFilter={spaceFilter} />
+      </div>
+      <HandledBy handledBy={filters.handledBy} />
     </div>
   ) : (
     <FiltersSheet filters={filters} spaceFilter={spaceFilter} />

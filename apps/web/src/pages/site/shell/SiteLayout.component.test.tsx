@@ -1,11 +1,28 @@
+import { restoreSession } from '@shared/session';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
+import { warm } from '../../../test/warmLazy';
 import { siteRoutes } from '../routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./SiteLayout'),
+      () => import('./FocusLayout'),
+      () => import('../public/home/HomePage'),
+      () => import('../public/directory/DirectoryPage'),
+      () => import('../public/about/AboutPage'),
+      () => import('../auth/SignInPage'),
+    ),
+  60_000,
+);
 
 /**
  * The site's routes, as the app mounts them, at the last of `history`'s paths; resolves with the
@@ -131,7 +148,18 @@ describe('the site shell', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 
-  it('opens the phone menu with the links, the language and sign-in, and closes it when a link is chosen', async () => {
+  it('keeps the language in the header at every width, and the theme there from 768 px only (SH-005)', async () => {
+    await renderSite('/');
+    const header = within(screen.getByRole('banner'));
+
+    expect(header.getByRole('button', { name: 'العربية' })).not.toHaveClass('hidden');
+    expect(header.getByRole('button', { name: 'Dark theme' })).toHaveClass(
+      'hidden',
+      'md:inline-flex',
+    );
+  });
+
+  it('opens the phone menu with the links, the theme and sign-in, and closes it when a link is chosen', async () => {
     const user = userEvent.setup();
     await renderSite('/');
 
@@ -142,7 +170,8 @@ describe('the site shell', () => {
     expect(menu.getByRole('link', { name: 'Spaces' })).toHaveAttribute('href', '/spaces');
     expect(menu.getByRole('link', { name: 'About Masaha' })).toHaveAttribute('href', '/about');
     expect(menu.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
-    expect(menu.getByRole('button', { name: 'العربية' })).toBeInTheDocument();
+    expect(menu.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
+    expect(menu.queryByRole('button', { name: 'العربية' })).not.toBeInTheDocument();
 
     await user.click(menu.getByRole('link', { name: 'Spaces' }));
 
@@ -162,6 +191,21 @@ describe('the site shell', () => {
     await user.tab();
 
     const skip = screen.getByRole('link', { name: 'تخطَّ إلى المحتوى' });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('offers «Skip to content» first in the focus shell too, leading to its main', async () => {
+    // A guest: sign-in shows once the session is known to be anonymous.
+    setSessionHint(false);
+    await restoreSession();
+    const user = userEvent.setup();
+    await renderSite('/login');
+
+    await user.tab();
+
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
     expect(skip).toHaveFocus();
     expect(skip).toHaveAttribute('href', '#main');
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main');

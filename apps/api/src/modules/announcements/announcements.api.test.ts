@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { createRunInTransaction, prisma } from '../../db/index.ts';
@@ -150,31 +150,35 @@ describe('posting an announcement', () => {
     ]);
   });
 
-  it('a retry with the same key answers the first, 201; two at once with one key make one', async () => {
-    const key = randomUUID();
-    const first = await post(reception, { type: 'CLOSURE', textAr: 'مغلق' }, key);
-    const retry = await post(reception, { type: 'CLOSURE', textAr: 'مغلق' }, key);
-    expect([first.status, retry.status]).toEqual([201, 201]);
-    expect(dataOf(retry)).toEqual(dataOf(first));
-    expect(await stored()).toHaveLength(1);
-    expect(await auditEntries()).toHaveLength(1);
+  it(
+    'a retry with the same key answers the first, 201; two at once with one key make one',
+    async () => {
+      const key = randomUUID();
+      const first = await post(reception, { type: 'CLOSURE', textAr: 'مغلق' }, key);
+      const retry = await post(reception, { type: 'CLOSURE', textAr: 'مغلق' }, key);
+      expect([first.status, retry.status]).toEqual([201, 201]);
+      expect(dataOf(retry)).toEqual(dataOf(first));
+      expect(await stored()).toHaveLength(1);
+      expect(await auditEntries()).toHaveLength(1);
 
-    const together = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await lockSpace(tx);
-      pending.push(
-        Promise.resolve(post(owner, { type: 'OUTAGE', textAr: 'انقطاع' }, together)),
-        Promise.resolve(post(reception, { type: 'OUTAGE', textAr: 'انقطاع' }, together)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
-    const [one, two] = await Promise.all(pending);
-    expect([one?.status, two?.status]).toEqual([201, 201]);
-    expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
-    expect(await stored()).toHaveLength(2);
-  });
+      const together = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await lockSpace(tx);
+        pending.push(
+          Promise.resolve(post(owner, { type: 'OUTAGE', textAr: 'انقطاع' }, together)),
+          Promise.resolve(post(reception, { type: 'OUTAGE', textAr: 'انقطاع' }, together)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
+      const [one, two] = await Promise.all(pending);
+      expect([one?.status, two?.status]).toEqual([201, 201]);
+      expect(dataOf(two as request.Response)).toEqual(dataOf(one as request.Response));
+      expect(await stored()).toHaveLength(2);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('a missing or invalid key, and an invalid body, are 422 before anything is read', async () => {
     const missing = await post(owner, { type: 'NEWS' }, null);
@@ -205,21 +209,26 @@ describe('posting an announcement', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it("a reception link ended while the post waits on the space's lock is refused 403, writing nothing", async () => {
-    const response = await whileHeld(
-      lockSpace,
-      () => post(reception, { type: 'CLOSURE', textAr: 'مغلق' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    "a reception link ended while the post waits on the space's lock is refused 403, writing nothing",
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => post(reception, { type: 'CLOSURE', textAr: 'مغلق' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await stored()).toEqual([]);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(await stored()).toEqual([]);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('editing an announcement', () => {

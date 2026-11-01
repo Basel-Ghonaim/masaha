@@ -13,6 +13,8 @@ export const FORMS = {
       minLength: 'At least 8 characters',
       letter: 'At least one letter',
       digit: 'At least one number',
+      /** Shown only while broken: at most 72 bytes, which an Arabic letter takes two of. */
+      bytes: 'Too long — shorten it',
     } satisfies Record<PasswordRule, string>,
     /** Read after a rule by assistive technology, which cannot see its tick. */
     met: '— met',
@@ -27,4 +29,6 @@ export const FORMS = {
     /** The server's id for the request, so a report can be matched to the log. */
     reference: ({ id }: { id: string }) => `Reference: ${id}`,
   },
+  /** Which records a page of a list shows, under the list: the range and the total come isolated. */
+  listRange: ({ range, total }: { range: string; total: string }) => `Showing ${range} of ${total}`,
 } as const;

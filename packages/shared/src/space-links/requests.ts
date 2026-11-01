@@ -12,17 +12,20 @@ const id = z.coerce.number().int().positive().max(2_147_483_647);
 const bodyId = z.number().int().positive().max(2_147_483_647);
 
 /**
- * The admin's list's status filter: whether an owner has joined, of the spaces shown; hidden; or
- * soft-deleted, the only status that lists them.
+ * The admin's list's status filter: whether an owner has joined, of the spaces shown; hidden;
+ * soft-deleted, the only status that lists them; or `editable`, the spaces the admin keeps the
+ * facts of — unverified, hidden ones included — which with `stale=true` is the admin overview's
+ * «اكتمال البيانات» in full (its «عرض الكل»). One list, the server's and the screen's (finding 158).
  */
-export const SPACE_STATUSES = ['verified', 'unverified', 'hidden', 'deleted'] as const;
+export const SPACE_STATUSES = ['verified', 'unverified', 'hidden', 'deleted', 'editable'] as const;
 
 export type SpaceStatus = (typeof SPACE_STATUSES)[number];
 
 /**
  * `?q=&status=&governorateId=&areaId=&stale=&page=&limit=`. `q` searches the names in both
  * languages; `verified` and `unverified` leave hidden spaces out; `deleted` lists the soft-deleted
- * spaces, which every other status leaves out; `stale=true` keeps the spaces with a stale fact group.
+ * spaces, which every other status leaves out; `editable` keeps the unverified ones, hidden or not;
+ * `stale=true` keeps the spaces with a stale fact group.
  */
 export const adminSpacesQuerySchema = paginationQuerySchema.extend({
   q: textSchema(1, SPACE_NAME_MAX_LENGTH).optional(),
@@ -34,20 +37,6 @@ export const adminSpacesQuerySchema = paginationQuerySchema.extend({
 
 export type AdminSpacesQuery = z.infer<typeof adminSpacesQuerySchema>;
 
-/**
- * The statuses the server reads besides the list's choices: `editable`, the spaces the admin keeps
- * the facts of — unverified, hidden ones included — which with `stale=true` is the admin overview's
- * «اكتمال البيانات» in full (its «عرض الكل»). The list screen does not offer it yet.
- */
-export const ADMIN_SPACES_STATUSES = [...SPACE_STATUSES, 'editable'] as const;
-
-/** `adminSpacesQuerySchema` as `GET /admin/spaces` reads it: any of `ADMIN_SPACES_STATUSES`. */
-export const adminSpacesListQuerySchema = adminSpacesQuerySchema.extend({
-  status: z.enum(ADMIN_SPACES_STATUSES).optional(),
-});
-
-export type AdminSpacesListQuery = z.infer<typeof adminSpacesListQuerySchema>;
-
 // The admin's users list (docs/api/api-contract.md §5, Users (the admin)).
 
 /** A global role, as the users list filters by it: lowercase, like the spaces list's states. */
@@ -57,11 +46,13 @@ export const USER_ROLE_FILTERS = ['user', 'owner', 'admin'] as const;
 export const ACCOUNT_STATES = ['active', 'suspended'] as const;
 
 /**
- * `?q=&role=&state=&page=&limit=`. `q` searches the name and the email; `role=owner` is the owners
- * page.
+ * `?q=&email=&role=&state=&page=&limit=`. `q` searches the name and the email; `email` keeps the
+ * one account whose email is exactly it (trimmed and lowercased, as stored), so a right email always
+ * reads as found; `role=owner` is the owners page.
  */
 export const adminUsersQuerySchema = paginationQuerySchema.extend({
   q: textSchema(1, NAME_MAX_LENGTH).optional(),
+  email: emailSchema.optional(),
   role: z.enum(USER_ROLE_FILTERS).optional(),
   state: z.enum(ACCOUNT_STATES).optional(),
 });

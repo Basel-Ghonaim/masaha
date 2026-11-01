@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createVisit, stay } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -185,46 +185,56 @@ describe("«تسجيل دينًا»: a visit's debt left to a customer by phone"
     expect(await storedVisit(id)).toMatchObject({ customerId: null });
   });
 
-  it('answers the owner and reception; not_found to the three others; a reception link ended meanwhile → 403', async () => {
-    for (const caller of [owner, reception]) {
+  it(
+    'answers the owner and reception; not_found to the three others; a reception link ended meanwhile → 403',
+    async () => {
+      for (const caller of [owner, reception]) {
+        const { id } = await closed(2_500);
+        expect((await leaveTo(caller, id, { phone: PHONE })).status).toBe(200);
+      }
       const { id } = await closed(2_500);
-      expect((await leaveTo(caller, id, { phone: PHONE })).status).toBe(200);
-    }
-    const { id } = await closed(2_500);
-    for (const caller of [stranger, unrelatedOwner, admin]) {
-      const response = await leaveTo(caller, id, { phone: PHONE });
-      expect(response.status).toBe(404);
-      expect(errorOf(response).type).toBe('not_found');
-    }
-    const theirs = await closed(2_500, otherSpaceId);
-    expect((await leaveTo(owner, theirs.id, { phone: PHONE })).status).toBe(404);
+      for (const caller of [stranger, unrelatedOwner, admin]) {
+        const response = await leaveTo(caller, id, { phone: PHONE });
+        expect(response.status).toBe(404);
+        expect(errorOf(response).type).toBe('not_found');
+      }
+      const theirs = await closed(2_500, otherSpaceId);
+      expect((await leaveTo(owner, theirs.id, { phone: PHONE })).status).toBe(404);
 
-    const ended = await whileHeld(
-      lockSpace,
-      () => leaveTo(reception, id, { phone: PHONE }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(ended.status).toBe(403);
-    expect(await storedVisit(id)).toMatchObject({ customerId: null });
-    expect(await storedVisit(theirs.id)).toMatchObject({ customerId: null });
-  });
+      const ended = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => leaveTo(reception, id, { phone: PHONE }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(ended.status).toBe(403);
+      expect(await storedVisit(id)).toMatchObject({ customerId: null });
+      expect(await storedVisit(theirs.id)).toMatchObject({ customerId: null });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('two desks recording two phones at once: the second is refused VISIT_HAS_CUSTOMER', async () => {
-    const { id } = await closed(2_500);
-    const huda = await createCustomer(spaceId, { name: 'Huda', phone: OTHER_PHONE });
+  it(
+    'two desks recording two phones at once: the second is refused VISIT_HAS_CUSTOMER',
+    async () => {
+      const { id } = await closed(2_500);
+      const huda = await createCustomer(spaceId, { name: 'Huda', phone: OTHER_PHONE });
 
-    const response = await whileHeld(
-      lockSpace,
-      () => leaveTo(reception, id, { phone: PHONE }),
-      (tx) => tx.visit.update({ where: { id }, data: { customerId: huda.id } }),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('VISIT_HAS_CUSTOMER');
-    expect(await storedVisit(id)).toMatchObject({ customerId: huda.id });
-    expect(await prisma.customer.count()).toBe(1);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => leaveTo(reception, id, { phone: PHONE }),
+        (tx) => tx.visit.update({ where: { id }, data: { customerId: huda.id } }),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('VISIT_HAS_CUSTOMER');
+      expect(await storedVisit(id)).toMatchObject({ customerId: huda.id });
+      expect(await prisma.customer.count()).toBe(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

@@ -23,6 +23,10 @@ export interface MyAccount {
   email: string;
   language: Language;
   role: Role;
+  /** It signs in with a password: false for a Google-only account. */
+  hasPassword: boolean;
+  /** A Google account is linked to it. */
+  hasGoogle: boolean;
 }
 
 /** A temporary password the admin issued, answered once and never again (docs/backend/security.md). */

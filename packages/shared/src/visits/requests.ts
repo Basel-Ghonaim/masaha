@@ -15,12 +15,14 @@ const id = z.number().int().positive().max(2_147_483_647);
 
 /**
  * Checks a visitor in by name: the audience whose prices apply (general unless told), and one of
- * the space's shifts, or none.
+ * the space's shifts, or none; and the space's customer the visit is for, when the desk knows them
+ * («تسجيل كزيارة»), whose name it sends as the visitor's.
  */
 export const checkInVisitSchema = z.object({
   visitorName: textSchema(1, VISITOR_NAME_MAX_LENGTH),
   audience: z.enum(PRICE_AUDIENCES).default('GENERAL'),
   shiftId: id.nullable().optional(),
+  customerId: id.optional(),
 });
 export type CheckInVisitRequest = z.infer<typeof checkInVisitSchema>;
 

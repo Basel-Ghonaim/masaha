@@ -26,6 +26,8 @@ export const PAYMENTS = {
       all: 'All staff',
       self: ({ name }: { name: string }) => `${name} (you)`,
       inactive: ({ name }: { name: string }) => `${name} · deactivated`,
+      /** Another owner of the space (finding 166). */
+      owner: ({ name }: { name: string }) => `${name} · owner`,
     },
     method: { label: 'Method', all: 'All methods' },
     kind: {

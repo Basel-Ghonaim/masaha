@@ -3,6 +3,7 @@ import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import {
@@ -66,9 +67,13 @@ function renderForm(add: (request: Request) => FakeAnswer) {
   });
   const client = createQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
   );
-  const rendered = renderHook(() => useAddOwnerForm(), { wrapper });
+  const rendered = renderHook(() => useAddOwnerForm({ usersLink: (q) => `/users?q=${q}` }), {
+    wrapper,
+  });
   const adds = () => requests.filter((request) => request.url === '/admin/owners').map(bodyOf);
   return { ...rendered, client, adds };
 }
@@ -187,11 +192,8 @@ describe('useAddOwnerForm', () => {
       'ACCOUNT_IS_ADMIN',
       'This email is an admin’s account, and an admin can’t be linked to a space.',
     ],
-    ['ACCOUNT_SUSPENDED', 'This account is suspended; it can’t be linked until it’s restored.'],
-    [
-      'ALREADY_OWNER',
-      'This email is already an owner’s — link them to the space from their row in the list.',
-    ],
+    // With no owner named (no `details`), the code's own line.
+    ['ALREADY_OWNER', 'This person is already an owner. Link them to the space instead.'],
   ])('words %s on the form', async (code, message) => {
     const { result } = renderForm(() => refused(409, { type: 'conflict', code }));
 

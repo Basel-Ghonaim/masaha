@@ -1,10 +1,11 @@
 import type { Tx } from '../../db/index.ts';
+import { SWEEP_BATCH } from '../../shared/jobs/index.ts';
 import {
   createSessionsRepository,
   type SessionsRepository,
   type StoredRecovery,
 } from './sessions.repository.ts';
-import { hashToken, newToken } from './tokens.ts';
+import { hashToken, newToken, successorOf } from './tokens.ts';
 
 // docs/backend/security.md › Tokens and cookies.
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60_000;
@@ -64,6 +65,8 @@ export interface OpenedRecovery {
 }
 
 interface Dependencies {
+  /** Names each refresh token's successor (`successorKeyOf`, from the access tokens' secret). */
+  successorKey: Buffer;
   repository?: SessionsRepository;
   now?: () => Date;
 }
@@ -77,16 +80,17 @@ interface Dependencies {
  * tokens.
  */
 export function createSessionsService({
+  successorKey,
   repository = createSessionsRepository(),
   now = () => new Date(),
-}: Dependencies = {}) {
+}: Dependencies) {
   async function issueInFamily(
     userId: number,
     family: { familyId: number; sessionEndsAt: Date; lastActivityAt: Date } | undefined,
     at: Date,
     tx?: Tx,
+    token = newToken(),
   ) {
-    const token = newToken();
     const expiresAt = new Date(at.getTime() + REFRESH_TOKEN_TTL_MS);
     const sessionEndsAt = family?.sessionEndsAt ?? new Date(at.getTime() + SESSION_LIFETIME_MS);
     const lastActivityAt = family?.lastActivityAt ?? at;
@@ -168,14 +172,29 @@ export function createSessionsService({
         return { outcome: 'reused' };
       }
 
+      // A token has one successor, named by the token itself (finding 21): within the grace window
+      // it already has it, and gets it again as it is, so a copy presented then gains nothing it
+      // could keep apart. A successor gone with its session leaves nothing to renew.
+      const successor = successorOf(token, successorKey);
+      if (stored.rotatedAt) {
+        const existing = await repository.findRefreshToken(hashToken(successor), tx);
+        return existing
+          ? { outcome: 'rotated', issued: { token: successor, familyId: existing.familyId } }
+          : { outcome: 'invalid' };
+      }
+
       // A session that keeps refreshing never signs in again, so its expired rows go here: a
       // live session keeps the tokens of its last 7 days, which reuse detection needs.
       await repository.deleteExpired(stored.userId, at, tx);
-      const next = await issueInFamily(stored.userId, { ...stored, lastActivityAt }, at, tx);
-      // Within the grace window the token already has its successor, and the new token joins the
-      // session beside it. Otherwise it is marked rotated now: the session lock means no concurrent
-      // refresh can have done it first.
-      if (!stored.rotatedAt && !(await repository.markRotated(stored.id, next.stored.id, at, tx))) {
+      const next = await issueInFamily(
+        stored.userId,
+        { ...stored, lastActivityAt },
+        at,
+        tx,
+        successor,
+      );
+      // Marked rotated now: the session lock means no concurrent refresh can have done it first.
+      if (!(await repository.markRotated(stored.id, next.stored.id, at, tx))) {
         throw new Error('A refresh token was rotated concurrently, despite the session lock');
       }
       return { outcome: 'rotated', issued: next.issued };
@@ -205,6 +224,17 @@ export function createSessionsService({
     async end(token: string, tx?: Tx): Promise<void> {
       const stored = await repository.findRefreshToken(hashToken(token), tx);
       if (stored) await repository.deleteFamily(stored.familyId, tx);
+    },
+
+    /**
+     * The timed sweep (finding 17): deletes the refresh tokens, reset tokens and recoveries that
+     * ended by `at`, at most `SWEEP_BATCH` a table a run. A session that is never refreshed again
+     * would otherwise keep its rows. How many of each it deleted.
+     */
+    sweepExpired(
+      at: Date,
+    ): Promise<{ refreshTokens: number; resetTokens: number; recoveries: number }> {
+      return repository.sweepExpired(at, SWEEP_BATCH);
     },
 
     /** Ends every session of the user. */

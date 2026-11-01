@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma, type Tx } from '../../db/index.ts';
@@ -254,23 +254,56 @@ describe("the owner's reports", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('an owner unlinked while the decision waits is refused 403', async () => {
-    const { id } = await report();
-    const response = await whileHeld(
-      lockSpace,
-      () => decide(owner, id, { status: 'RESOLVED' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: NOW },
-        }),
-    );
+  it(
+    'an owner unlinked while the decision waits is refused 403',
+    async () => {
+      const { id } = await report();
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => decide(owner, id, { status: 'RESOLVED' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: NOW },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      status: 'OPEN',
-    });
-    expect(await auditEntries()).toEqual([]);
+      expect(response.status).toBe(403);
+      expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
+        status: 'OPEN',
+      });
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
+});
+
+describe("one of the space's reports", () => {
+  it("the owner reads one report by its id, the reporter nowhere; another space's is 404", async () => {
+    const mine = await report({ field: 'HOURS', message: 'مغلق يوم الجمعة' });
+    const theirs = await report({ spaceId: otherSpaceId });
+
+    const one = await request(app)
+      .get(`${reportsPath()}/${String(mine.id)}`)
+      .set('Authorization', owner.authorization);
+    expect(one.status).toBe(200);
+    const listed = await list(owner);
+    expect(dataOf(one)).toEqual((dataOf(listed) as object[])[0]);
+    expect(JSON.stringify(one.body)).not.toContain('Rima');
+    expect(dataOf(one)).toMatchObject({ id: mine.id, field: 'HOURS' });
+
+    for (const id of [theirs.id, 999_999]) {
+      const response = await request(app)
+        .get(`${reportsPath()}/${String(id)}`)
+        .set('Authorization', owner.authorization);
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+    }
+    const asReception = await request(app)
+      .get(`${reportsPath()}/${String(mine.id)}`)
+      .set('Authorization', reception.authorization);
+    expect(asReception.status).toBe(403);
   });
 });
 

@@ -12,15 +12,15 @@ import { spaceLinksKeys } from '../queryKeys';
 const repository = createSpaceLinksRepository();
 
 /**
- * Whose account `email` is, read from the admin's users list before an upgrade is offered. The
- * list's search also finds longer emails that hold this one, so only a row with exactly this email
- * counts: a mistyped email that is someone else's is `notFound`, as a failed read is, and never
- * upgraded by one click. `null` reads nothing.
+ * Whose account `email` is, read from the admin's users list by its exact email (`?email=`, D6.5,
+ * finding 89) before an upgrade is offered, so a right email is found whatever page a search would
+ * put it on: `found`, `notFound` — never upgraded by one click —, or a read that `failed`, said
+ * apart with its retry. `null` reads nothing.
  */
 export function useEmailAccount(email: string | null): EmailAccountState {
   const words = useCopy().spaceLinks.usersList.row;
   const english = useLanguage() === 'en';
-  const request = { q: email ?? undefined };
+  const request = { email: email ?? undefined };
   const query = useQuery<Page<AdminUserRow[]>, AppError>({
     queryKey: spaceLinksKeys.adminUsers(request),
     queryFn: () => repository.adminUsers(request),
@@ -29,11 +29,20 @@ export function useEmailAccount(email: string | null): EmailAccountState {
 
   if (email === null) return { status: 'none' };
   if (query.isPending) return { status: 'reading' };
-  const row = query.data?.data.find((user) => user.email === email);
+  if (query.data === undefined) {
+    return {
+      status: 'failed',
+      retry: () => {
+        void query.refetch();
+      },
+    };
+  }
+  const row = query.data.data.find((user) => user.email === email);
   if (row === undefined) return { status: 'notFound' };
-  const view = userRowView(row, { words, english, now: new Date() });
+  const view = userRowView(row, { words, english });
   return {
     status: 'found',
+    row,
     account: {
       name: row.name,
       joined: view.joined,

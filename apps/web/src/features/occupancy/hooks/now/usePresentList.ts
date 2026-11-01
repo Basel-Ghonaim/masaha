@@ -12,10 +12,14 @@ import { useStateNowQuery } from './useStateNowQuery';
  * Who is present at the space now, ready to render: the heading and its count (with the capacity,
  * when the space has one), the list's state (loading, failed with its reference and a retry, empty,
  * or the list), each person in the server's order — their name, kind, since when and for how long at
- * `now`, and a visit's charge so far, the server's — and how many of each kind. A failed refresh
- * keeps the list it shows, and says so.
+ * `now`, and a visit's charge so far, the server's — and how many of each kind. The kind: a
+ * subscriber's plan by `plan` (the page's, from the open check-ins), else «اشتراك»; a visit's
+ * «زيارة», or «زيارة · طالب» by its audience. A failed refresh keeps the list it shows, and says so.
  */
-export function usePresentList(spaceId: number, { now }: { now: Date }) {
+export function usePresentList(
+  spaceId: number,
+  { now, plan }: { now: Date; plan?: (person: PresentPerson) => string | null },
+) {
   const copy = useCopy();
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   const words = copy.occupancy.present;
@@ -38,15 +42,27 @@ export function usePresentList(spaceId: number, { now }: { now: Date }) {
       : words.soFar({ amount: isolate(priceText(person.chargeNowAgorot, language)) });
   };
   const people = data?.people ?? [];
-  const rows = people.map((person): PresentRowView => ({
-    key: `${person.kind}-${String(person.id)}`,
-    person,
-    name: person.name,
-    kind: words.kinds[person.kind],
-    since: words.since({ time: clockOf(gazaClockOf(new Date(person.since)).minute) }),
-    duration: durationOf(person.since),
-    detail: detailOf(person),
-  }));
+  const kindOf = (person: PresentPerson): PresentRowView['kind'] =>
+    person.kind === 'CHECK_IN'
+      ? { label: plan?.(person) ?? words.kinds.CHECK_IN, variant: 'primary' }
+      : {
+          label: person.audience === 'STUDENT' ? words.studentVisit : words.kinds.VISIT,
+          variant: 'neutral',
+        };
+  const rows = people.map((person): PresentRowView => {
+    const time = clockOf(gazaClockOf(new Date(person.since)).minute);
+    return {
+      key: `${person.kind}-${String(person.id)}`,
+      person,
+      name: person.name,
+      customerId: person.customerId,
+      kind: kindOf(person),
+      time,
+      since: words.since({ time }),
+      duration: durationOf(person.since),
+      detail: detailOf(person),
+    };
+  });
   const visits = people.filter(({ kind }) => kind === 'VISIT').length;
 
   return {
@@ -64,7 +80,9 @@ export function usePresentList(spaceId: number, { now }: { now: Date }) {
     state: query.isPending
       ? ('loading' as const)
       : data === undefined
-        ? ('failed' as const)
+        ? query.error.type === 'network' || query.error.type === 'timeout'
+          ? ('offline' as const)
+          : ('failed' as const)
         : people.length === 0
           ? ('empty' as const)
           : ('ready' as const),
@@ -74,6 +92,8 @@ export function usePresentList(spaceId: number, { now }: { now: Date }) {
       visits: words.visits({ count: visits }),
     }),
     empty: { title: words.empty.title, text: words.empty.text },
+    // No answer at all: the connection's state (P7), not a refusal.
+    offline: { title: copy.status.offline.title, text: copy.status.offline.description },
     failure: {
       title: words.loadFailed,
       message: view?.message,

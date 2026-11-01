@@ -32,6 +32,13 @@ function stubFetch(answer: () => Response | Promise<Response>) {
 const json = (status: number, body: object) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Every file a listing yields, in its order. */
+async function listed<T>(files: AsyncIterable<T>): Promise<T[]> {
+  const all: T[] = [];
+  for await (const file of files) all.push(file);
+  return all;
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-13T09:00:00.000Z'));
@@ -148,5 +155,61 @@ describe('the Cloudinary storage', () => {
     expect(storage.url('spaces/abc/card.png')).toBe(
       'https://res.cloudinary.com/demo-cloud/image/upload/masaha/test/spaces/abc/card.png',
     );
+  });
+
+  it('lists a prefix through the Admin API, following next_cursor, each public id back to its key', async () => {
+    const requests: { url: string; authorization: string | null }[] = [];
+    const pages = [
+      json(200, {
+        resources: [
+          {
+            public_id: 'masaha/test/spaces/abc/card',
+            format: 'webp',
+            created_at: '2026-10-12T08:00:00Z',
+          },
+        ],
+        next_cursor: 'cursor-2',
+      }),
+      json(200, {
+        resources: [
+          {
+            public_id: 'masaha/test/spaces/abc/page',
+            format: 'webp',
+            created_at: '2026-10-12T08:00:01Z',
+          },
+        ],
+      }),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        requests.push({ url, authorization: new Headers(init.headers).get('authorization') });
+        return Promise.resolve(pages.shift() ?? json(500, {}));
+      }),
+    );
+    const storage = createCloudinaryStorage(settings);
+
+    expect(await listed(storage.list('spaces/'))).toEqual([
+      { key: 'spaces/abc/card.webp', createdAt: new Date('2026-10-12T08:00:00Z') },
+      { key: 'spaces/abc/page.webp', createdAt: new Date('2026-10-12T08:00:01Z') },
+    ]);
+    const basic = `Basic ${Buffer.from('123456789012345:a-test-api-secret').toString('base64')}`;
+    expect(requests).toEqual([
+      {
+        url: 'https://api.cloudinary.com/v1_1/demo-cloud/resources/image/upload?prefix=masaha%2Ftest%2Fspaces%2F&max_results=500',
+        authorization: basic,
+      },
+      {
+        url: 'https://api.cloudinary.com/v1_1/demo-cloud/resources/image/upload?prefix=masaha%2Ftest%2Fspaces%2F&max_results=500&next_cursor=cursor-2',
+        authorization: basic,
+      },
+    ]);
+  });
+
+  it('fails a listing Cloudinary refuses', async () => {
+    stubFetch(() => json(401, { error: { message: 'Invalid credentials' } }));
+    const storage = createCloudinaryStorage(settings);
+
+    await expect(listed(storage.list('spaces/'))).rejects.toThrow(StorageError);
   });
 });

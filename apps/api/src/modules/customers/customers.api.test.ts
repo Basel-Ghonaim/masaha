@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -129,24 +129,28 @@ describe('creating a customer', () => {
     expect(await auditEntries()).toHaveLength(1);
   });
 
-  it('two requests with one key at once make one customer', async () => {
-    const key = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await lockSpace(tx);
-      pending.push(
-        Promise.resolve(create(owner, { name: 'Sara', phone: PHONE }, key)),
-        Promise.resolve(create(reception, { name: 'Sara', phone: PHONE }, key)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
+  it(
+    'two requests with one key at once make one customer',
+    async () => {
+      const key = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await lockSpace(tx);
+        pending.push(
+          Promise.resolve(create(owner, { name: 'Sara', phone: PHONE }, key)),
+          Promise.resolve(create(reception, { name: 'Sara', phone: PHONE }, key)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
 
-    const [first, second] = await Promise.all(pending);
-    expect([first?.status, second?.status]).toEqual([201, 201]);
-    expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
-    expect(await storedCustomers()).toHaveLength(1);
-  });
+      const [first, second] = await Promise.all(pending);
+      expect([first?.status, second?.status]).toEqual([201, 201]);
+      expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
+      expect(await storedCustomers()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('refuses a missing or invalid key, and an invalid body, with 422 before anything is read', async () => {
     const missing = await create(owner, { name: '' }, null);
@@ -163,21 +167,26 @@ describe('creating a customer', () => {
     expect(await storedCustomers()).toEqual([]);
   });
 
-  it("a reception link ended while the create waits on the space's lock is refused 403, writing nothing", async () => {
-    const response = await whileHeld(
-      lockSpace,
-      () => create(reception, { name: 'Sara' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    "a reception link ended while the create waits on the space's lock is refused 403, writing nothing",
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => create(reception, { name: 'Sara' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await storedCustomers()).toEqual([]);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(await storedCustomers()).toEqual([]);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('editing a customer', () => {

@@ -1,6 +1,6 @@
 import { useCopy } from '@shared/copy';
 import { Card, CardContent, CardFooter } from '@shared/design-system';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useForgotPasswordFlow } from '../../hooks/forgot-password/useForgotPasswordFlow';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { LinkOpen } from './LinkOpen';
@@ -30,6 +30,12 @@ export function ForgotPasswordCard({
   const copy = useCopy();
   const words = copy.auth.forgotPassword;
   const view = useForgotPasswordFlow();
+  // Whether the reader chose to enter an email again: the form then opens with its field focused.
+  const [focusEmail, setFocusEmail] = useState(false);
+  const enterEmailAgain = (again: () => void) => () => {
+    setFocusEmail(true);
+    again();
+  };
 
   return (
     <Card className="w-full md:max-w-md">
@@ -49,7 +55,7 @@ export function ForgotPasswordCard({
         <>
           <StepHeader title={words.title} description={words.description} />
           <CardContent>
-            <ForgotPasswordForm />
+            <ForgotPasswordForm focusEmail={focusEmail} />
           </CardContent>
         </>
       )}
@@ -59,14 +65,17 @@ export function ForgotPasswordCard({
           <LinkSent
             sentTo={view.sentTo}
             canResend={view.canResend}
-            enterEmailAgain={view.enterEmailAgain}
+            enterEmailAgain={enterEmailAgain(view.enterEmailAgain)}
           />
         </>
       )}
       {view.kind === 'linkOpen' && (
         <>
           <StepHeader title={words.linkOpenTitle} description={view.description} />
-          <LinkOpen resetPasswordLink={resetPasswordLink} enterEmailAgain={view.enterEmailAgain} />
+          <LinkOpen
+            resetPasswordLink={resetPasswordLink}
+            enterEmailAgain={enterEmailAgain(view.enterEmailAgain)}
+          />
         </>
       )}
       <CardFooter className="flex-col gap-2">

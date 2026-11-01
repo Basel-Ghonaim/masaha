@@ -8,18 +8,28 @@
 
   /* Component tokens: only for values no role covers, each bound by its component alone. */
   --control-height: 40px;
+  --control-height-lg: 48px;
   --control-text-size: 15px;
   --button-padding-inline: 16px;
   --card-padding: 20px;
   --table-row-padding-block: 14px;
   --radius-control: var(--radius-scale-md);
   --radius-pill: var(--radius-scale-full);
+  --chart-height-md: 200px;
+  --chart-height-sm: 120px;
+  --heatmap-step-1: 0.12;
+  --heatmap-step-2: 0.3;
+  --heatmap-step-3: 0.5;
+  --heatmap-step-4: 0.72;
+  --heatmap-step-5: 1;
+  --refreshing: 0.6;
 }
 
 /* Touch screens: a 44px target, and 16px text, below which iOS Safari zooms into a focused input. */
 @media (pointer: coarse) {
   :root {
     --control-height: 44px;
+    --control-height-lg: 52px;
     --control-text-size: 16px;
   }
 }

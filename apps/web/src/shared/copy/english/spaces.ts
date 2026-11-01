@@ -64,6 +64,9 @@ export const SPACES = {
       namesSeparator: ', ',
       description: 'This space is verified, so it shows here read-only.',
       viewOnSite: 'View on the site',
+      /** Before the space's reports, where a fact its owner keeps is corrected. */
+      correct: 'To correct a fact:',
+      reports: ({ space }: { space: string }) => `${space}’s reports`,
     },
     /** What an owner's editor says that the admin's does not. */
     owner: {
@@ -356,6 +359,9 @@ export const SPACES = {
       /** The browser is reading the file and shrinking it. */
       preparing: 'Preparing…',
       uploading: ({ percent }: { percent: number }) => `Uploading ${String(percent)}%`,
+      /** An uploading tile's bar: the photo's place in the gallery, and its percentage. */
+      uploadingPhoto: ({ n }: { n: number }) => `Uploading photo ${String(n)}`,
+      percent: ({ percent }: { percent: number }) => `${String(percent)}%`,
       /** The browser has no codec for the file, so nothing was sent for it. */
       unsupported: 'Unsupported format; choose JPEG, PNG or WebP',
       /** Over the contract's 4 MiB, after the browser's own shrinking. */
@@ -384,6 +390,8 @@ export const SPACES = {
     actions: ({ name }: { name: string }) => `Actions: ${name}`,
     /** Leads to the space's editor. */
     edit: 'Edit',
+    /** A verified space's: its owner edits it, the admin views it. */
+    view: 'View (its owner edits it)',
     hide: 'Hide',
     show: 'Show',
     delete: 'Delete',
@@ -395,7 +403,7 @@ export const SPACES = {
   deleteDialog: {
     title: ({ name }: { name: string }) => `Delete ${name}?`,
     description: 'It leaves the site and the list; you’ll find it under «Deleted» to restore it.',
-    cancel: 'Cancel',
+    cancel: 'Back',
     confirm: 'Delete',
   },
   /** What an action did, once the list shows it. */
@@ -404,7 +412,7 @@ export const SPACES = {
     hidden: ({ name }: { name: string }) => `${name} is hidden from the site`,
     shown: ({ name }: { name: string }) => `${name} is visible again`,
     deleted: ({ name }: { name: string }) => `${name} deleted`,
-    /** Restores the space just deleted. */
+    /** Restores the space just deleted; on a hiding's or a showing's toast, the opposite (P9). */
     undo: 'Undo',
     restored: ({ name }: { name: string }) => `${name} restored`,
     photoRemoved: ({ photo }: { photo: string }) => `${photo} deleted`,

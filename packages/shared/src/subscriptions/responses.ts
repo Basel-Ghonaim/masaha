@@ -24,6 +24,11 @@ export interface DeskSubscription {
   customerId: number;
   /** `null` for a custom subscription. */
   packageId: number | null;
+  /**
+   * The period of the published price it was sold from; `null` for a package's or a custom one
+   * (and for one sold before the period was kept).
+   */
+  publishedPeriod: 'WEEK' | 'MONTH' | null;
   /** The subscription this one renews, the same customer's; `null` for a first one. */
   renewalOfId: number | null;
   name: string;

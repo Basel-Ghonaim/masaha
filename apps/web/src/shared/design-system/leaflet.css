@@ -102,7 +102,10 @@
  * The marks of a map of many places (MarkerMap): a 16 px dot edged on the card, its state said by
  * its shape as well as its tone — filled, filled with a bar across it, hollow, or a dashed edge. The
  * element is Leaflet's, which it positions; the span inside draws the mark. A legend draws the same
- * classes on a span of its own (MapMarkSample).
+ * classes on a span of its own (MapMarkSample). OpenStreetMap's tiles are light in both themes, so
+ * the span takes the light theme (`data-theme="light"`) and every value it draws with, its tone
+ * included, resolves there: in dark the marks read on the tiles, and the legend's on the card, as in
+ * light (finding 135).
  */
 .map-mark {
   display: inline-block;
@@ -125,16 +128,16 @@
   box-shadow: var(--elevation-raised);
 }
 
-.map-tone-success {
+.map-tone-success span {
   --map-tone: var(--success);
 }
 
-.map-tone-warning {
+.map-tone-warning span {
   --map-tone: var(--warning);
 }
 
-.map-tone-neutral,
-.map-tone-muted {
+.map-tone-neutral span,
+.map-tone-muted span {
   --map-tone: var(--muted-foreground);
 }
 

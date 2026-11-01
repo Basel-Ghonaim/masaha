@@ -1,6 +1,6 @@
 # 89. «Check the email» stands for three causes
 
-**Status:** Open · **Date:** 2026-10-18
+**Status:** Resolved · **Date:** 2026-10-18 · **Resolved:** 2026-10-29
 
 **Evidence:** the add-owner sheet keeps an account only when the users list's search returns a row with
 exactly the email, and otherwise offers no upgrade and says «تعذّر عرض صاحب هذا الحساب، فلا يُرقّى من هنا —
@@ -13,3 +13,5 @@ finding 11).
 
 **Resolves when:** the read asks for a larger page (or an exact email filter), and a failed read is worded
 apart, with a retry.
+
+**Resolution (#132):** The add sheet reads the account by its exact email; a failed read is worded apart, with a retry (D1.8, D6.5): `GET /admin/users?email=` finds a right email on any page; none found reads «لا حساب بهذا البريد تمامًا الآن…», a failed read «تعذّر التحقق من هذا البريد الآن.» with «إعادة المحاولة».

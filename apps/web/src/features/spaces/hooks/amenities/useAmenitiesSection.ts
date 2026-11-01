@@ -158,6 +158,7 @@ export function useAmenitiesSection({
     label: words.list,
     value: ticked.field.value,
     linked: space.amenityIds,
+    retired: space.retiredAmenities.map(({ id, nameAr, nameEn }) => ({ id, nameAr, nameEn })),
     onValueChange: (ids) => {
       ticked.field.onChange(amenityIdsOf(ids));
     },

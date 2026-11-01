@@ -11,13 +11,14 @@ import {
 } from '@shared/design-system';
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
+import { AuthWayBack } from './AuthWayBack';
 import { nextSearch } from './nextSearch';
 import { OrDivider } from './OrDivider';
 
 /**
  * Register: the card around Google sign-in and the register form, the way to sign in instead, and
- * where space owners get their accounts. Once the account is signed in, `RequireGuest` sends the user
- * on to the page they came for.
+ * where space owners get their accounts (the about page's owners), and the way back. Once the
+ * account is signed in, `RequireGuest` sends the user on to the page they came for.
  */
 export function RegisterPage() {
   const copy = useCopy();
@@ -51,10 +52,11 @@ export function RegisterPage() {
         </p>
         <p className="text-center text-caption">
           {copy.auth.register.ownerNote}{' '}
-          <Link to={SITE_PATHS.contact} className="text-primary">
+          <Link to={SITE_PATHS.owners} className="text-primary">
             {copy.site.contact}
           </Link>
         </p>
+        <AuthWayBack />
       </CardFooter>
     </Card>
   );

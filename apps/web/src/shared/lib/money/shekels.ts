@@ -1,4 +1,4 @@
-const ARABIC_INDIC_ZERO = 0x0660;
+import { toWesternDigits } from '../numbers/westernDigits';
 
 /** An amount in agorot as shekels: `1500` → `15`, `1250` → `12.50`. */
 export function shekelsOf(agorot: number): string {
@@ -12,12 +12,7 @@ export function shekelsOf(agorot: number): string {
  * handed back as typed, so the contract's schema refuses it as `invalid_format`.
  */
 export function agorotOf(text: string): number | string | undefined {
-  const typed = text
-    .trim()
-    .replace(/[٠-٩]/g, (digit) =>
-      String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
-    )
-    .replace(/[,٫]/, '.');
+  const typed = toWesternDigits(text.trim()).replace(/[,٫]/, '.');
   if (typed === '') return undefined;
   const parts = /^(\d*)(?:\.(\d*))?$/.exec(typed);
   if (parts === null || !/\d/.test(typed)) return text;

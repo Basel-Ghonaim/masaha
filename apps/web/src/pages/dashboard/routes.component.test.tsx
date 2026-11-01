@@ -13,6 +13,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
 import { adminReport, reportsPage, spaceReport } from '../../test/dataReport';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
+import { deskVisit } from '../../test/deskVisit';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
@@ -21,7 +22,43 @@ import { paymentRow, paymentsPage } from '../../test/paymentRow';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { setSessionHint } from '../../test/sessionHint';
 import { startPreferences } from '../../test/startPreferences';
+import { warm } from '../../test/warmLazy';
 import { dashboardRoutes } from './routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./shell/SpaceLayout'),
+      () => import('./shell/AdminLayout'),
+      () => import('./DashboardLanding'),
+      () => import('./space/overview/OverviewPage'),
+      () => import('./space/desk/DeskPage'),
+      () => import('./space/customers/CustomersPage'),
+      () => import('./space/customers/CustomerPage'),
+      () => import('./space/payments/PaymentsPage'),
+      () => import('./space/payments/MyPaymentsPage'),
+      () => import('./space/StaffPage'),
+      () => import('./space/SettingsPage'),
+      () => import('./space/ProfilePage'),
+      () => import('./space/PackagesPage'),
+      () => import('./space/announcements/AnnouncementsPage'),
+      () => import('./space/reports/DataReportsPage'),
+      () => import('./space/finance/FinancePage'),
+      () => import('./space/audit/AuditPage'),
+      () => import('./admin/overview/OverviewPage'),
+      () => import('./admin/SpacesPage'),
+      () => import('./admin/AddSpacePage'),
+      () => import('./admin/SpaceEditPage'),
+      () => import('./admin/UsersPage'),
+      () => import('./admin/OwnersPage'),
+      () => import('./admin/DataReportsPage'),
+      () => import('./admin/LookupsPage'),
+      () => import('./admin/audit/AuditPage'),
+      () => import('./admin/settings/SettingsPage'),
+    ),
+  60_000,
+);
 
 const FOCUS: ManagedSpace = {
   spaceId: 7,
@@ -43,6 +80,7 @@ const OWNER_PAGES = [
   'Announcements',
   'Data reports',
   'Staff',
+  'Audit log',
   'Settings',
 ];
 const RECEPTION_PAGES = ['Front desk', 'Customers', 'My payments today', 'Announcements'];
@@ -54,7 +92,7 @@ const ADMIN_PAGES = [
   'Users',
   'Lookups',
   'Audit log',
-  'Settings',
+  'Platform settings',
 ];
 
 /** The desk's state now, with no one present. */
@@ -74,15 +112,51 @@ const VISIT_TERMS = {
   rates: [{ shiftId: null, general: { hourAgorot: 500, dayAgorot: 2500 }, student: null }],
 };
 
-/** Signs in a user (id 1) with `fields`; their spaces are answered from their links. */
-function signIn(fields: Partial<SessionUser>) {
+/** The owner's overview of a quiet space: nothing waiting, no one present, nothing ending. */
+const QUIET_OVERVIEW = {
+  attention: {
+    groups: { missing: [], stale: [] },
+    openReports: 0,
+    uncollectedVisits: 0,
+    unpricedVisits: 0,
+    closuresAwaitingExtension: 0,
+    capacitySet: true,
+    customersOwing: 0,
+  },
+  presentNow: { visits: 0, members: 0, total: 0, capacity: 40, status: 'AVAILABLE' },
+  endingSoon: { total: 0, first: [] },
+  announcements: { running: 0, types: [] },
+  at: '2026-10-29T10:00:00.000Z',
+};
+
+/** The admin's overview of a quiet platform: nothing to complete, nothing open. */
+const QUIET_ADMIN_OVERVIEW = {
+  spaces: { verified: 1, unverified: 0, hidden: 0, unverifiedNoOwner: 0, staleOrMissing: 0 },
+  reports: { open: 0, awaitingAdmin: 0, awaitingOwners: 0 },
+  newUsers: 0,
+  completeness: { total: 0, first: [] },
+  at: '2026-10-29T10:00:00.000Z',
+};
+
+/**
+ * Signs in a user (id 1) with `fields`; their spaces are answered from their links, and the sidebar's
+ * count of open reports by `openReports` (none by default).
+ */
+function signIn(fields: Partial<SessionUser>, { openReports = 0 }: { openReports?: number } = {}) {
   const { user } = aSession(fields);
   establishSession({ user, accessToken: 'token-1' }, { source: 'signIn' });
   fakeTransport((request) => {
+    // The sidebar's count of the open reports: a page of one asked, its total read.
+    if (request.url?.endsWith('/data-reports') === true) {
+      return reportsPage([], { total: openReports });
+    }
     // The desk, where reception lands: its reads answered as the server would, with no one present.
     if (request.url?.endsWith('/occupancy') === true) return ok(NO_ONE_PRESENT);
     if (request.url?.endsWith('/visit-terms') === true) return ok(VISIT_TERMS);
     if (request.url?.endsWith('/check-ins') === true) return ok([]);
+    // The owner's overview, where the owner lands: nothing waiting, no one present.
+    if (request.url?.endsWith('/admin/overview') === true) return ok(QUIET_ADMIN_OVERVIEW);
+    if (request.url?.endsWith('/overview') === true) return ok(QUIET_OVERVIEW);
     return ok(
       user.spaces.map((link: SessionSpaceLink) => ({
         ...FOCUS,
@@ -144,15 +218,23 @@ function renderDashboard(path: string) {
   return router;
 }
 
-/** The names of the pages a sidebar lists, in order: its first list (the foot is another). */
+/** The names of the pages a sidebar lists, in order, across its groups (the foot's list is not one). */
 async function pagesIn(navigation: string) {
   const nav = await screen.findByRole('navigation', { name: navigation });
-  const [pages] = within(nav).getAllByRole('list');
-  return pages
-    ? within(pages)
-        .getAllByRole('link')
-        .map((link) => link.textContent)
-    : [];
+  return within(nav)
+    .getAllByRole('list')
+    .filter((list) => list.closest('[data-slot="sidebar-footer"]') === null)
+    .flatMap((list) => within(list).getAllByRole('link'))
+    .map((link) => link.textContent);
+}
+
+/** The names of the groups a sidebar draws, in order. */
+async function groupsIn(navigation: string) {
+  const nav = await screen.findByRole('navigation', { name: navigation });
+  return within(nav)
+    .queryAllByRole('group')
+    .map((group) => group.getAttribute('aria-labelledby'))
+    .map((id) => (id === null ? null : document.getElementById(id)?.textContent));
 }
 
 /**
@@ -186,7 +268,7 @@ describe("the dashboard's navigation", () => {
     await import('./space/desk/DeskPage');
   });
 
-  it('lists the owner’s eleven pages, the overview marked as the page shown', async () => {
+  it('lists the owner’s twelve pages, the overview marked as the page shown', async () => {
     asOwner();
     renderDashboard('/dashboard/spaces/7');
 
@@ -205,6 +287,82 @@ describe("the dashboard's navigation", () => {
 
     expect(await pagesIn('Space dashboard')).toEqual(RECEPTION_PAGES);
     expect(await topBarTitle('Front desk')).toBeInTheDocument();
+  });
+
+  it('draws the owner’s pages in four groups named by task, the overview first and ungrouped', async () => {
+    asOwner();
+    renderDashboard('/dashboard/spaces/7');
+
+    expect(await groupsIn('Space dashboard')).toEqual([
+      'Today',
+      'Money',
+      'The space',
+      'Team & settings',
+    ]);
+    const nav = within(screen.getByRole('navigation', { name: 'Space dashboard' }));
+    expect(nav.getByText('Today')).toBeVisible();
+    const team = within(nav.getByRole('group', { name: 'Team & settings' }));
+    expect(team.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Staff',
+      'Audit log',
+      'Settings',
+    ]);
+    expect(nav.getByRole('link', { name: 'Audit log' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/audit',
+    );
+  });
+
+  it('draws reception’s four pages with no group names', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/desk');
+
+    expect(await pagesIn('Space dashboard')).toEqual(RECEPTION_PAGES);
+    expect(await groupsIn('Space dashboard')).toEqual([]);
+  });
+
+  it('keeps the group names for assistive technology only on the rail', async () => {
+    stubScreenWidth(800);
+    asOwner();
+    renderDashboard('/dashboard/spaces/7');
+
+    const nav = within(await screen.findByRole('navigation', { name: 'Space dashboard' }));
+    expect(nav.getByText('Money')).toHaveClass('sr-only');
+    expect(nav.getByRole('group', { name: 'Money' })).toBeInTheDocument();
+  });
+
+  it('counts the open reports on the owner’s «Data reports», named for a reader, and shows none at zero', async () => {
+    signIn({ role: 'OWNER', spaces: [{ spaceId: 7, role: 'OWNER' }] }, { openReports: 3 });
+    renderDashboard('/dashboard/spaces/7');
+    const nav = within(await screen.findByRole('navigation', { name: 'Space dashboard' }));
+
+    await waitFor(() => {
+      expect(nav.getByRole('link', { name: 'Data reports' })).toHaveAccessibleDescription(
+        '3 new reports',
+      );
+    });
+  });
+
+  it('shows no count on «Data reports» with no open report', async () => {
+    asOwner();
+    renderDashboard('/dashboard/spaces/7');
+    const nav = within(await screen.findByRole('navigation', { name: 'Space dashboard' }));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(nav.getByRole('link', { name: 'Data reports' })).not.toHaveAccessibleDescription();
+  });
+
+  it('counts the reports waiting for the admin on the admin’s «Data reports»', async () => {
+    signIn({ role: 'ADMIN' }, { openReports: 2 });
+    renderDashboard('/dashboard/admin');
+    const nav = within(await screen.findByRole('navigation', { name: 'Platform admin' }));
+
+    await waitFor(() => {
+      expect(nav.getByRole('link', { name: 'Data reports' })).toHaveAccessibleDescription(
+        '2 reports waiting for the admin',
+      );
+    });
+    expect(await groupsIn('Platform admin')).toEqual(['Spaces', 'The platform']);
   });
 
   it('lists the admin’s eight pages under the platform’s own header', async () => {
@@ -424,6 +582,30 @@ describe('the dashboard on a phone', () => {
     });
   });
 
+  it('keeps the top bar to the trigger and the page; the drawer opens with the account, its foot holding the language and the theme', async () => {
+    const user = userEvent.setup();
+    stubScreenWidth(390);
+    asOwnerAndReception();
+    renderDashboard('/dashboard/spaces/7');
+
+    const bar = within(await screen.findByRole('banner'));
+    expect(bar.getByRole('button', { name: /Account menu/ }).parentElement).toHaveClass(
+      'hidden',
+      'md:flex',
+    );
+
+    await user.click(bar.getByRole('button', { name: 'Menu' }));
+    const drawer = within(await screen.findByRole('dialog', { name: 'Space dashboard' }));
+    const account = drawer.getByRole('button', { name: /Account menu/ });
+    const switcher = await drawer.findByRole('button', { name: heard('Switch space: Focus Hub') });
+    expect(
+      account.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(account).toHaveTextContent('· Owner');
+    expect(drawer.getByRole('button', { name: 'العربية' })).toBeInTheDocument();
+    expect(drawer.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
+  });
+
   it('opens the drawer with the pages and the language, and closes it when a page is chosen', async () => {
     const user = userEvent.setup();
     stubScreenWidth(390);
@@ -509,15 +691,21 @@ describe("the admin's lookups page", () => {
     expect(router.state.location.search).toBe('');
   });
 
-  it('names its tabs after the page, with its hint under them', async () => {
+  it('names its tabs after the page, each tab with its own hint under them', async () => {
     openLookups('');
+    const governorates =
+      'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.';
+    const amenities =
+      'An inactive amenity is offered in no form; the spaces that have it keep it. The order here is the order shown.';
 
     expect(await screen.findByRole('tablist', { name: 'Lookups' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(governorates)).toBeInTheDocument();
+    expect(screen.queryByText(amenities)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Amenities' }));
+
+    expect(await screen.findByText(amenities)).toBeInTheDocument();
+    expect(screen.queryByText(governorates)).not.toBeInTheDocument();
   });
 });
 
@@ -550,6 +738,7 @@ const ADDED: AdminSpace = {
   hours: null,
   prices: [],
   amenityIds: [],
+  retiredAmenities: [],
   ownAmenities: [],
   contacts: [],
 };
@@ -735,9 +924,14 @@ describe("the space's front desk", () => {
     await import('./space/desk/DeskPage');
   });
 
-  /** The desk's reads: who is present, the visit terms and the space, each from the managed route. */
-  function serveDesk() {
+  /**
+   * The desk's reads: who is present, the visit terms and the space, each from the managed route;
+   * `more` answers first, when it does.
+   */
+  function serveDesk(more: (url: string | undefined) => FakeAnswer | undefined = () => undefined) {
     return fakeTransport((request) => {
+      const answer = more(request.url);
+      if (answer !== undefined) return answer;
       if (request.url === '/manage/spaces/7/occupancy') {
         return ok({
           status: 'AVAILABLE',
@@ -801,6 +995,51 @@ describe("the space's front desk", () => {
       within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
     );
     expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
+  });
+
+  it('lands the overview’s «with no price» link on the desk’s card of them, its heading focused', async () => {
+    asOwner();
+    serveDesk((url) => {
+      if (url === '/manage/spaces/7/overview') return ok(QUIET_OVERVIEW);
+      // The owner may type a price, so the desk shows the visits waiting for one.
+      if (url === '/manage/spaces/7/visit-terms') return ok({ ...VISIT_TERMS, mayTypePrice: true });
+      if (url === '/manage/spaces/7/unpriced-visits') {
+        // One visit closed with no price, a page of one.
+        const visit = deskVisit({
+          checkedOutAt: '2026-07-01T09:00:00.000Z',
+          checkoutMethod: 'MANUAL',
+        });
+        return {
+          status: 200,
+          data: {
+            success: true,
+            data: [visit],
+            meta: {
+              currentPage: 1,
+              limit: 20,
+              totalPages: 1,
+              totalRecords: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          },
+        };
+      }
+      return undefined;
+    });
+    const router = renderDashboard('/dashboard/spaces/7');
+    await topBarTitle('Overview');
+
+    await router.navigate('/dashboard/spaces/7/desk#unpriced');
+
+    const heading = await screen.findByRole('heading', {
+      level: 2,
+      name: '1 visit without a price',
+    });
+    await waitFor(() => {
+      expect(heading).toHaveFocus();
+    });
+    expect(heading.closest('[id="unpriced"]')).not.toBeNull();
   });
 });
 
@@ -1010,6 +1249,7 @@ describe("the owner's staff", () => {
             name: 'Rahaf',
             email: 'rahaf@example.com',
             isActive: true,
+            addedAt: '2026-09-14T08:30:00.000Z',
             temporaryPassword: null,
           },
         ]);

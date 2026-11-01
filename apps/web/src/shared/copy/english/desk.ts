@@ -6,6 +6,8 @@ export const DESK = {
     checkIn: 'Check in a visit',
     switchStaff: 'Switch staff',
     more: 'More actions',
+    /** «استلام {amount}»'s payment dialog: the customer's oldest owing item it opened on (DI32). */
+    oldest: ({ item }: { item: string }) => `Oldest item: ${item}`,
   },
   switchStaff: {
     failed: 'We couldn’t sign out; try again.',
@@ -28,7 +30,8 @@ export const DESK = {
     shift: 'Shift',
     optional: 'Optional',
     noShift: 'No shift',
-    full: 'The space is full; you can still check in, and visitors keep seeing “Full”.',
+    full: ({ ratio }: { ratio: string }) =>
+      `The space is full ${ratio}; you can still check in, and visitors keep seeing “Full”.`,
     submit: 'Check in',
     submitAnyway: 'Check in anyway',
     failed: 'We couldn’t check the visit in',
@@ -42,8 +45,22 @@ export const DESK = {
     visit: 'Visit',
     studentVisit: 'Visit · student',
     rows: { in: 'In', out: 'Out', duration: 'Duration' },
-    billed: ({ time }: { time: string }) => `Billed time ${time}`,
-    cap: 'Capped at the day price',
+    /** How the quote's charge came about: the hours billed by the rate, rounded by the rule. */
+    billed: ({
+      hours,
+      rate,
+      amount,
+      rounding,
+    }: {
+      hours: string;
+      rate: string;
+      amount: string;
+      rounding: string;
+    }) => `${hours} h × ${rate} = ${amount} · ${rounding}`,
+    billedCapped: ({ hours, rate, rounding }: { hours: string; rate: string; rounding: string }) =>
+      `${hours} h × ${rate} · ${rounding}`,
+    cap: ({ day }: { day: string }) => `Cap: the day price ${day}`,
+    dayOnly: ({ day }: { day: string }) => `No hourly price — the day price ${day}`,
     /** The rounding by its rule; the other rules are said in the settings' own words. */
     rounding: {
       UP_AFTER_MINUTES: ({ minutes }: { minutes: string }) => `Rounded up after ${minutes}`,
@@ -93,6 +110,8 @@ export const DESK = {
         one: '1 visit not collected',
         other: `${String(count)} visits not collected`,
       }),
+    /** The card's name when it holds none: its line says so (G13.3). */
+    heading: 'Not collected',
     none: 'Nothing left to collect.',
     loadFailed: 'We couldn’t load the uncollected visits',
     /** How a row closed, and when: the auto check-out, or by hand (a payment voided since). */
@@ -132,6 +151,10 @@ export const DESK = {
     phone: 'Mobile number',
     phoneRequired: 'A mobile number is needed to record the debt, e.g. +970 59 000 0000',
     adds: ({ name }: { name: string }) => `Added to ${name}’s file`,
+    /** A typed phone no customer holds yet: the write makes their file. */
+    newCustomer: 'A new customer with this number',
+    /** Every phone field's example (G13.14). */
+    phonePlaceholder: '+970 59 000 0000',
     title: ({ name }: { name: string }) => `Record a debt · ${name}`,
     text: ({ amount }: { amount: string }) =>
       `${amount} stays owed by this number’s holder; a customer file is created if there is none.`,
@@ -169,6 +192,30 @@ export const DESK = {
     undone: 'The visit is back in “Not collected”',
     undoFailed: 'We couldn’t undo the write-off',
     failed: 'We couldn’t write it off',
+  },
+  /** The owner's written-off visits: the uncollected card's second view, and their undo (164). */
+  writtenOff: {
+    views: 'Which visits',
+    uncollected: 'Uncollected',
+    writtenOff: 'Written off',
+    line: ({ amount, reason }: { amount: string; reason: string }) =>
+      `Written off ${amount} · ${reason}`,
+    by: ({ name, date }: { name: string; date: string }) => `Written off by ${name} on ${date}`,
+    undo: 'Undo',
+    /** Each «Undo»'s name, by its visit, so a list of them reads apart. */
+    undoName: ({ name, day }: { name: string; day: string }) =>
+      `Undo writing off ${name}’s visit · ${day}`,
+    none: 'No visit was written off.',
+    loadFailed: 'We couldn’t load the written-off visits',
+    pagination: {
+      label: 'Pages of written-off visits',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
   },
   /** The owner's void of a payment (DK-016), from the ledger's row or a statement's. */
   void: {
@@ -213,6 +260,8 @@ export const DESK = {
     lost: 'No answer came back. Try again — it won’t be recorded twice.',
     /** The server refused: it wrote nothing. */
     nothing: 'Nothing was recorded.',
+    /** Too many attempts, in a money dialog: nothing landed, and the key keeps a retry single. */
+    limited: 'Nothing was recorded. Trying again after that won’t record it twice.',
   },
   refusals: {
     VISIT_ALREADY_CLOSED:
@@ -264,10 +313,15 @@ export const DESK = {
     checkIn: 'Check in',
     checkInName: ({ name }: { name: string }) => `Check in ${name}`,
     receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    /** A search card's customer, who is not among those present (G13.7). */
+    notHere: 'Not here',
+    renewFailed: 'We couldn’t read the subscription to renew it',
     /** A customer's «⋯» (DI-39), named by them. */
     menu: {
       label: ({ name }: { name: string }) => `More actions: ${name}`,
       file: 'Customer file',
+      /** The held item while the file is read for the customer's actions (R5-F4). */
+      reading: 'Loading the actions…',
       edit: 'Edit details',
       archive: 'Archive…',
       restore: 'Restore',
@@ -285,7 +339,6 @@ export const DESK = {
         `The subscription “${name}” starts on ${date}.`,
       asVisit: 'Check in as a visit',
       startFailed: 'We couldn’t read when the subscription starts',
-      asVisitNote: 'A visit is recorded under their name; it isn’t added to their file.',
       anyway: 'Check in anyway',
       back: 'Back',
     },
@@ -355,6 +408,8 @@ export const DESK = {
       options: {
         all: 'All types',
         PACKAGE: 'Package',
+        WEEK: 'Weekly',
+        MONTH: 'Monthly',
         CUSTOM: 'Custom',
         NONE: 'No subscription',
       },
@@ -412,9 +467,18 @@ export const DESK = {
     },
     balance: 'Balance',
     archived: 'Archived',
-    here: 'Here now',
+    hereSince: ({ time }: { time: string }) => `Here since ${time}`,
+    /** «تذكير على واتساب»: a link to WhatsApp with the space's reminder filled (D8.2). */
+    reminder: {
+      label: 'WhatsApp reminder',
+      caption: 'Opens WhatsApp with a ready message; you send it.',
+    },
     loadFailed: 'We couldn’t load the customer’s file',
-    unpaid: { title: 'Unpaid visits', unpriced: 'Not priced yet' },
+    unpaid: {
+      title: 'Unpaid visits',
+      counts: 'They count in their balance.',
+      unpriced: 'Not priced yet',
+    },
     subscriptions: {
       title: 'Subscriptions',
       none: 'No subscriptions',
@@ -484,7 +548,8 @@ export const DESK = {
     payments: 'Payments',
     noPayments: 'No payments yet.',
     voided: 'Voided',
-    voidedReason: ({ reason }: { reason: string }) => `Voided: ${reason}`,
+    /** Who recorded a payment (finding 162); who voided one, and why, is the ledger's line. */
+    recordedBy: ({ name }: { name: string }) => `Recorded by ${name}`,
     renewal: ({ date }: { date: string }) => `A renewal would start on ${date}`,
   },
   /** Ending a subscription early. */
@@ -522,8 +587,10 @@ export const DESK = {
     package: 'Package',
     groups: {
       published: 'Published',
-      packages: 'The space’s packages — not shown to visitors',
+      packages: 'For the desk only — never shown to visitors',
     },
+    /** A desk package's badge: never shown to visitors (G16.5). */
+    private: 'Private',
     published: {
       WEEK: 'Weekly',
       MONTH: 'Monthly',
@@ -540,6 +607,27 @@ export const DESK = {
     to: 'To',
     toFromPackage: 'From the package',
     noEnd: 'No end date · it stays active until it is ended',
+    /** A custom end by the limits set (DK-008, G16.2). */
+    noEndLimit: ({ limit }: { limit: string }) => `No end date · ends once ${limit} are used`,
+    endOrLimit: ({ date, limit }: { date: string; limit: string }) =>
+      `Ends on ${date} or once ${limit} are used, whichever comes first`,
+    limitDays: ({ count }: { count: number }) =>
+      englishPlural(count, { one: `${String(count)} day`, other: `${String(count)} days` }),
+    limitHours: ({ count }: { count: number }) =>
+      englishPlural(count, { one: `${String(count)} hour`, other: `${String(count)} hours` }),
+    clearEnd: 'No end date',
+    calendar: { previous: 'Previous month', next: 'Next month' },
+    /** The money block's due over earlier debts: their sum and the new subscription (G16.3). */
+    total: 'Total',
+    calcItem: ({ item, balance }: { item: string; balance: string }) => `${item}: ${balance}`,
+    calcNew: ({ name, price }: { name: string; price: string }) => `Subscription: ${name} ${price}`,
+    calcRenewal: ({ name, price }: { name: string; price: string }) => `Renewal: ${name} ${price}`,
+    /** A usage-based custom rate prefilled from the published hour or day price (G16.4). */
+    fromPublished: 'From the published price',
+    byAttendance: {
+      PER_HOUR: ({ rate }: { rate: string }) => `Charged by attendance: ${rate} an hour`,
+      PER_DAY: ({ rate }: { rate: string }) => `Charged by attendance: ${rate} a day`,
+    },
     custom: {
       title: 'Custom',
       terms: 'Set the terms and the price yourself',
@@ -587,6 +675,76 @@ export const DESK = {
       noPayment: 'No payment',
       owes: ({ amount }: { amount: string }) => `${amount} stays owed`,
       failed: 'We couldn’t save the subscription',
+    },
+  },
+  /** A usage-based subscriber's check-out: what is due, from the answer (D7.12). */
+  usageOut: {
+    title: ({ name }: { name: string }) => `${name} checked out`,
+    today: ({ time, paid }: { time: string; paid: string }) => `Today ${time} · paid ${paid}`,
+    left: ({ subscription, balance }: { subscription: string; balance: string }) =>
+      `Left on ${subscription}: ${balance}`,
+    receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    later: 'Later',
+    failed: 'We couldn’t record the payment',
+  },
+  /** «السجل»: the day's log beside who is here (K8). */
+  log: {
+    tabs: { label: 'Who is here, and the day', now: 'Now', log: 'Log' },
+    title: 'Log',
+    day: 'Day',
+    today: 'Today',
+    calendar: { previous: 'Previous month', next: 'Next month' },
+    table: 'The day’s log',
+    columns: {
+      name: 'Name',
+      kind: 'Type',
+      in: 'In',
+      out: 'Out',
+      duration: 'Duration',
+      ended: 'Ended',
+    },
+    kinds: { visit: 'Visit', student: 'Visit · student' },
+    stillHere: '—',
+    duration: ({ hours, minutes }: { hours: string; minutes: string }) => `${hours}:${minutes}`,
+    methods: { AUTO: 'Automatic', MANUAL: 'Manual' },
+    writtenOff: 'Written off',
+    empty: 'No one came on this day',
+    loadFailed: 'Couldn’t load the log',
+    pagination: {
+      label: 'Pages of the log',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
+  /** «تصحيح الاشتراك»: a subscription's corrections, from its card's «⋯» (163, D8.4). */
+  correct: {
+    action: 'Correct the subscription',
+    /** Why the item is held on a subscription ended early. */
+    ended: 'Ended early',
+    title: ({ name }: { name: string }) => `Correct ${name}`,
+    terms: 'Name, dates and limits',
+    name: 'Name',
+    from: 'From',
+    to: 'To',
+    noLimit: 'No limit',
+    price: {
+      title: 'The price',
+      billing: 'Billing',
+      price: 'Price (₪)',
+      reason: 'Why it is corrected',
+    },
+    save: 'Save the correction',
+    back: 'Back',
+    done: 'The subscription was corrected',
+    failed: 'We couldn’t correct the subscription',
+    endBeforeStart: 'The end is before the start',
+    refusals: {
+      SUBSCRIPTION_ENDED: 'This subscription was ended early; it can’t be corrected.',
+      PRICE_BELOW_PAID: 'The price is below what was paid on it.',
     },
   },
 } as const;

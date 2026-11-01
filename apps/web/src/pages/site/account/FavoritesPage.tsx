@@ -14,7 +14,7 @@ const areaName = (areaId: number) => <AreaName areaId={areaId} source="public" /
 /**
  * «المفضّلة» (screen 10): its heading and what it lists, then the user's favourites — each listed
  * space the directory's card with favorites' heart, each space that left with «إزالة» — near me's
- * «اختر منطقتك» leading to the directory, and «حدّد موقعي على الخريطة» to its map, as Home's.
+ * «اختر منطقتك» leading to the directory with its filters open (`?filters=open`, DI22), and «حدّد موقعي على الخريطة» to its map, as Home's.
  */
 export function FavoritesPage() {
   const words = useCopy().favorites.list;
@@ -38,7 +38,7 @@ export function FavoritesPage() {
         unlistedAction={(space) => <RemoveFavorite space={space} manage={manage} />}
         browseLink={SITE_PATHS.spaces}
         chooseArea={() => {
-          void navigate(SITE_PATHS.spaces);
+          void navigate(`${SITE_PATHS.spaces}?filters=open`);
         }}
         openMap={() => {
           void navigate(`${SITE_PATHS.spaces}?view=map`);

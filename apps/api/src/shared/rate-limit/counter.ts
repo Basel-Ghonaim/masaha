@@ -1,5 +1,6 @@
 import { prisma } from '../../db/index.ts';
 import type { PrismaClient } from '../../generated/prisma/client.ts';
+import { SWEEP_BATCH } from '../jobs/index.ts';
 
 /** A key's hits in its current window, and when the window ends. */
 export interface Count {
@@ -21,6 +22,20 @@ export interface Counter {
 interface Row {
   hits: number;
   reset_at: Date;
+}
+
+/**
+ * Deletes the counters whose window has ended by `now`, at most `SWEEP_BATCH`, the earliest ended
+ * first: a key hit again starts a new window anyway, so an ended row only takes room (finding 17).
+ * The window's end is checked again on the row deleted, so a hit that has just started a new
+ * window keeps it. How many it deleted.
+ */
+export function sweepEndedWindows(now: Date, db: PrismaClient = prisma): Promise<number> {
+  return db.$executeRaw`
+    DELETE FROM rate_limits
+    WHERE reset_at <= ${now} AND key IN (
+      SELECT key FROM rate_limits WHERE reset_at <= ${now} ORDER BY reset_at, key LIMIT ${SWEEP_BATCH}
+    )`;
 }
 
 export function createCounter(db: PrismaClient = prisma): Counter {

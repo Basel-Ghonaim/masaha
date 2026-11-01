@@ -4,19 +4,21 @@ import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useParams } from 'react-router';
 import { spacePagePath } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
+import { AccountCard } from './settings/AccountCard';
 import { AttendanceCard } from './settings/AttendanceCard';
 
 /**
  * The owner's «الإعدادات»: first the attendance card, composed here from `occupancy`'s capacity and
  * `space-settings`' check-out settings, then the cards of `space-settings` in one column, visit
  * pricing leading to Packages & prices, where the prices it works from are, and the reminder's
- * preview naming the space as `space-links` lists it, by its Arabic name when it has one. The guard
- * has checked the space's id and the owner's role.
+ * preview naming the space as `space-links` lists it, by its Arabic name when it has one; last,
+ * «حسابي», the way to the personal settings. The guard has checked the space's id and the owner's
+ * role.
  */
 export function SettingsPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
   const space = useMySpacesQuery().data?.find((one) => one.spaceId === spaceId);
-  const spaceName = space === undefined ? '' : (space.nameAr ?? space.nameEn);
+  const spaceName = space ?? { nameAr: null, nameEn: '' };
 
   return (
     <>
@@ -32,6 +34,7 @@ export function SettingsPage() {
             pricesLink={spacePagePath(spaceId, 'packages')}
             spaceName={spaceName}
           />
+          <AccountCard />
         </div>
       )}
     </>

@@ -1,3 +1,4 @@
+import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const SPACE_LINKS = {
@@ -17,6 +18,7 @@ export const SPACE_LINKS = {
       unverified: 'غير موثّقة',
       hidden: 'مخفية',
       deleted: 'محذوفة',
+      editable: 'تعدّلها الإدارة',
     },
     deletedOn: ({ date }: { date: string }) => `محذوفة · ${date}`,
     staleOrMissing: 'قديمة أو ناقصة',
@@ -24,6 +26,15 @@ export const SPACE_LINKS = {
     filters: 'الفلاتر',
     filtersApplied: ({ count }: { count: number }) => `الفلاتر، المطبّق منها: ${String(count)}`,
     clearFilters: 'مسح الفلاتر',
+    showResults: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `عرض ${String(count)} نتيجة`,
+        one: 'عرض نتيجة واحدة',
+        two: 'عرض نتيجتين',
+        few: `عرض ${String(count)} نتائج`,
+        many: `عرض ${String(count)} نتيجة`,
+        other: `عرض ${String(count)} نتيجة`,
+      }),
     close: 'إغلاق',
     columns: {
       space: 'المساحة',
@@ -38,7 +49,7 @@ export const SPACE_LINKS = {
     noOwner: 'بلا صاحب مساحة',
     upToDate: 'محدّثة',
     stale: ({ groups }: { groups: string }) => `قديمة: ${groups}`,
-    missing: ({ groups }: { groups: string }) => `غير مُدخلة: ${groups}`,
+    missing: ({ groups }: { groups: string }) => `ناقصة: ${groups}`,
     groups: {
       profile: 'البيانات الأساسية',
       hours: 'ساعات العمل',
@@ -168,6 +179,7 @@ export const SPACE_LINKS = {
     owner: ({ spaces }: { spaces: string }) => `مالك · ${spaces}`,
     ownerOfNone: 'مالك',
     user: 'مستخدم',
+    userAtDesk: ({ spaces }: { spaces: string }) => `مستخدم · استقبال ${spaces}`,
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -192,7 +204,10 @@ export const SPACE_LINKS = {
       noReception: 'لا مكاتب استقبال',
     },
     confirmAccount: 'تأكّد أنه الشخص المقصود: سيصبح مالكًا لهذه المساحة',
-    accountUnconfirmed: 'تعذّر عرض صاحب هذا الحساب، فلا يُرقّى من هنا — تحقّق من البريد.',
+    accountNotFound: 'لا حساب بهذا البريد تمامًا الآن، فلا يُرقّى أحد — تحقّق منه.',
+    checkFailed: 'تعذّر التحقق من هذا البريد الآن.',
+    alreadyOwner: 'هذا البريد لمالك مسبقًا.',
+    linkThem: 'اربطه بالمساحة',
     willUpgrade:
       'سيُرقّى حسابه إلى مالك ويُربط بالمساحة، ويحتفظ باسمه وطريقة دخوله، ولا تظهر كلمة مرور.',
     create: 'إنشاء حساب وربط',
@@ -211,9 +226,9 @@ export const SPACE_LINKS = {
     },
     refusals: {
       ACCOUNT_IS_ADMIN: 'هذا البريد لحساب أدمن، ولا يُربط أدمن بمساحة.',
-      ACCOUNT_SUSPENDED: 'هذا الحساب موقوف؛ لا يُربط حتى يُسترجع.',
-      ALREADY_OWNER: 'هذا البريد لمالك مسبقًا — اربطه بالمساحة من صفّه في القائمة.',
     },
+    suspended: ({ link }: { link: string }) => `الحساب موقوف — ${link}.`,
+    restoreFirst: 'استرجعه أولًا',
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `رُقّي ${name} إلى مالك ورُبط بـ ${space}`,
   },
@@ -222,6 +237,7 @@ export const SPACE_LINKS = {
     titleFromPerson: ({ name }: { name: string }) => `ربط ${name} بمساحة`,
     close: 'إغلاق',
     noOwner: 'ليس لها مالك اليوم.',
+    hasOwner: 'يُضاف مالكًا آخر لهذه المساحة.',
     oneAtATime: 'مساحة واحدة في كل مرة.',
     person: 'الشخص',
     personHelper: 'المالكون والمستخدمون، بالاسم أو البريد. الحسابات الموقوفة لا تُربط.',
@@ -232,6 +248,7 @@ export const SPACE_LINKS = {
       `تصبح ${space} موثّقة ويعدّلها مالكها، ولا يعدّلها فريق مساحة بعد الآن.`,
     anotherOwner: ({ space }: { space: string }) => `يصبح مالكًا آخر لـ ${space}؛ تبقى موثّقة.`,
     becomesOwner: 'ويصبح حسابه حساب مالك، ويُطلب منه الدخول من جديد.',
+    staysAtDesk: ({ spaces }: { spaces: string }) => `يعمل في استقبال ${spaces}، ويبقى رابطه هناك.`,
     addOwner: 'مالك جديد بلا حساب؟ أضفه من صفحة أصحاب المساحات.',
     submit: 'ربط',
     failed: 'لم يُربط',
@@ -246,6 +263,7 @@ export const SPACE_LINKS = {
     },
     linked: ({ person, space }: { person: string; space: string }) => `رُبط ${person} بـ ${space}`,
     nowVerified: 'المساحة موثّقة الآن',
+    ownerAdded: 'أُضيف مالك للمساحة',
   },
   unlink: {
     title: ({ person, space }: { person: string; space: string }) =>

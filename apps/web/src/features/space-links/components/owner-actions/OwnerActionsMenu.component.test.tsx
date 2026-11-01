@@ -31,11 +31,7 @@ const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g,
 /** The row's menu, as the owners list shows it. */
 function renderMenu(row: AdminUserRow) {
   fakeTransport(() => ok({ id: 7, isVerified: true, owners: [{ id: 5, name: 'Rima' }] }));
-  const view = userRowView(row, {
-    words: CATALOGUES.en.spaceLinks.usersList.row,
-    english: true,
-    now: new Date(),
-  });
+  const view = userRowView(row, { words: CATALOGUES.en.spaceLinks.usersList.row, english: true });
   render(
     <QueryClientProvider client={createQueryClient()}>
       <OwnerActionsMenu row={view} />
@@ -67,6 +63,26 @@ describe('OwnerActionsMenu', () => {
       'Unlink from Focus Hub',
       'Unlink from Palm Hub',
     ]);
+  });
+
+  it('reaches the held «Link to a space» by the keyboard, its reason read with it', async () => {
+    const user = userEvent.setup();
+    renderMenu({ ...RIMA, isSuspended: true });
+
+    screen.getByRole('button', { name: heard('Actions: Rima') }).focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+    const visited = [document.activeElement];
+    await user.keyboard('{ArrowDown}');
+    visited.push(document.activeElement);
+    await user.keyboard('{ArrowUp}');
+    visited.push(document.activeElement);
+
+    // Radix skips a disabled item: the held one stays in the arrow keys' path (finding 105).
+    const held = visited.find((element) => element?.textContent.includes('Link to a space'));
+    expect(held).toHaveAttribute('role', 'menuitem');
+    expect(held).toHaveAttribute('aria-disabled', 'true');
+    expect(held).toHaveTextContent('The account is suspended — restore it first');
   });
 
   it('offers the link to an active owner, and asks before an unlink', async () => {

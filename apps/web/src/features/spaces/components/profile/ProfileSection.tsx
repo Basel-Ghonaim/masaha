@@ -42,7 +42,7 @@ export function ProfileSection({
         aria-labelledby="location-title"
         className="flex scroll-mt-28 flex-col gap-4 lg:scroll-mt-20"
       >
-        <h3 id="location-title" className="text-label">
+        <h3 id="location-title" tabIndex={-1} className="text-label outline-none">
           {fields.labels.location}
         </h3>
         <LocationFields form={fields} areaField={areaField} />

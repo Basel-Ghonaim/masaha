@@ -74,7 +74,9 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 - **The packages are rows under the published prices, each offered or paused by its switch and edited in a sheet** (O8). *Why:* the design's Packages & prices; a switch on the row is one action, reversible, its result on the row. 2026-10-20, #98.
 - **An edit sends the terms whole, a limit off as `null`, and is checked in the browser as a new package is** (S11). *Why:* one preparation for add and edit, and no client diff to drift; the server writes and audits only what changed. The edit's own schema takes every term as optional, so it would let a cleared term through as absent. 2026-10-20, #98.
-- **The section and the sheet say the packages are never shown to visitors, and nothing of the desk** (design issue 4). *Why:* the desk that will choose from them is not built; the switch is «متاحة». 2026-10-20, #98.
+- **The section and the sheet say the packages are never shown to visitors, and nothing of the desk** (design issue 4). *Why:* the desk that will choose from them is not built; the switch is «متاحة». 2026-10-20, #98. Superseded: the desk is built, so its five lines are back — the page's, that the week and month prices are chosen at the desk too; the section's, «لا تظهر للزوار · تُختار في المكتب عند إنشاء اشتراك»; the switch «متاحة في المكتب»; the sheet's; and the empty state's (D5.8, with the owner's approval in the plan). 2026-10-29, #132.
+- **A row's price sits at its end, beside its switch, in `label` weight** (G21.2), as the design's. 2026-10-29, #132.
+- **The sheet's summary announces only its terms and its price, never the name typed** ([finding 102](../architecture/findings/102-the-package-sheets-summary-is-announced-on-every-keystroke.md), D5.9). *Why:* the owner hears what follows from what they type, not their own typing again. 2026-10-29, #132.
 - **The shift chips start with «بدون وردية», one always on** (design issue 5). *Why:* no shift is a choice, and a single choice must be seen. 2026-10-20, #98.
 - **An amount is typed in shekels, up to two decimals, Arabic digits read, as the prices'** (design issue 6). *Why:* one rule for the money a space types. 2026-10-20, #98.
 - **A paused package that holds a shift says so and clears it at once** (design issue 7, finding 81). *Why:* the hours refuse to remove that shift, and nothing else tells the owner why; the clear is reversible and touches no one else. 2026-10-20, #98.
@@ -89,10 +91,6 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - **Shared:** `packages/shared/src/packages/`: the requests, with the billings and the limits' bounds, and the response.
 - **Web:** `apps/web/src/features/packages/`, entry `index.ts` (`PackagesSection`, `ShiftChoice`, `useOfferedPackages`), mounted by `pages/dashboard/space/PackagesPage.tsx`: the repository in `repository/`; in `hooks/` the keys, `list/` (the query, the section, a row's write), `sheet/` (the sheet's form and its save), `offered/` (the offered packages, for the desk); in `services/` a package's values as the sheet holds them and the request they make, and its summary and price lines; the row, the sheet with its limits and chips, and the row's failure toast in `components/`.
 
-## Open findings
-
-- [102](../architecture/findings/102-the-package-sheets-summary-is-announced-on-every-keystroke.md): the sheet's summary is announced on every keystroke.
-
 ## History
 
 ### API history
@@ -105,3 +103,5 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - #98 — the owner's private packages on Packages & prices: the list, the switch, the sheet, and a paused package's shift cleared (finding 81).
 - #99 — carried from #98's review: a row's refusal in the owner's words; a 404 refreshes the owner's spaces; a shift removed meanwhile no longer chosen; finding 102 recorded.
 - #124 — the side sheet full width on a phone (finding 101, the layer's); `useOfferedPackages` gives the desk's subscription sheet the offered packages.
+- 2026-10-29, #132 — the desk's words restored on Packages & prices; a row's price at its end.
+- 2026-10-29, #132 — the sheet's summary announces its terms and price only (finding 102 resolved).

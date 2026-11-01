@@ -1,13 +1,14 @@
 import { useCopy } from '@shared/copy';
 import { Button, cn } from '@shared/design-system';
 import type { ReactNode } from 'react';
-import { platformContact } from '../services/platformContact';
+import { usePlatformContact } from '../hooks/usePlatformContact';
 
 /**
- * The platform's contact, each configured channel a link styled as a button, the first primary
- * and the rest outline: its word, then its value left to right (muted on outline). WhatsApp opens
- * in a new tab; the email does not. A row from 768 px (`row`) or a column (`column`); with no
- * channel configured, `none`, or nothing.
+ * The platform's contact, as the admin saved it (`GET /settings/public`, D6.3): each channel set a
+ * link styled as a button, the first primary and the rest outline: its word, then its value left
+ * to right (muted on outline). WhatsApp opens in a new tab; the email does not. A row from 768 px
+ * (`row`) or a column (`column`). Nothing while it is read (DI31); with no channel set, or a failed
+ * read, `none`, or nothing.
  */
 export function PlatformContact({
   layout,
@@ -17,7 +18,9 @@ export function PlatformContact({
   none?: ReactNode;
 }) {
   const words = useCopy().platformSettings.contact;
-  const channels = platformContact();
+  const contact = usePlatformContact();
+  if (contact.state === 'loading') return null;
+  const { channels } = contact;
   if (channels.length === 0) return none;
 
   return (

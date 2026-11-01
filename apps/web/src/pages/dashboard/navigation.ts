@@ -5,8 +5,14 @@ import { DASHBOARD_PATHS, spaceOverviewPath } from '@shared/routing';
 /** A dashboard page, named as the catalogue names its title. */
 export type DashboardPageName = keyof Catalogue['dashboard']['pages'];
 
-/** A page of a branch: its name, and its path below the branch ('' for the branch's own page). */
-export type NavItem = { name: DashboardPageName; segment: string };
+/** A task the sidebar groups its pages by (finding 165); each is named by the catalogue. */
+export type NavGroup = keyof Catalogue['dashboard']['groups'];
+
+/**
+ * A page of a branch: its name, its path below the branch ('' for the branch's own page), and the
+ * task it is grouped under. A page with no group heads the list.
+ */
+export type NavItem = { name: DashboardPageName; segment: string; group?: NavGroup };
 
 /** A page of the space in the URL, and the roles at that space it allows (ADR 0009). */
 export type SpaceNavItem = NavItem & { roles: readonly SessionSpaceLink['role'][] };
@@ -15,22 +21,25 @@ const OWNER = ['OWNER'] as const;
 const BOTH = ['OWNER', 'RECEPTION'] as const;
 
 /**
- * The space's pages, in the sidebar's order: the owner sees eleven, reception the four its role
- * allows. Configuration only: the routes are built from it, and each route's guard takes its roles.
+ * The space's pages, in the sidebar's order and grouped by task: the owner sees twelve, reception the
+ * four its role allows (drawn without the groups, P3). Configuration only: the routes are built from
+ * it, and each route's guard takes its roles. The owner's audit log sits with the team and the
+ * settings (O13, finding 14).
  */
 export const SPACE_NAV: readonly SpaceNavItem[] = [
   { name: 'overview', segment: '', roles: OWNER },
-  { name: 'desk', segment: 'desk', roles: BOTH },
-  { name: 'customers', segment: 'customers', roles: BOTH },
-  { name: 'payments', segment: 'payments', roles: OWNER },
-  { name: 'myPayments', segment: 'my-payments', roles: ['RECEPTION'] },
-  { name: 'finance', segment: 'finance', roles: OWNER },
-  { name: 'packages', segment: 'packages', roles: OWNER },
-  { name: 'profile', segment: 'profile', roles: OWNER },
-  { name: 'announcements', segment: 'announcements', roles: BOTH },
-  { name: 'dataReports', segment: 'reports', roles: OWNER },
-  { name: 'staff', segment: 'staff', roles: OWNER },
-  { name: 'settings', segment: 'settings', roles: OWNER },
+  { name: 'desk', segment: 'desk', roles: BOTH, group: 'today' },
+  { name: 'customers', segment: 'customers', roles: BOTH, group: 'today' },
+  { name: 'payments', segment: 'payments', roles: OWNER, group: 'today' },
+  { name: 'myPayments', segment: 'my-payments', roles: ['RECEPTION'], group: 'today' },
+  { name: 'finance', segment: 'finance', roles: OWNER, group: 'money' },
+  { name: 'packages', segment: 'packages', roles: OWNER, group: 'money' },
+  { name: 'profile', segment: 'profile', roles: OWNER, group: 'space' },
+  { name: 'announcements', segment: 'announcements', roles: BOTH, group: 'space' },
+  { name: 'dataReports', segment: 'reports', roles: OWNER, group: 'space' },
+  { name: 'staff', segment: 'staff', roles: OWNER, group: 'team' },
+  { name: 'audit', segment: 'audit', roles: OWNER, group: 'team' },
+  { name: 'settings', segment: 'settings', roles: OWNER, group: 'team' },
 ];
 
 /** The page `name` of the space `spaceId`, by its segment below the space's own path. */
@@ -78,14 +87,17 @@ export function adminOwnersSearchPath(q: string): string {
 /** The lookups page on its amenities' tab, where an amenity is added to every space's list. */
 export const ADMIN_AMENITIES_PATH = `${DASHBOARD_PATHS.admin}/lookups?tab=amenities`;
 
-/** The platform's pages, in the sidebar's order, all the admin's. */
+/**
+ * The platform's pages, in the sidebar's order and grouped by task, all the admin's. The platform's
+ * settings are named as such (AD-029); their address stays `…/settings`.
+ */
 export const ADMIN_NAV: readonly NavItem[] = [
   { name: 'overview', segment: '' },
-  { name: 'spaces', segment: 'spaces' },
-  { name: 'owners', segment: 'owners' },
-  { name: 'dataReports', segment: 'reports' },
-  { name: 'users', segment: 'users' },
-  { name: 'lookups', segment: 'lookups' },
-  { name: 'audit', segment: 'audit' },
-  { name: 'settings', segment: 'settings' },
+  { name: 'spaces', segment: 'spaces', group: 'spaces' },
+  { name: 'owners', segment: 'owners', group: 'spaces' },
+  { name: 'dataReports', segment: 'reports', group: 'spaces' },
+  { name: 'users', segment: 'users', group: 'platform' },
+  { name: 'lookups', segment: 'lookups', group: 'platform' },
+  { name: 'audit', segment: 'audit', group: 'platform' },
+  { name: 'platformSettings', segment: 'settings', group: 'platform' },
 ];

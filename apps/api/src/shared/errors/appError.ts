@@ -1,6 +1,7 @@
 import {
   ERROR_STATUSES,
   type DomainErrorCode,
+  type ErrorDetails,
   type ErrorType,
   type FieldErrors,
 } from '@masaha/shared/core';
@@ -38,15 +39,24 @@ export class AppError extends Error {
   readonly status: number;
   readonly code: DomainErrorCode | undefined;
   readonly errors: FieldErrors | undefined;
+  /** The record the refusal names (api-contract §2), when it names one. */
+  readonly details: ErrorDetails | undefined;
   /** Set on a `rate_limit` error that knows its limit. */
   rateLimitState: RateLimitState | undefined;
 
-  constructor(type: ErrorType, code?: DomainErrorCode, message?: string, errors?: FieldErrors) {
+  constructor(
+    type: ErrorType,
+    code?: DomainErrorCode,
+    message?: string,
+    errors?: FieldErrors,
+    details?: ErrorDetails,
+  ) {
     super(message ?? ERROR_MESSAGES[type]);
     this.type = type;
     this.status = ERROR_STATUSES[type];
     this.code = code;
     this.errors = errors;
+    this.details = details;
   }
 
   static badRequest(code?: DomainErrorCode, message?: string) {
@@ -65,8 +75,13 @@ export class AppError extends Error {
     return new AppError('not_found', code, message);
   }
 
-  static conflict(code?: DomainErrorCode, message?: string, errors?: FieldErrors) {
-    return new AppError('conflict', code, message, errors);
+  static conflict(
+    code?: DomainErrorCode,
+    message?: string,
+    errors?: FieldErrors,
+    details?: ErrorDetails,
+  ) {
+    return new AppError('conflict', code, message, errors, details);
   }
 
   static payloadTooLarge(code?: DomainErrorCode, message?: string) {

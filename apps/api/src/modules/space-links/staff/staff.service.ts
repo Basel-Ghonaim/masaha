@@ -121,9 +121,12 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
     },
 
     /**
-     * Deactivates the person's reception link, ending every session they hold (the desk's shared
-     * device must not stay signed in), or re-activates it, in one transaction: the space's lock and
-     * `can()`, then the person's session lock. Only a reception link of this space: an owner's
+     * Deactivates the person's reception link, ending every session they hold when it was their
+     * last active link (the desk's shared device must not stay signed in), or re-activates it, in
+     * one transaction: the space's lock and `can()`, then the person's session lock. A person with
+     * another active link keeps their sessions (finding 92): no owner ends another space's owner's
+     * sessions at will, and this space closes to them at once anyway, since the space boundary reads
+     * the links on every request. Only a reception link of this space: an owner's
      * link, a co-owner's, is never touched here. The same state writes nothing. A re-activation is
      * refused for a suspended account and an admin (P6).
      */
@@ -150,7 +153,9 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           await repository.reactivateReceptionLink(space.id, userId, tx);
         } else {
           await repository.deactivateReceptionLink(space.id, userId, at, tx);
-          await users.endSessions(userId, tx);
+          if ((await repository.countOtherActiveLinks(userId, space.id, tx)) === 0) {
+            await users.endSessions(userId, tx);
+          }
         }
         await audit(
           {
@@ -164,7 +169,7 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           },
           tx,
         );
-        return memberOf({ userId, deactivatedAt: isActive ? null : at }, tx);
+        return memberOf({ ...link, deactivatedAt: isActive ? null : at }, tx);
       });
     },
 
@@ -172,8 +177,9 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
      * A new temporary password for the person, only while their first is still pending (a lost
      * answer, or one that expired), hashed before the transaction. Refused, in this order, without
      * an active reception link here (404), once the person has changed it (the account is theirs:
-     * its recovery is the email or the admin), for a suspended account, and for an account that is
-     * not a `USER` or holds any other active link (S5): no owner may take another space's account.
+     * its recovery is the email or the admin), for a suspended account, for an admin's account
+     * (its own code, finding 106), and for an account that is not a `USER` or holds any other active
+     * link (S5): no owner may take another space's account.
      */
     async issueTemporaryPassword(
       actor: Actor,
@@ -193,6 +199,7 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
         if (!users.maySignIn(account)) {
           throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
         }
+        if (account.role === 'ADMIN') throw AppError.conflict('ACCOUNT_IS_ADMIN', 'An admin');
         if (
           account.role !== 'USER' ||
           (await repository.countOtherActiveLinks(userId, space.id, tx)) > 0

@@ -175,9 +175,20 @@ export function SidebarFooter({ className, ...props }: ComponentProps<'div'>) {
   return <div data-slot="sidebar-footer" className={cn('shrink-0 p-3', className)} {...props} />;
 }
 
+/** A group of items; on the rail, where its label is not shown, a line divides it from the one before. */
 export function SidebarGroup({ className, ...props }: ComponentProps<'div'>) {
+  const { mode } = useSidebar();
+
   return (
-    <div data-slot="sidebar-group" className={cn('flex flex-col gap-1', className)} {...props} />
+    <div
+      data-slot="sidebar-group"
+      className={cn(
+        'flex flex-col gap-1',
+        mode === 'tablet' && 'border-t border-sidebar-border pt-2 first:border-t-0 first:pt-0',
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

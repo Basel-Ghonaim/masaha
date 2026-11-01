@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -334,34 +334,44 @@ describe("a space's packages", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('decides a write on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => packages(owner, 'post', '', VALID),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    'decides a write on the links under the space’s lock: an owner unlinked meanwhile is refused',
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => packages(owner, 'post', '', VALID),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await prisma.package.count()).toBe(0);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await prisma.package.count()).toBe(0);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('refuses a write to a space deleted while it waited for its lock', async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => packages(owner, 'post', '', VALID),
-      (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
-    );
+  it(
+    'refuses a write to a space deleted while it waited for its lock',
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => packages(owner, 'post', '', VALID),
+        (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
+      );
 
-    expect(response.status).toBe(404);
-    expect(errorOf(response).type).toBe('not_found');
-    expect(await prisma.package.count()).toBe(0);
-  });
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+      expect(await prisma.package.count()).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('edits what the patch sets, clears a limit with null, and audits package.edited with the fields that changed', async () => {
     const created = await packages(owner, 'post', '', {
@@ -500,43 +510,53 @@ describe("a space's packages", () => {
     expect(await auditEntries()).toHaveLength(2);
   });
 
-  it('decides an edit on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
-    const seeded = await prisma.package.create({
-      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
-    });
+  it(
+    'decides an edit on the links under the space’s lock: an owner unlinked meanwhile is refused',
+    async () => {
+      const seeded = await prisma.package.create({
+        data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+      });
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
-    expect(stored.priceAgorot).toBe(5000);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
+      expect(stored.priceAgorot).toBe(5000);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('refuses an edit to a space deleted while it waited for its lock, and writes nothing', async () => {
-    const seeded = await prisma.package.create({
-      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
-    });
+  it(
+    'refuses an edit to a space deleted while it waited for its lock, and writes nothing',
+    async () => {
+      const seeded = await prisma.package.create({
+        data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+      });
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
-      (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
+        (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
+      );
 
-    expect(response.status).toBe(404);
-    expect(errorOf(response).type).toBe('not_found');
-    const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
-    expect(stored.priceAgorot).toBe(5000);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+      const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
+      expect(stored.priceAgorot).toBe(5000);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

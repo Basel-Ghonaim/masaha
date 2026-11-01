@@ -17,7 +17,7 @@ export function SpaceSettingsCards({
 }: {
   spaceId: number;
   pricesLink: string;
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
 }) {
   const cards = useSpaceSettingsCards(spaceId);
 

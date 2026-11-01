@@ -17,7 +17,6 @@ import { useVisitTermsQuery } from '../terms/useVisitTermsQuery';
 import { useCheckInVisit } from './useCheckInVisit';
 
 // The Select's value for «بدون وردية»: a Select item takes no empty value.
-const NO_SHIFT = 'none';
 
 type Values = { visitorName: string; audience: 'GENERAL' | 'STUDENT'; shiftId?: number | null };
 
@@ -38,8 +37,8 @@ export function useVisitDialog({
   spaceId: number;
   /** The space's shifts, as `spaces` reads them; none for a space with none, `null` while they load. */
   shifts: readonly Shift[] | null;
-  /** The space is full now, as the desk's state now says. */
-  full: boolean;
+  /** How many are present and the capacity, when the count fills it (G13.9); `null` otherwise. */
+  full: { present: number; capacity: number } | null;
 }) {
   const copy = useCopy();
   const words = copy.desk.visit;
@@ -54,7 +53,8 @@ export function useVisitDialog({
   const succeeded = useRef(false);
   const spaceShifts = shifts ?? [];
 
-  const shiftOf = (value: string) => (value === NO_SHIFT ? null : Number(value));
+  // The chips may all be off: no shift (G13.10).
+  const shiftOf = (value: string) => (value === '' ? null : Number(value));
   // A space with shifts sends one, the current one first; a space with none sends no shift.
   const defaults = (visitorName = ''): Values => ({
     visitorName,
@@ -130,7 +130,10 @@ export function useVisitDialog({
     title: words.title,
     noRecord: words.noRecord,
     rate,
-    full: full ? words.full : null,
+    full:
+      full === null
+        ? null
+        : words.full({ ratio: isolate(`${String(full.present)}/${String(full.capacity)}`) }),
     fields: {
       name: { label: words.name, field: form.field('visitorName'), error: form.errors.visitorName },
       student: offered
@@ -147,14 +150,11 @@ export function useVisitDialog({
           ? {
               label: words.shift,
               optional: words.optional,
-              value: shiftId === null ? NO_SHIFT : String(shiftId),
-              options: [
-                ...spaceShifts.map((shift) => ({
-                  value: String(shift.id),
-                  label: language === 'en' ? (shift.nameEn ?? shift.nameAr) : shift.nameAr,
-                })),
-                { value: NO_SHIFT, label: words.noShift },
-              ],
+              value: shiftId === null ? '' : String(shiftId),
+              options: spaceShifts.map((shift) => ({
+                value: String(shift.id),
+                label: language === 'en' ? (shift.nameEn ?? shift.nameAr) : shift.nameAr,
+              })),
               // A shift with no student rates takes «طالب» off (DI-41).
               change: (value: string) => {
                 const next = shiftOf(value);
@@ -167,12 +167,13 @@ export function useVisitDialog({
           : null,
     },
     submit: {
-      label: full ? words.submitAnyway : words.submit,
+      label: full !== null ? words.submitAnyway : words.submit,
       run: send,
       busy: form.isPending,
       blocked: form.blocked,
     },
     failure: deskFailure(refusal, form.failure, {
+      limited: copy.desk.failure.limited,
       title: words.failed,
       lost: copy.desk.failure.lost,
       nothing: copy.desk.failure.nothing,

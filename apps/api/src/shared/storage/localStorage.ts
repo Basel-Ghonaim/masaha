@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import express, { type RequestHandler } from 'express';
@@ -56,6 +56,25 @@ export function createLocalStorage({ root, urlBase }: { root: string; urlBase: s
         await rm(full, { force: true });
       } catch (error) {
         throw new StorageError(`Cannot remove ${key}`, { cause: error });
+      }
+    },
+
+    async *list(prefix) {
+      // A prefix is whole segments, so it is checked as a key's folder.
+      const folder = path.resolve(base, ...checkKey(`${prefix}x.x`).slice(0, -1));
+      let entries;
+      try {
+        entries = await readdir(folder, { recursive: true, withFileTypes: true });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+        throw new StorageError(`Cannot list ${prefix}`, { cause: error });
+      }
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+        const full = path.join(entry.parentPath, entry.name);
+        // A file's date is its last write: a key is written once.
+        const { mtime } = await stat(full);
+        yield { key: path.relative(base, full).split(path.sep).join('/'), createdAt: mtime };
       }
     },
 

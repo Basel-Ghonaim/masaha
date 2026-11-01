@@ -1,4 +1,4 @@
-import type { AdminSpaceRow, AdminSpacesListQuery } from '@masaha/shared/space-links';
+import type { AdminSpaceRow, AdminSpacesQuery } from '@masaha/shared/space-links';
 import type { FactGroup } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../../db/index.ts';
@@ -61,7 +61,7 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
       });
     },
 
-    async list(query: AdminSpacesListQuery): Promise<{ rows: AdminSpaceRow[]; total: number }> {
+    async list(query: AdminSpacesQuery): Promise<{ rows: AdminSpaceRow[]; total: number }> {
       const byLinks =
         query.status === 'verified' || query.status === 'unverified' || query.status === 'editable';
       const [verifiedIds, governorateAreaIds] = await Promise.all([
@@ -81,7 +81,7 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
       const names =
         links.length === 0
           ? []
-          : await users.namesFor([...new Set(links.map(({ userId }) => userId))]);
+          : await users.namesFor([...new Set(links.map(({ userId }) => userId))], undefined);
 
       const nameById = new Map(names.map(({ id, name }) => [id, name]));
       const areaById = new Map(areas.map((area) => [area.id, area]));

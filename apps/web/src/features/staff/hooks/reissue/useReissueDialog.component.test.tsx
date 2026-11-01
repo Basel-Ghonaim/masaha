@@ -15,6 +15,7 @@ const RAHAF: StaffMember = {
   name: 'Rahaf',
   email: 'rahaf@example.com',
   isActive: true,
+  addedAt: '2026-09-14T08:30:00.000Z',
   temporaryPassword: { expiresAt: '2999-01-01T00:00:00Z' },
 };
 
@@ -93,6 +94,12 @@ describe('useReissueDialog', () => {
     [
       refused(409, { type: 'conflict', code: 'ACCOUNT_HAS_LINKS' }),
       'This account now has another space; they recover their password from the Masaha team.',
+      false,
+    ],
+    [
+      // The re-issue's own line: the account became an admin's (D5.10, finding 106).
+      refused(409, { type: 'conflict', code: 'ACCOUNT_IS_ADMIN' }),
+      'This is an admin’s account; no temporary password is issued for it here.',
       false,
     ],
     [

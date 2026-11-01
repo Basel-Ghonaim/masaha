@@ -78,6 +78,8 @@ export interface StaffMember {
   email: string;
   /** `false` once the owner deactivated the link; re-activated through the same route. */
   isActive: boolean;
+  /** When the link was made (ISO 8601): «أُضيف في». */
+  addedAt: string;
   /**
    * The temporary password still to be changed, and when it expires (ISO 8601); `null` once
    * changed.

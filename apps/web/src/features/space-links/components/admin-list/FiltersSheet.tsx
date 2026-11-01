@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Badge,
   Button,
@@ -26,9 +27,10 @@ export function FiltersSheet({
   placeField: PlaceField;
 }) {
   const { sheet } = filters;
+  const [open, setOpen] = useState(false);
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="outline" className="w-full" aria-label={sheet.label}>
           {sheet.text}
@@ -47,7 +49,18 @@ export function FiltersSheet({
           <FilterFields filters={filters} placeField={placeField} />
         </SheetBody>
         <SheetFooter>
-          <Button variant="outline" onClick={sheet.clear}>
+          {sheet.show !== null && (
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              {sheet.show}
+            </Button>
+          )}
+          <Button variant="ghost" disabled={sheet.clearDisabled} onClick={sheet.clear}>
             {sheet.clearLabel}
           </Button>
         </SheetFooter>

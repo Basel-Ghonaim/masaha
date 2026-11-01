@@ -25,6 +25,7 @@ function subscription(change: Partial<SubscriptionState> = {}): SubscriptionStat
     id: 1,
     customerId: 4,
     packageId: 4,
+    publishedPeriod: null,
     renewalOfId: null,
     name: 'Mornings',
     startsOn: '2026-10-01',

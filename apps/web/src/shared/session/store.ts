@@ -6,6 +6,7 @@ import type {
   SessionEnd,
   SessionSource,
   SessionState,
+  SessionUser,
   UnreachableReason,
 } from './model';
 
@@ -110,6 +111,22 @@ export function passwordChanged(userId: number, accessToken: string): void {
     { status: 'authenticated', accessToken, user: { ...session.user, mustChangePassword: false } },
     true,
   );
+}
+
+/**
+ * The account of user `userId` was edited (their settings, screen 9): the held user takes its new
+ * name or language, so the account menu shows them at once. Only that user's session, still held, is
+ * changed, and no listener is told: the session is the same one.
+ */
+export function accountEdited(
+  userId: number,
+  edit: { name?: string; language?: SessionUser['language'] },
+): void {
+  const session = store.getState();
+  if (session.status !== 'authenticated' || session.user.id !== userId) {
+    return;
+  }
+  store.setState({ ...session, user: { ...session.user, ...edit } }, true);
 }
 
 export function markRestoring(): void {

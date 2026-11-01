@@ -4,7 +4,7 @@ import { dateSchema, paginationQuerySchema, phoneSchema, textSchema } from '../c
 import { CUSTOMER_NAME_MAX_LENGTH } from '../customers/index.ts';
 import { createPackageSchema, PACKAGE_NAME_MAX_LENGTH } from '../packages/index.ts';
 import { paymentSchema } from '../payments/index.ts';
-import { PRICE_AUDIENCES } from '../spaces/index.ts';
+import { PRICE_AUDIENCES, PRICE_MAX_AGOROT } from '../spaces/index.ts';
 import { SUBSCRIPTION_STATUSES } from '../subscriptions/index.ts';
 import { priceVisitSchema, VISITOR_NAME_MAX_LENGTH } from '../visits/index.ts';
 
@@ -65,8 +65,11 @@ export type LeaveToCustomerRequest = z.infer<typeof leaveToCustomerSchema>;
 
 /** The customers list's status filter: their current subscription's status, or archived (the owner's). */
 export const CUSTOMER_STATUS_FILTERS = [...SUBSCRIPTION_STATUSES, 'ARCHIVED'] as const;
-/** The customers list's kind filter: their current subscription from a package, custom, or none. */
-export const CUSTOMER_KINDS = ['PACKAGE', 'CUSTOM', 'NONE'] as const;
+/**
+ * The customers list's kind filter: their current subscription from a package, from a published
+ * week's or month's price, custom (neither), or none.
+ */
+export const CUSTOMER_KINDS = ['PACKAGE', 'WEEK', 'MONTH', 'CUSTOM', 'NONE'] as const;
 /** The customers list's payment filter: they owe, they are in credit, or neither. */
 export const PAYMENT_FILTERS = ['OWES', 'CREDIT', 'SETTLED'] as const;
 
@@ -107,13 +110,16 @@ export const PUBLISHED_PERIODS = ['WEEK', 'MONTH'] as const;
 /**
  * A published price of the space, named by its key, as a visit picks its rates: its period, its
  * audience and its shift (none: the price without one); and the subscription's name, which the desk
- * sends in the language it works in. Its amount is the server's, read when the subscription is made.
+ * sends in the language it works in. Its amount is the server's, read when the subscription is made;
+ * the desk may send the amount it showed (`amountAgorot`), and a price changed since is refused
+ * (`PUBLISHED_PRICE_CHANGED`) rather than sold at an amount nobody saw.
  */
 const publishedPriceSchema = z.object({
   period: z.enum(PUBLISHED_PERIODS),
   audience: z.enum(PRICE_AUDIENCES),
   shiftId: id.optional(),
   name: textSchema(1, PACKAGE_NAME_MAX_LENGTH),
+  amountAgorot: z.number().int().min(1).max(PRICE_MAX_AGOROT).optional(),
 });
 
 /**

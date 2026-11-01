@@ -17,6 +17,9 @@ function renderMenu(archive: { label: string; run: () => void } | null = null) {
             subscribe: { label: 'New subscription', run: vi.fn() },
             edit: { label: 'Edit details', run: edit },
             archive,
+            state: [],
+            reading: false,
+            readingLabel: 'Loading the actions…',
           }}
         />
       </main>

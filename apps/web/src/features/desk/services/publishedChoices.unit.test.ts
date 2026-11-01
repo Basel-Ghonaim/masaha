@@ -20,7 +20,7 @@ const words = {
 const format = { language: 'en' as const, price: (agorot: number) => `₪${String(agorot / 100)}` };
 
 describe('publishedChoices', () => {
-  it('offers the standard week and month prices, named, sent by their key', () => {
+  it('offers the standard week and month prices, named, sent by their key and the amount shown', () => {
     const options = publishedChoices(
       [
         price({ period: 'HOUR', amountAgorot: 500 }),
@@ -43,8 +43,14 @@ describe('publishedChoices', () => {
       },
     ]);
     expect(options.map(({ request }) => request)).toEqual([
-      { period: 'WEEK', audience: 'GENERAL', name: 'Weekly' },
-      { period: 'MONTH', audience: 'STUDENT', shiftId: 2, name: 'Monthly · students · Morning' },
+      { period: 'WEEK', audience: 'GENERAL', name: 'Weekly', amountAgorot: 9000 },
+      {
+        period: 'MONTH',
+        audience: 'STUDENT',
+        shiftId: 2,
+        name: 'Monthly · students · Morning',
+        amountAgorot: 20000,
+      },
     ]);
     expect(options.map(({ days }) => days)).toEqual([7, 30]);
   });

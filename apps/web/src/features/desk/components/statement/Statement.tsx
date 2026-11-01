@@ -14,9 +14,10 @@ import { VoidPaymentAction } from '../void/VoidPaymentAction';
 /**
  * A subscription's statement, inside its card (DI-43), under `id` — the toggle's `aria-controls`:
  * its check-ins, a row each that stacks below 768 px (the day, in, out, the stay, an auto check-out
- * marked); its payments, the amount with its method under it (VD-006), a voided one struck through
- * with «ملغاة» and its reason (AX-017), the owner's «⋯» at the end of one not voided (S10), the focus
- * on the payments' heading once it is voided; and the renewal's proposed start. Its own loading and
+ * marked); its payments, the amount with its method and who recorded it under it (VD-006, finding
+ * 162), a voided one struck through with «ملغاة» and who voided it and why (AX-017), the owner's «⋯»
+ * at the end of one not voided (S10), the focus on the payments' heading once it is voided; and the
+ * renewal's proposed start. Its own loading and
  * failure.
  */
 export function Statement({
@@ -122,6 +123,7 @@ export function Statement({
                         {row.amount}
                       </span>
                       <span className="text-caption text-muted-foreground">{row.method}</span>
+                      <span className="text-caption text-muted-foreground">{row.recordedBy}</span>
                       {row.voided !== null && (
                         <span className="text-caption text-muted-foreground">
                           {row.voided.reason}

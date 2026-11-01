@@ -3,8 +3,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { blockLocalStorage } from '../test/fakeStorage';
+import { routeLoaders, warm } from '../test/warmLazy';
 import { App } from './App';
 import { bootstrap } from './bootstrap';
+import { routes } from './router';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(() => warm(...routeLoaders(routes, '/')), 60_000);
 
 let queryClient: QueryClient;
 

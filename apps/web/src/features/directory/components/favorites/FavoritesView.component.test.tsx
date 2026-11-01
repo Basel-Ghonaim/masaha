@@ -131,13 +131,56 @@ describe('FavoritesView', () => {
     expect(screen.getByRole('button', { name: 'Heart Masaha Hub' })).toHaveFocus();
   });
 
-  it('gives the count the focus when the last space that left goes and no card is there', async () => {
+  it('gives «Browse spaces» the focus when the last space that left goes and none is saved', async () => {
     renderView([gone(9, 'Old Hub')]);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Old Hub' }));
 
     await waitFor(() => {
-      expect(screen.getByText('0 saved spaces')).toHaveFocus();
+      expect(screen.getByRole('link', { name: 'Browse spaces' })).toHaveFocus();
     });
+  });
+
+  it('shows the count, «Nearest to me» and its line only once the list has answered with a space', async () => {
+    let answer: (value: FavoriteSpace[]) => void = () => undefined;
+    fakeTransport(
+      () =>
+        new Promise((resolve) => {
+          answer = (favorites) => {
+            resolve(ok(favorites));
+          };
+        }),
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <FavoritesView
+            spaceLink={(slug) => `/spaces/${slug}`}
+            areaName={() => 'Al-Rimal'}
+            cardAction={() => null}
+            unlistedAction={() => null}
+            browseLink="/spaces"
+            chooseArea={vi.fn()}
+            openMap={vi.fn()}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await screen.findByRole('region', { name: 'Saved spaces' });
+    expect(screen.queryByRole('button', { name: 'Nearest to me' })).not.toBeInTheDocument();
+    answer([HUB]);
+    expect(await screen.findByText('1 saved space')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nearest to me' })).toBeInTheDocument();
+  });
+
+  it('with none saved, shows the empty state in a card with the primary «Browse spaces», and no count', async () => {
+    renderView([]);
+
+    const browse = await screen.findByRole('link', { name: 'Browse spaces' });
+    expect(browse).toHaveClass('bg-primary');
+    expect(browse.closest('[data-slot="card"]')).not.toBeNull();
+    expect(screen.queryByText('0 saved spaces')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nearest to me' })).not.toBeInTheDocument();
   });
 });

@@ -20,7 +20,8 @@ import { LimitsField } from './LimitsField';
 
 /**
  * The package sheet, open from the end: a new package (`editing` `null`) or one of the list's, its
- * terms in order, a summary of what is typed, read as it changes, and «حفظ الباقة» at its foot. It
+ * terms in order, a summary of what is typed — its terms and price read as they change, never the
+ * name typed —, and «حفظ الباقة» at its foot. It
  * is mounted only while open, so each opening starts from the package as it stands; it closes on
  * Escape, its close button or a save (`close`), and the focus returns to the button that opened it.
  */
@@ -98,13 +99,16 @@ export function PackageSheet({
                 </p>
               </div>
             )}
-            <div aria-live="polite" className="flex flex-col gap-1 rounded-lg bg-muted p-3">
+            <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
               <span className="text-caption text-muted-foreground">{view.summary.label}</span>
               <span className="text-label text-foreground">{view.summary.name}</span>
-              {view.summary.terms !== '' && (
-                <span className="text-body-sm text-muted-foreground">{view.summary.terms}</span>
-              )}
-              <span className="text-body-sm text-foreground">{view.summary.price}</span>
+              {/* Only what the owner does not type is announced: the name is theirs (102). */}
+              <div aria-live="polite" className="flex flex-col gap-1">
+                {view.summary.terms !== '' && (
+                  <span className="text-body-sm text-muted-foreground">{view.summary.terms}</span>
+                )}
+                <span className="text-body-sm text-foreground">{view.summary.price}</span>
+              </div>
             </div>
             {view.failure && <FormFailure view={view.failure} />}
           </SheetBody>

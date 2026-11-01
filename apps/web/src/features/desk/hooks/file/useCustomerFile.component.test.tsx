@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, subscriptionState, SUBSCRIBED_AT } from '../../../../test/deskCustomer';
 import { deskVisit } from '../../../../test/deskVisit';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -19,7 +19,12 @@ function renderFile(file: CustomerFile | (() => ReturnType<typeof refused>)) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useCustomerFile(7, 4), { wrapper });
+  return renderHook(
+    () => useCustomerFile(7, 4, { spaceName: { nameAr: null, nameEn: 'Masaha One' }, owner: true }),
+    {
+      wrapper,
+    },
+  );
 }
 
 beforeEach(() => {
@@ -46,7 +51,7 @@ describe('useCustomerFile', () => {
     const { header } = result.current;
     expect(heard(header?.balance.view.label)).toBe('Owes ₪50');
     expect(header?.balance.view.tone).toBe('warning');
-    expect(header?.here).toBe('Here now');
+    expect(heard(header?.here)).toBe('Here since 10:00');
     expect(header?.archived).toBe('Archived');
     expect(header?.phone).toEqual({ text: 'No mobile number', number: false });
   });
@@ -56,11 +61,17 @@ describe('useCustomerFile', () => {
       customerFile({
         subscriptions: [
           // The server's left, not the due less the paid: a payment it allocated elsewhere counts.
-          { ...subscriptionState({ id: 1 }), paidAgorot: 10000, balanceAgorot: 3000 },
+          {
+            ...subscriptionState({ id: 1 }),
+            paidAgorot: 10000,
+            balanceAgorot: 3000,
+            createdAt: SUBSCRIBED_AT,
+          },
           {
             ...subscriptionState({ id: 2, billing: 'PER_HOUR', priceAgorot: 400, dueAgorot: 9660 }),
             paidAgorot: 0,
             balanceAgorot: 9660,
+            createdAt: SUBSCRIBED_AT,
           },
         ],
       }),
@@ -83,8 +94,18 @@ describe('useCustomerFile', () => {
     const { result } = renderFile(
       customerFile({
         subscriptions: [
-          { ...subscriptionState({ id: 1 }), paidAgorot: 15000, balanceAgorot: 0 },
-          { ...subscriptionState({ id: 2 }), paidAgorot: 5000, balanceAgorot: 10000 },
+          {
+            ...subscriptionState({ id: 1 }),
+            paidAgorot: 15000,
+            balanceAgorot: 0,
+            createdAt: SUBSCRIBED_AT,
+          },
+          {
+            ...subscriptionState({ id: 2 }),
+            paidAgorot: 5000,
+            balanceAgorot: 10000,
+            createdAt: SUBSCRIBED_AT,
+          },
         ],
       }),
     );

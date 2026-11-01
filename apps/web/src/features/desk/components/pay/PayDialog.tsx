@@ -6,6 +6,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -64,10 +65,13 @@ export function PayDialog({
             target.focus();
           }
         }}
-        aria-describedby={undefined}
+        {...(dialog.description === null && { 'aria-describedby': undefined })}
       >
         <DialogHeader>
           <DialogTitle dir="auto">{dialog.title}</DialogTitle>
+          {dialog.description !== null && (
+            <DialogDescription>{dialog.description}</DialogDescription>
+          )}
         </DialogHeader>
         {dialog.step === 'pick' && (
           <div className="flex flex-col gap-3">
@@ -177,7 +181,13 @@ export function PayDialog({
                 <p className="text-body-sm text-muted-foreground">{dialog.usageNote}</p>
               )}
             </MoneyBlock>
-            <Field label={dialog.note.label} error={dialog.note.error}>
+            <Field
+              label={dialog.note.label}
+              labelEnd={
+                <span className="text-caption text-muted-foreground">{dialog.note.optional}</span>
+              }
+              error={dialog.note.error}
+            >
               <Textarea {...dialog.note.field} />
             </Field>
             {dialog.failure !== null && <FormFailure view={dialog.failure} />}

@@ -39,6 +39,8 @@ export type DirectoryListView = {
     heading: string;
     /** A fetch is in flight over the cards shown. */
     busy: boolean;
+    /** The cards shown are the page before's, while the page asked loads: drawn dimmed. */
+    refreshing: boolean;
     state: 'loading' | 'failed' | 'empty' | 'noMatch' | 'ready';
     cards: SpaceCardView[];
     failure: ListFailureView | null;

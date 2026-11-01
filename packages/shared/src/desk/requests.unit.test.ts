@@ -183,6 +183,13 @@ describe("the customers list's query", () => {
     expect(errorsOfQuery({ packageId: '7', kind: 'PACKAGE' })).toBeNull();
     expect(errorsOfQuery({ packageId: '7', kind: 'CUSTOM' })).toEqual({ kind: ['invalid_choice'] });
     expect(errorsOfQuery({ packageId: '7', kind: 'NONE' })).toEqual({ kind: ['invalid_choice'] });
+    expect(errorsOfQuery({ packageId: '7', kind: 'MONTH' })).toEqual({ kind: ['invalid_choice'] });
+  });
+
+  it('the customers query takes WEEK and MONTH, the published periods', () => {
+    expect(customersQuerySchema.parse({ kind: 'WEEK' })).toMatchObject({ kind: 'WEEK' });
+    expect(customersQuerySchema.parse({ kind: 'MONTH' })).toMatchObject({ kind: 'MONTH' });
+    expect(errorsOfQuery({ kind: 'DAY' })).toEqual({ kind: ['invalid_choice'] });
   });
 });
 
@@ -231,11 +238,28 @@ describe('subscribing a customer', () => {
     expect(errorsOf({ published: { ...published, period: 'HOUR' } })).toEqual({
       'published.period': ['invalid_choice'],
     });
+
     expect(errorsOf({ published: { ...published, name: '' } })).toEqual({
       'published.name': ['too_short'],
     });
     expect(errorsOf({ published: { period: 'MONTH', audience: 'GENERAL' } })).toEqual({
       'published.name': ['required'],
+    });
+  });
+
+  it('a published price may carry the amount the desk showed: 1 to 10,000,000 whole agorot', () => {
+    const published = { period: 'MONTH', audience: 'GENERAL', name: 'شهري' };
+    expect(subscribeSchema.parse({ published: { ...published, amountAgorot: 25_000 } })).toEqual({
+      published: { ...published, amountAgorot: 25_000 },
+    });
+    expect(errorsOf({ published: { ...published, amountAgorot: 0 } })).toEqual({
+      'published.amountAgorot': ['out_of_range'],
+    });
+    expect(errorsOf({ published: { ...published, amountAgorot: 10_000_001 } })).toEqual({
+      'published.amountAgorot': ['out_of_range'],
+    });
+    expect(errorsOf({ published: { ...published, amountAgorot: 1.5 } })).toEqual({
+      'published.amountAgorot': ['invalid_format'],
     });
   });
 

@@ -10,6 +10,8 @@ import type { SpaceCardView } from './SpaceCardView';
 export type DirectoryMapView = {
   search: DirectoryListView['search'];
   filters: FiltersView;
+  /** The list's count of the spaces shown, when the whole set fits; else empty. */
+  count: string;
   near: DirectoryListView['near'];
   /** What the map is handed, but what the component draws over and under it. */
   map: Omit<MarkerMapProps, 'overlay' | 'under'>;
@@ -37,7 +39,14 @@ export type DirectoryMapView = {
   loading: string | null;
   /** Past the pins' ceiling, until the map is asked within its view. */
   truncated: string | null;
-  selected: { card: SpaceCardView; close: () => void; closeLabel: string; details: string } | null;
+  selected: {
+    card: SpaceCardView;
+    /** How far, in a straight line, while a point is set: «على بعد {km} كم». */
+    distance: string | null;
+    close: () => void;
+    closeLabel: string;
+    details: string;
+  } | null;
   /** Below 768 px, while a space is chosen: where its details are, read politely (the sheet takes no focus). */
   announce: string | null;
   /** Below 768 px: the selected space is a bottom sheet, not a card over the map. */

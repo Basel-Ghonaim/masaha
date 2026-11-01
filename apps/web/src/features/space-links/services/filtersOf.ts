@@ -14,8 +14,10 @@ type Rule<T> = {
 const RULES = adminSpacesQuerySchema.shape;
 
 /**
- * The statuses this list offers, the contract's own: the soft-deleted spaces, which `status=deleted`
- * lists alone, are a choice of it like any other.
+ * The statuses this list offers, the contract's own five: the soft-deleted spaces, which
+ * `status=deleted` lists alone, are a choice of it like any other, and so are the spaces the admin
+ * keeps, `editable` (D6.4, DI30), where the overview's «عرض الكل» lands: an address the filters did
+ * not show could not be cleared from them.
  */
 export const LIST_STATUSES = SPACE_STATUSES;
 

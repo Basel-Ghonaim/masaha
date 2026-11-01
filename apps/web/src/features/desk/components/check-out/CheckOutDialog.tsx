@@ -7,6 +7,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -16,6 +17,7 @@ import {
   Textarea,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import type { RefObject } from 'react';
 import { useCheckOutDialog } from '../../hooks/check-out/useCheckOutDialog';
 import { MoneyBlock } from '../money/MoneyBlock';
@@ -70,13 +72,15 @@ export function CheckOutDialog({
             returnFocus.current.focus();
           }
         }}
-        aria-describedby={undefined}
       >
         <DialogHeader>
           <DialogTitle>{dialog.title}</DialogTitle>
-          <Badge variant="neutral" className="self-start">
-            {dialog.kind}
-          </Badge>
+          {/* The description names the kind: «زيارة» or «زيارة · طالب» (G13.18). */}
+          <DialogDescription asChild>
+            <div>
+              <Badge variant="neutral">{dialog.kind}</Badge>
+            </div>
+          </DialogDescription>
         </DialogHeader>
         {dialog.state === 'loading' ? (
           <div className="flex flex-col gap-2">
@@ -169,15 +173,12 @@ function DebtFields({
         <Input dir="auto" autoComplete="off" {...debt.name.field} />
       </Field>
       <Field label={debt.phone.label} error={debt.phoneError}>
-        <Input
-          type="tel"
-          dir="ltr"
-          autoComplete="off"
-          autoFocus={autoFocus}
-          aria-required={debt.required}
-          {...debt.phone.field}
-        />
+        <PhoneInput autoFocus={autoFocus} aria-required={debt.required} {...debt.phone.field} />
       </Field>
+      {/* Whose file the phone adds to, said as it is found (G13.12). */}
+      <p aria-live="polite" className="text-body-sm text-muted-foreground empty:hidden">
+        {debt.owner}
+      </p>
     </div>
   );
 }

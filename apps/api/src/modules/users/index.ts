@@ -9,5 +9,6 @@ export {
   assertNotOwnAccount,
   createUsersService,
   type AccountListing,
+  type FreeAddress,
   type UsersService,
 } from './users.service.ts';

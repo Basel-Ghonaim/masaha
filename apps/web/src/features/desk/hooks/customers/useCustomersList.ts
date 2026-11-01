@@ -9,7 +9,7 @@ import type { Page } from '@shared/api';
 import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
-import { paginationView, usePageInRange } from '@shared/lists';
+import { paginationView, rangeSummary, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createDeskRepository } from '../../repository/deskRepository';
@@ -21,6 +21,18 @@ const repository = createDeskRepository();
 
 /** «الكل»: no filter, as a choice's value. */
 const ALL = 'all';
+
+/**
+ * The type filter's kinds in the design's order (foundation §13, screen 14): «شهري», «أسبوعي»,
+ * «باقة», «مخصّص», «بدون اشتراك» (D8.5).
+ */
+const KIND_ORDER = [
+  'MONTH',
+  'WEEK',
+  'PACKAGE',
+  'CUSTOM',
+  'NONE',
+] as const satisfies readonly (typeof CUSTOMER_KINDS)[number][];
 
 /** A page of the customers the filters find; the page before stays shown while the next loads. */
 function useCustomersPageQuery(spaceId: number, query: CustomersQuery) {
@@ -88,6 +100,13 @@ export function useCustomersList(spaceId: number, { owner }: { owner: boolean })
     /** Another page or filter is loading, the rows shown meanwhile those already there. */
     busy: query.isPlaceholderData,
     count: answer === undefined ? undefined : words.count({ count: total }),
+    /** «زبون جديد», beside the count and in the empty state. */
+    addLabel: copy.desk.sheet.entry.new,
+    /** The footer's «عرض 1–20 من N» (D3.5); none while loading or empty. */
+    summary:
+      answer === undefined
+        ? undefined
+        : (rangeSummary(answer.meta, { range: copy.forms.listRange }) ?? undefined),
     empty:
       status === 'ARCHIVED'
         ? { title: words.archivedEmpty, text: null }
@@ -143,7 +162,7 @@ export function useCustomersList(spaceId: number, { owner }: { owner: boolean })
         value: kind ?? ALL,
         options: [
           { value: ALL, label: words.kind.options.all },
-          ...CUSTOMER_KINDS.map((value) => ({ value, label: words.kind.options[value] })),
+          ...KIND_ORDER.map((value) => ({ value, label: words.kind.options[value] })),
         ],
         choose: (value: string) => {
           filters.choose.kind(CUSTOMER_KINDS.find((each) => each === value));

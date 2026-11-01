@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { NavigationType, useNavigationType } from 'react-router';
+import { Refreshing } from '@shared/design-system';
 import type { DirectoryListView } from '../../types/DirectoryListView';
 import { useFavoriteIds } from '../../hooks/favorites/useFavoriteIds';
 import type { DirectorySlots } from '../../types/DirectorySlots';
@@ -9,7 +10,8 @@ import { ResultsState } from './ResultsState';
 
 /**
  * The results: a section named by its heading, which assistive technology reads and the eye does
- * not, marked busy while a fetch runs over the cards shown. When the visitor chooses another page
+ * not, marked busy while a fetch runs over the cards shown, and the cards dimmed while the page asked
+ * loads (finding 132). When the visitor chooses another page
  * (the pages are links, pushed), the focus moves to that heading and the section's start scrolls
  * into view; never on the first render, nor when a search, an order or a page past the last
  * replaces the address and so changes the page shown. Each card carries the page's action, told
@@ -53,7 +55,10 @@ export function DirectoryResults({
         {results.heading}
       </h2>
       {results.refreshFailure !== null && <FailureAlert failure={results.refreshFailure} />}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <Refreshing
+        refreshing={results.refreshing}
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
         <ResultsState results={results} />
         {results.state === 'ready' &&
           results.cards.map((card) => (
@@ -69,7 +74,7 @@ export function DirectoryResults({
               })}
             />
           ))}
-      </div>
+      </Refreshing>
       {pagination}
     </section>
   );

@@ -6,8 +6,11 @@ import {
   Button,
   EmptyState,
   Input,
+  LogInIcon,
   SearchIcon,
+  SearchXIcon,
   Skeleton,
+  WifiOffIcon,
 } from '@shared/design-system';
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
@@ -80,6 +83,7 @@ export function DeskSearch({
             if (search.checkIn !== null) checkIn(search.checkIn.name, after);
           }}
         >
+          <LogInIcon aria-hidden />
           {search.checkIn.label}
         </Button>
         {newCustomer !== null && (
@@ -100,6 +104,7 @@ export function DeskSearch({
       <Input
         ref={input}
         type="search"
+        size="lg"
         aria-label={search.input.label}
         aria-controls={resultsId}
         placeholder={search.input.placeholder}
@@ -122,6 +127,17 @@ export function DeskSearch({
             <Skeleton className="h-32" />
             <Skeleton className="h-32" />
           </div>
+        )}
+        {customers.state === 'offline' && (
+          <EmptyState
+            icon={<WifiOffIcon />}
+            title={customers.offline.title}
+            description={customers.offline.text}
+          >
+            <Button variant="outline" onClick={customers.failure.retry}>
+              {customers.failure.retryLabel}
+            </Button>
+          </EmptyState>
         )}
         {customers.state === 'failed' && (
           <Alert variant="destructive">
@@ -168,7 +184,11 @@ export function DeskSearch({
           </section>
         )}
         {search.none !== null ? (
-          <EmptyState title={search.none.title} description={search.none.text}>
+          <EmptyState
+            icon={<SearchXIcon />}
+            title={search.none.title}
+            description={search.none.text}
+          >
             {visitButton}
           </EmptyState>
         ) : (

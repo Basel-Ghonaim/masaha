@@ -9,6 +9,7 @@ export interface OpenVisit {
   id: number;
   visitorName: string | null;
   customerId: number | null;
+  audience: 'GENERAL' | 'STUDENT';
   checkedInAt: Date;
 }
 
@@ -46,6 +47,8 @@ export interface NewVisit {
   shiftId: number | null;
   rates: Rates;
   checkedInAt: Date;
+  /** The space's customer the visit is for; `null` for a visitor by name alone. */
+  customerId: number | null;
 }
 
 /** How a visit is closed: when, its charge (or none), and the customer it is left unpaid to. */
@@ -89,7 +92,8 @@ export function createVisitsRepository() {
      * the space, such as another space's.
      */
     async create(visit: NewVisit, tx: Tx): Promise<DeskVisitRow | null> {
-      const { spaceId, key, visitorName, audience, shiftId, rates, checkedInAt } = visit;
+      const { spaceId, key, visitorName, audience, shiftId, rates, checkedInAt, customerId } =
+        visit;
       try {
         return await tx.visit.create({
           data: {
@@ -101,6 +105,7 @@ export function createVisitsRepository() {
             hourRateAgorot: rates.hourAgorot,
             dayRateAgorot: rates.dayAgorot,
             checkedInAt,
+            customerId,
           },
           select: DESK_VISIT,
         });
@@ -309,7 +314,13 @@ export function createVisitsRepository() {
     openIn(spaceId: number, tx: Tx = prisma): Promise<OpenVisit[]> {
       return tx.visit.findMany({
         where: { spaceId, checkedOutAt: null },
-        select: { id: true, visitorName: true, customerId: true, checkedInAt: true },
+        select: {
+          id: true,
+          visitorName: true,
+          customerId: true,
+          audience: true,
+          checkedInAt: true,
+        },
         orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
       });
     },

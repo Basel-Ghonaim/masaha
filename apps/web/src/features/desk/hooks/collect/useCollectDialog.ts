@@ -137,6 +137,7 @@ export function useCollectDialog({
   };
   const price = (agorot: number) => isolate(priceText(agorot, language));
   const failure = deskFailure(refusal, form.failure, {
+    limited: words.failure.limited,
     title: words.collect.failed,
     lost: words.failure.lost,
     nothing: words.failure.nothing,
@@ -157,7 +158,12 @@ export function useCollectDialog({
       },
     },
     groupLabel: words.money.group,
-    note: { label: words.collect.note, field: form.field('note'), error: form.errors.note },
+    note: {
+      label: words.collect.note,
+      optional: words.visit.optional,
+      field: form.field('note'),
+      error: form.errors.note,
+    },
     debt:
       customer !== null
         ? money.left > 0

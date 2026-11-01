@@ -6,6 +6,7 @@ import {
   Button,
   EmptyState,
   FlagIcon,
+  Refreshing,
   Skeleton,
 } from '@shared/design-system';
 import { ListPagination } from '@shared/lists';
@@ -81,16 +82,20 @@ export function MyReportsList({
         <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
       )}
       {list.state === 'ready' ? (
-        <ul className="flex flex-col gap-4">
-          {list.cards.map((card) => (
-            <li key={card.key}>
-              <MyReportCard card={card} />
-            </li>
-          ))}
-        </ul>
+        // The page before's cards, kept while the page asked loads: dimmed (finding 132).
+        <Refreshing refreshing={list.busy}>
+          <ul className="flex flex-col gap-4">
+            {list.cards.map((card) => (
+              <li key={card.key}>
+                <MyReportCard card={card} />
+              </li>
+            ))}
+          </ul>
+        </Refreshing>
       ) : (
         <MineEmpty list={list} browseLink={browseLink} />
       )}
+      {list.range !== null && <p className="text-body-sm text-muted-foreground">{list.range}</p>}
       {list.pagination !== null && <ListPagination pagination={list.pagination} />}
     </section>
   );

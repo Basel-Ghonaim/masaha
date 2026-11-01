@@ -9,11 +9,14 @@ import {
   EllipsisVerticalIcon,
 } from '@shared/design-system';
 import { Fragment, useState, type Ref } from 'react';
+import { Link } from 'react-router';
 import { useStaffActions } from '../hooks/access/useStaffActions';
 import type { StaffDialog } from '../types/StaffDialog';
 
 /**
- * A staff member's row menu, «إجراءات: {name}»: a held item says why under it (foundation §10),
+ * A staff member's row menu, «إجراءات: {name}»: a held item says why under it (foundation §10)
+ * and stays in the arrow keys' path, so its reason is reached (D3.3, finding 105); «عرض مقبوضاته»
+ * leads to the ledger of the person's collections this month (D5.6),
  * and a destructive one comes last, after a separator. While an action of the row waits, the
  * button is busy — still in the focus order, but the menu does not open. Its dialogs open where the
  * list holds them (`open`); the button is the list's to find again (`triggerRef`).
@@ -21,15 +24,18 @@ import type { StaffDialog } from '../types/StaffDialog';
 export function StaffActionsMenu({
   spaceId,
   member,
+  collectionsLink,
   open,
   triggerRef,
 }: {
   spaceId: number;
   member: StaffMember;
+  /** The ledger of what the person collected this month, «عرض مقبوضاته»'s. */
+  collectionsLink: string;
   open: (dialog: StaffDialog) => void;
   triggerRef: Ref<HTMLButtonElement>;
 }) {
-  const actions = useStaffActions(spaceId, member, { open });
+  const actions = useStaffActions(spaceId, member, { open, collectionsLink });
   const [shown, setShown] = useState(false);
   const { busy } = actions.trigger;
 
@@ -56,18 +62,24 @@ export function StaffActionsMenu({
         {actions.items.map((item) => (
           <Fragment key={item.label}>
             {item.destructive && <DropdownMenuSeparator />}
-            <DropdownMenuItem
-              disabled={item.disabled}
-              variant={item.destructive ? 'destructive' : 'default'}
-              onSelect={item.run}
-            >
-              <span className="flex flex-col">
-                <span>{item.label}</span>
-                {item.reason !== undefined && (
-                  <span className="text-caption text-muted-foreground">{item.reason}</span>
-                )}
-              </span>
-            </DropdownMenuItem>
+            {item.href !== undefined ? (
+              <DropdownMenuItem asChild>
+                <Link to={item.href}>{item.label}</Link>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                held={item.held}
+                variant={item.destructive ? 'destructive' : 'default'}
+                onSelect={item.run}
+              >
+                <span className="flex flex-col">
+                  <span>{item.label}</span>
+                  {item.reason !== undefined && (
+                    <span className="text-caption text-muted-foreground">{item.reason}</span>
+                  )}
+                </span>
+              </DropdownMenuItem>
+            )}
           </Fragment>
         ))}
       </DropdownMenuContent>

@@ -38,12 +38,14 @@ function renderChecklist(
   linked: number[],
   answer: () => FakeAnswer = () => ok(AMENITIES),
   source: LookupsSource = 'admin',
+  retired: { id: number; nameAr: string; nameEn: string }[] = [],
 ) {
   const requests = fakeTransport(answer);
   const onValueChange = vi.fn<(ids: number[]) => void>();
-  const rendered = renderHook(() => useAmenityChecklist({ source, value, linked, onValueChange }), {
-    wrapper: queryWrapper(),
-  });
+  const rendered = renderHook(
+    () => useAmenityChecklist({ source, value, linked, retired, onValueChange }),
+    { wrapper: queryWrapper() },
+  );
   return { ...rendered, onValueChange, requests };
 }
 
@@ -57,13 +59,14 @@ afterEach(() => {
 });
 
 describe('useAmenityChecklist', () => {
-  it('offers an owner the public catalogue’s amenities, keeping a retired linked one in the value and counting it', async () => {
+  it('offers an owner the public catalogue’s amenities, then a retired linked one, named and marked', async () => {
     startPreferences('ar');
     const { result, onValueChange, requests } = renderChecklist(
       [2, 3],
       [2, 3],
       () => ok(CATALOGUE),
       'public',
+      [{ id: 2, nameAr: 'مولّد', nameEn: 'Generator' }],
     );
 
     await waitFor(() => {
@@ -73,31 +76,30 @@ describe('useAmenityChecklist', () => {
       'get /lookups',
     ]);
     expect(
-      result.current.items.map(({ id, checked, inactive }) => [id, checked, inactive]),
+      result.current.items.map(({ id, name, checked, mark }) => [id, name, checked, mark]),
     ).toEqual([
-      [1, false, false],
-      [3, true, false],
+      [1, 'إنترنت', false, null],
+      [3, 'طاقة شمسية', true, null],
+      [2, 'مولّد', true, 'لم يعد في قائمة المنصة'],
     ]);
-    expect(result.current.retiredKept).toBe(
-      'يبقى مرفق واحد لم يعد في قائمة المنصة مرتبطًا بالمساحة.',
-    );
+    expect(result.current).not.toHaveProperty('retiredKept');
     act(() => {
       result.current.items[0]?.toggle(true);
     });
     expect(onValueChange).toHaveBeenLastCalledWith([2, 3, 1]);
     act(() => {
-      result.current.items[1]?.toggle(false);
+      result.current.items[2]?.toggle(false);
     });
-    expect(onValueChange).toHaveBeenLastCalledWith([2]);
+    expect(onValueChange).toHaveBeenLastCalledWith([3]);
   });
 
-  it('counts only the linked amenities the catalogue no longer names, and drops on a toggle one ticked and retired meanwhile', async () => {
+  it('names no retired amenity the space does not hold, and drops on a toggle one ticked and retired meanwhile', async () => {
     const { result, onValueChange } = renderChecklist([3, 4], [3], () => ok(CATALOGUE), 'public');
 
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
     });
-    expect(result.current.retiredKept).toBeNull();
+    expect(result.current.items.map(({ id }) => id)).toEqual([1, 3]);
     act(() => {
       result.current.items[0]?.toggle(true);
     });
@@ -117,13 +119,19 @@ describe('useAmenityChecklist', () => {
     expect(onValueChange).toHaveBeenLastCalledWith([3, 1]);
   });
 
-  it('counts nothing for the admin, whose list names every amenity', async () => {
-    const { result } = renderChecklist([2], [2]);
+  it('marks for the admin a retired amenity from the admin’s own list, whatever the read names', async () => {
+    const { result } = renderChecklist([2], [2], undefined, 'admin', [
+      { id: 2, nameAr: 'مولّد', nameEn: 'Generator' },
+    ]);
 
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
     });
-    expect(result.current.retiredKept).toBeNull();
+    expect(result.current.items.map(({ id, mark }) => [id, mark])).toEqual([
+      [1, null],
+      [2, 'Inactive'],
+      [3, null],
+    ]);
   });
 
   it('offers the active amenities in order, named in the interface’s language, ticked by its value', async () => {
@@ -133,10 +141,10 @@ describe('useAmenityChecklist', () => {
       expect(result.current.status).toBe('ready');
     });
     expect(
-      result.current.items.map(({ id, name, checked, inactive }) => [id, name, checked, inactive]),
+      result.current.items.map(({ id, name, checked, mark }) => [id, name, checked, mark]),
     ).toEqual([
-      [1, 'Internet', false, false],
-      [3, 'Solar power', true, false],
+      [1, 'Internet', false, null],
+      [3, 'Solar power', true, null],
     ]);
   });
 
@@ -146,12 +154,10 @@ describe('useAmenityChecklist', () => {
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
     });
-    expect(
-      result.current.items.map(({ id, checked, inactive }) => [id, checked, inactive]),
-    ).toEqual([
-      [1, false, false],
-      [2, false, true],
-      [3, false, false],
+    expect(result.current.items.map(({ id, checked, mark }) => [id, checked, mark])).toEqual([
+      [1, false, null],
+      [2, false, 'Inactive'],
+      [3, false, null],
     ]);
   });
 

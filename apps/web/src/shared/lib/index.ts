@@ -1,5 +1,6 @@
 export { agorotOf, shekelsOf } from './money/shekels';
 export { priceText } from './money/priceText';
+export { toWesternDigits } from './numbers/westernDigits';
 export { wholeNumberOf } from './numbers/wholeNumber';
 export { spaceNameOf } from './names/spaceName';
 export type { SpaceNameView } from './names/SpaceNameView';
@@ -8,3 +9,6 @@ export { dayText } from './time/dayText';
 export { dayWord } from './time/dayWord';
 export { updatedAgo } from './time/updatedAgo';
 export { carrierOf, type Carrier } from './phone/carrierOf';
+export { whatsappLink } from './phone/whatsappLink';
+export { csvOf, type CsvValue } from './csv/csvOf';
+export { downloadFile } from './csv/downloadFile';

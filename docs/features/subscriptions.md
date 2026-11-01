@@ -49,6 +49,8 @@
 
 **The corrections.** Each in its transaction: the space's lock, `can()` on the links read under it, the subscription's row (`FOR UPDATE`, 404 when not the space's), ended → `SUBSCRIPTION_ENDED`. The staff's: only the fields set to a new value (`subscriptionChange.ts`, pure), `null` clearing a limit or the end, an end before the start → `out_of_range`, audited `subscription.corrected`. The owner's: billing and price together, recorded as the owner's typed price with the reason, audited `subscription.priceCorrected`; a fixed price below what was paid is refused by the trigger `subscriptions_guard_price` (`PRICE_BELOW_PAID`). A correction that changes nothing writes nothing.
 
+**The corrections on the web** ([desk](desk.md), finding 163): a subscription card's «⋯» in the customer's file offers «تصحيح الاشتراك» to the staff — held, with «انتهى الاشتراك مبكرًا», on one ended early; an expired one may still be corrected (DI11, DI13). One end sheet (DI12): «الاسم والتواريخ والحدود» — the name, «من» and «إلى» (date pickers, «إلى» clearable), the four limits (blank: «بلا حد») — and the owner's «السعر» — the billing, the price and why it is corrected, required. «حفظ التصحيح» sends only the changed fields, the terms first, then the price part, each its own outcome: terms saved before a refused price are not sent again. Refusals stay in the sheet: an end before the start on «إلى», `SUBSCRIPTION_ENDED`, `PRICE_BELOW_PAID`, too many attempts.
+
 **The end.** In its transaction, the same opening as a correction; one already ended is answered as it is; else its end becomes today — its start if it has not started, never later than it was — with who and when, audited `subscription.ended`. The status rule then answers `EXPIRED`.
 
 **A check-in's limits** (`limits.ts`, pure). `subscriptionWarnings(state, { checkedInToday })`, in this order: `UPCOMING` → `SUBSCRIPTION_NOT_STARTED`; `EXPIRED` → `SUBSCRIPTION_EXPIRED`; days per week and the days this week at it, with today not counted yet → `DAYS_PER_WEEK_USED`; hours per day and today's minutes at it → `HOURS_PER_DAY_USED`. `limitWarnings` reads the state through the function and, in one query, whether another check-in is on today (dated in SQL, as the function dates them); for a retry it leaves the check-in itself out (`progressWithout`). `checkIn` writes the check-in, audited `checkIn.checkedIn`; `findCheckInByKey` answers a retry's. `lockCheckInIn` locks a check-in's row (the space's only) and `checkOut` closes it, `MANUAL`, audited `checkIn.checkedOut`.
@@ -72,6 +74,7 @@
 ### API decisions
 
 - **A subscription may be made from a published week or month price, named by its period, audience and shift, never by an id.** Its terms are copied: fixed at the price's amount, its audience and shift, no limits, for 7 or 30 days with both ends counted. *Why:* the public's packages are the published prices (data model › Package); a save writes the prices anew, so an id the desk read dies at the owner's next save, while the key is the one a visit already picks its rates by. 2026-10-25, #118.
+- **A published price changed since the desk showed it is refused, never sold at the new amount** (`published.amountAgorot`, `PUBLISHED_PRICE_CHANGED`). *Why:* the customer pays what they were told; the desk reads the price anew and asks again (the owner's 171 (a)). 2026-10-29, #132.
 - **A subscription's attendance and amount due are counted by one database function, `subscription_usage`; the status stays pure TypeScript on its counts.** *Why:* a usage-based debt is attendance × rate, and the owner's decision 6 puts debts in the database, so the attendance must be countable there; one function serves every read, so no second copy of the due exists (step 8's plan, S1). Its branches are proven in the API lane. 2026-10-21, #102.
 - **A day is used by any check-in on its Gaza date; minutes count closed stays only, whole minutes each; a per-hour due is minutes × rate ÷ 60, half up.** *Why:* an open stay has no length yet; the owner's attendance rules (Q4). 2026-10-21, #102.
 - **An `UPCOMING` status; an ended subscription is `EXPIRED` at once.** *Why:* a renewal starting later is not running yet, and the desk preselects the one running; ending a subscription changes its status the day it is ended (S4, S5). 2026-10-21, #102.
@@ -112,6 +115,11 @@
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
 - #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
 - #118 — a subscription made from a published week or month price (through `desk`).
+- #132 — a published amount the desk showed is checked against the price under the lock (`PUBLISHED_PRICE_CHANGED`, finding 171's API half); a subscription keeps its published period (`publishedPeriod`), which the customers list filters by (`WEEK`, `MONTH`); the due in `bigint` (finding 122); the dated check-ins bounded by Gaza midnights (finding 127); a stalled auto check-out (finding 121).
 - #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
 - #131 — a check-in's customer answered with its name and phone alone, now that the contacts also say whether a customer is archived.
+
+### Web history
+
+- #132 — the corrections' sheet, from a subscription card's «⋯» in the customer's file (finding 163).

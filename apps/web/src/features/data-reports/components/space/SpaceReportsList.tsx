@@ -24,7 +24,8 @@ export function SpaceReportsList({
 }: {
   spaceId: number;
   /** Where a field group is edited, as the page routes it. */
-  fieldLink: (field: DataReportField) => string;
+  /** Where a report's field is edited, carrying the report (`?report=`), as the page routes it. */
+  fieldLink: (field: DataReportField, reportId: number) => string;
 }) {
   const list = useSpaceReports(spaceId);
   // The «فتح» that opened the sheet, and the count, where the focus goes when that row has left.
@@ -96,6 +97,8 @@ export function SpaceReportsList({
           <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
         )}
         <DataTable
+          // The rows of the page before stay dimmed while the page asked loads (finding 132).
+          refreshing={list.busy}
           label={list.label}
           columns={columns}
           data={list.rows}
@@ -123,7 +126,7 @@ export function SpaceReportsList({
           // Another report is another sheet: nothing typed for one carries over.
           key={list.sheet.report.id}
           target={list.sheet}
-          editLink={fieldLink(list.sheet.report.field)}
+          editLink={fieldLink(list.sheet.report.field, list.sheet.report.id)}
           showDecided={list.showDecided}
           onClose={list.close}
           returnFocus={() =>

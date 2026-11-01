@@ -25,6 +25,21 @@ describe('usePasswordRules', () => {
     expect(states('gaza2026')).toEqual(['met', 'met', 'met']);
   });
 
+  it('shows «Too long — shorten it» only while the password passes 72 bytes, as failed', () => {
+    const { result: short } = renderHook(() => usePasswordRules('gaza2026', false));
+    expect(short.current.rules.map(({ rule }) => rule)).toEqual(['minLength', 'letter', 'digit']);
+
+    const long = `${'ب'.repeat(36)}1`;
+    const { result } = renderHook(() => usePasswordRules(long, false));
+    expect(result.current.rules.map(({ rule, state }) => `${rule} ${state}`)).toEqual([
+      'minLength met',
+      'letter met',
+      'digit met',
+      'bytes failed',
+    ]);
+    expect(result.current.rules[3]?.text).toBe('Too long — shorten it');
+  });
+
   it('marks the rules not met as failed once the form was sent with them', () => {
     expect(states('gazagaza', true)).toEqual(['met', 'met', 'failed']);
   });

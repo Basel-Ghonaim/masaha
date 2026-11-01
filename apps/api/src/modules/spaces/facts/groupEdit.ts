@@ -4,6 +4,7 @@ import type { RunInTransaction, Tx } from '../../../db/index.ts';
 import type { AuditValues, AuditWriter } from '../../../shared/audit/index.ts';
 import { can, isVerified, type Actor, type LoadedSpace } from '../../../shared/auth/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
+import type { LookupsService } from '../../lookups/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import {
   createSpaceRepository,
@@ -18,6 +19,8 @@ export interface GroupEditDependencies {
   runInTransaction: RunInTransaction;
   audit: AuditWriter;
   platformSettings: PlatformSettingsService;
+  /** Names the retired amenities a space holds (finding 99). */
+  lookups: LookupsService;
   ownersFor: (spaceId: number, tx: Tx) => Promise<AdminSpace['owners']>;
   /** The one clock (conventions §11): the group's new date. */
   now: () => Date;
@@ -53,11 +56,12 @@ export function createGroupEdit({
   runInTransaction,
   audit,
   platformSettings,
+  lookups,
   ownersFor,
   now,
 }: GroupEditDependencies) {
   const repository = createSpaceRepository();
-  const view = createSpaceView(now);
+  const view = createSpaceView(now, lookups);
   const readFacts = createFactsReader();
 
   return async function editGroup(
@@ -85,7 +89,7 @@ export function createGroupEdit({
         // One statement at a time: a transaction's connection runs one at once (finding 11).
         const facts = await readFacts(space.id, tx);
         const owners = await ownersFor(space.id, tx);
-        return view(current, isVerified(locked), thresholds, facts, owners);
+        return view(current, isVerified(locked), thresholds, facts, owners, tx);
       }
 
       const updated = await repository.update(space.id, { [DATE_COLUMNS[group]]: at }, tx);
@@ -104,7 +108,7 @@ export function createGroupEdit({
       // One statement at a time: a transaction's connection runs one at once (finding 11).
       const facts = await readFacts(space.id, tx);
       const owners = await ownersFor(space.id, tx);
-      return view(updated, isVerified(locked), thresholds, facts, owners);
+      return view(updated, isVerified(locked), thresholds, facts, owners, tx);
     });
   };
 }

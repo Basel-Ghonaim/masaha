@@ -163,10 +163,9 @@ describe('useDeskSearch', () => {
     await type(result, 'Sam', 400);
     await pass(1_100);
     await pass(2_100);
-    expect(result.current.customers.state).toBe('failed');
-    expect(result.current.customers.failure.message).toBe(
-      'No connection. Check your internet and try again.',
-    );
+    // No answer at all is the offline state (P7), not the destructive load failure (G13.19).
+    expect(result.current.customers.state).toBe('offline');
+    expect(result.current.customers.offline.title).toBe('No internet connection');
     expect(result.current.none).toBeNull();
   });
 });

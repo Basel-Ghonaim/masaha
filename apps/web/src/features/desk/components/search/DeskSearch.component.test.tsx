@@ -3,6 +3,7 @@ import { Toaster } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -43,9 +44,17 @@ function renderSearch(checkIn = vi.fn()) {
   fakeTransport(() => customersPage([SARA, SAMIR]));
   const view = render(
     <QueryClientProvider client={createQueryClient()}>
-      <main>
-        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} menu={MENU} />
-      </main>
+      <MemoryRouter>
+        <main>
+          <DeskSearch
+            spaceId={7}
+            present={present}
+            checkIn={checkIn}
+            receive={vi.fn()}
+            menu={MENU}
+          />
+        </main>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return { ...view, checkIn };
@@ -53,7 +62,7 @@ function renderSearch(checkIn = vi.fn()) {
 
 /** The page's search and its visit dialog, as `DeskPage` composes them. */
 function SearchWithVisit() {
-  const visit = useVisitDialog({ spaceId: 7, shifts: [], full: false });
+  const visit = useVisitDialog({ spaceId: 7, shifts: [], full: null });
   return (
     <>
       <DeskSearch
@@ -77,7 +86,9 @@ function renderSearchWithVisit(checkIn: () => FakeAnswer) {
   });
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <SearchWithVisit />
+      <MemoryRouter>
+        <SearchWithVisit />
+      </MemoryRouter>
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );
@@ -112,6 +123,10 @@ describe('DeskSearch', () => {
       within(results as HTMLElement).getByRole('heading', { level: 2, name: 'Here now' }),
     ).toBeVisible();
     expect(screen.getByRole('heading', { level: 3, name: 'Samir Odeh' })).toBeVisible();
+    // A card's name leads to the customer's file (G13.5).
+    expect(
+      within(screen.getByRole('heading', { level: 3, name: 'Samir Odeh' })).getByRole('link'),
+    ).toHaveAttribute('href', `/file/${String(SAMIR.id)}`);
     // Sara is present: she is in the first group, not a card.
     expect(screen.queryByRole('heading', { level: 3, name: 'Sara Khalid' })).toBeNull();
     expect(screen.getByText('2 results')).toHaveAttribute('aria-live', 'polite');

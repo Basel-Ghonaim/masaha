@@ -1,4 +1,4 @@
-import type { AdminSpacesListQuery } from '@masaha/shared/space-links';
+import type { AdminSpacesQuery } from '@masaha/shared/space-links';
 
 import type { ListingQuery } from '../../spaces/index.ts';
 
@@ -19,7 +19,7 @@ export interface ResolvedFilters {
  * governorate's.
  */
 export function listingQueryOf(
-  { status, areaId, q, stale }: Partial<AdminSpacesListQuery>,
+  { status, areaId, q, stale }: Partial<AdminSpacesQuery>,
   { verifiedIds = [], governorateAreaIds }: ResolvedFilters,
 ): ListingQuery {
   const areaIds =

@@ -2,8 +2,8 @@ import { Badge, Button, cn, Field, Switch } from '@shared/design-system';
 import type { PackageRowView } from '../../types/PackageRowView';
 
 /**
- * One package: its name, «موقوفة» when paused, its terms and its price; its switch «متاحة» and its
- * «تعديل», each named after the package. A paused row is muted, and one that still holds a shift
+ * One package: its name, «موقوفة» when paused, and its terms; at its end its price, in `label`
+ * weight, its switch «متاحة في المكتب» and its «تعديل», each named after the package (G21.2). A paused row is muted, and one that still holds a shift
  * says so, with the way to clear it.
  */
 export function PackageRow({ row }: { row: PackageRowView }) {
@@ -20,7 +20,6 @@ export function PackageRow({ row }: { row: PackageRowView }) {
           {row.paused !== null && <Badge variant="neutral">{row.paused}</Badge>}
         </div>
         {row.summary !== '' && <p className="text-body-sm text-muted-foreground">{row.summary}</p>}
-        <p className="text-body-sm text-foreground">{row.price}</p>
         {row.heldShift && (
           <div className="flex flex-col items-start gap-2 pt-1">
             <p className="text-caption text-muted-foreground">{row.heldShift.text}</p>
@@ -37,6 +36,7 @@ export function PackageRow({ row }: { row: PackageRowView }) {
         )}
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <span className="text-label text-foreground">{row.price}</span>
         <Field orientation="horizontal" label={row.available.label}>
           <Switch
             checked={row.available.checked}

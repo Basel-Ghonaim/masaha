@@ -40,12 +40,12 @@ export function createAuthController(
     },
 
     google: async (req: Request, res: Response) => {
-      const { session, refreshToken, linked } = await auth.google(
+      const { session, refreshToken, linked, created } = await auth.google(
         req.body as GoogleSignInRequest,
         clientAddress(req.ip),
       );
       cookies.set(res, refreshToken);
-      sendSuccess(res, { ...session, linked } satisfies GoogleSession);
+      sendSuccess(res, { ...session, linked, created } satisfies GoogleSession);
     },
 
     refresh: async (req: Request, res: Response) => {

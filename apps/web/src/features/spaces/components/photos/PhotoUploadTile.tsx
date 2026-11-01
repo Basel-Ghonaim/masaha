@@ -1,23 +1,26 @@
 import { useCopy } from '@shared/copy';
-import { Button, Spinner } from '@shared/design-system';
+import { Button, Meter, Spinner } from '@shared/design-system';
 import { useRefusalView } from '@shared/forms';
 import type { PhotoUploadTileView } from '../../types/PhotoTileView';
 
 /**
  * One file that is not on the server yet: its name, its own state, its own percentage, and — once it
  * has failed — the line that says why, with «إعادة المحاولة» where a re-send of the same bytes could
- * work and «أخرجها من القائمة» always. The layer has no progress component and no dependency is added
- * for one, so a pending tile is the layer's `Spinner` with the percentage as text beside it: honest,
- * and never a bar the design system does not have.
+ * work and «أخرجها من القائمة» always. An uploading tile is the layer's `Meter` as a progress bar
+ * (D6.14, finding 73), named «جارٍ رفع الصورة {n}» by its place in the gallery, its value read as
+ * «{p}٪», the percentage its caption; a file still being prepared, the layer's `Spinner`.
  *
  * A file the browser could not read never became a request: its line says so, and no retry is
  * offered, because re-choosing it would meet the same refusal.
  */
 export function PhotoUploadTile({
   tile,
+  number,
   meanwhile,
 }: {
   tile: PhotoUploadTileView;
+  /** Its place in the gallery, which names its bar. */
+  number: number;
   /** What a 403 and a 404 say, as the editor's place words them. */
   meanwhile: { forbidden: string; not_found: string };
 }) {
@@ -36,11 +39,26 @@ export function PhotoUploadTile({
   return (
     <li className="flex flex-col gap-2">
       <span className="text-caption text-muted-foreground">{tile.fileName}</span>
-      {tile.state !== 'failed' && (
+      {tile.state === 'preparing' && (
         <div className="flex items-center gap-2 text-caption text-muted-foreground">
           {/* The spinner's own name is what a screen reader hears; the text beside it repeats it. */}
           <Spinner label={waiting} />
           <span aria-hidden>{waiting}</span>
+        </div>
+      )}
+      {tile.state !== 'failed' && tile.state !== 'preparing' && (
+        <div className="flex flex-col gap-1">
+          <Meter
+            kind="progress"
+            value={tile.progress ?? 0}
+            max={100}
+            label={words.uploadingPhoto({ n: number })}
+            valueText={words.percent({ percent: tile.progress ?? 0 })}
+          />
+          {/* The bar's value is what a screen reader hears; the caption repeats it. */}
+          <span aria-hidden className="text-caption text-muted-foreground">
+            {waiting}
+          </span>
         </div>
       )}
       {tile.state === 'failed' && (

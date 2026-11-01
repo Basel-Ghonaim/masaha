@@ -2,14 +2,30 @@ import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
 import { publicSpace } from '../../test/publicSpace';
 import { queryWrapper } from '../../test/queryWrapper';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { startPreferences } from '../../test/startPreferences';
+import { warm } from '../../test/warmLazy';
 import { siteRoutes } from './routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./shell/SiteLayout'),
+      () => import('./shell/FocusLayout'),
+      () => import('./public/home/HomePage'),
+      () => import('./public/directory/DirectoryPage'),
+      () => import('./public/space/SpacePage'),
+      () => import('./public/about/AboutPage'),
+      () => import('./public/not-found/NotFoundPage'),
+    ),
+  60_000,
+);
 
 /** Pages that fail, added beside the site's own, under its error boundary. */
 const FAILING_PAGES: RouteObject[] = [
@@ -70,14 +86,22 @@ const NO_SPACES = {
   },
 };
 
-/** The site's routes at `path`, the server answering the public reads with nothing listed. */
-function renderPublicSite(path: string) {
+/** No platform contact set, as `GET /settings/public` answers it. */
+const NO_CONTACT = { email: null, whatsapp: null };
+
+/**
+ * The site's routes at `path`, the server answering the public reads with nothing listed, and the
+ * platform's contact with `contact`.
+ */
+function renderPublicSite(path: string, contact: object = NO_CONTACT) {
   fakeTransport((request) =>
     request.url === '/lookups'
       ? ok({ governorates: [], amenities: [] })
       : request.url === '/map/spaces'
         ? ok({ pins: [], truncated: false })
-        : NO_SPACES,
+        : request.url === '/settings/public'
+          ? ok(contact)
+          : NO_SPACES,
   );
   const router = createMemoryRouter(
     [
@@ -264,7 +288,6 @@ describe("the site's routes", () => {
 
   it('wires the unverified contact dialog with its none line and configured email', async () => {
     stubScreenWidth(1440);
-    vi.stubEnv('VITE_CONTACT_EMAIL', '');
     fakeTransport((request) =>
       request.url === '/spaces'
         ? ok([], 200)
@@ -272,7 +295,9 @@ describe("the site's routes", () => {
           ? ok({ governorates: [], areas: [], amenities: [] })
           : request.url?.endsWith('/occupancy')
             ? ok({ status: null })
-            : ok(publicSpace({ isVerified: false, contacts: [] })),
+            : request.url === '/settings/public'
+              ? ok(NO_CONTACT)
+              : ok(publicSpace({ isVerified: false, contacts: [] })),
     );
     const router = createMemoryRouter(
       [
@@ -321,20 +346,22 @@ describe("the site's routes", () => {
   });
 
   it('About has «Contact us» before «For space owners», each with the configured contact, and no university line; the footer offers «Browse spaces» first; axe-clean', async () => {
-    vi.stubEnv('VITE_CONTACT_EMAIL', 'hello@example.com');
-    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
-    const { container } = renderPublicSite('/about');
+    const { container } = renderPublicSite('/about', {
+      email: 'hello@example.com',
+      whatsapp: null,
+    });
 
     expect(await pageTitle()).toHaveTextContent('About Masaha');
     const main = within(screen.getByRole('main'));
     const contact = main.getByRole('region', { name: 'Contact us' });
     const owners = main.getByRole('region', { name: 'For space owners' });
-    expect(contact).toHaveAttribute('id', 'contact');
-    expect(owners).toHaveAttribute('id', 'owners');
+    // Each anchor is its section's heading, which a link to it focuses (carried 1).
+    expect(within(contact).getByRole('heading', { level: 2 })).toHaveAttribute('id', 'contact');
+    expect(within(owners).getByRole('heading', { level: 2 })).toHaveAttribute('id', 'owners');
     expect(contact.compareDocumentPosition(owners) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const section of [contact, owners]) {
       expect(
-        within(section).getByRole('link', { name: 'Email hello@example.com' }),
+        await within(section).findByRole('link', { name: 'Email hello@example.com' }),
       ).toHaveAttribute('href', 'mailto:hello@example.com');
     }
     expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
@@ -346,15 +373,15 @@ describe("the site's routes", () => {
   });
 
   it('with no contact configured, About’s sections keep their text without buttons', async () => {
-    vi.stubEnv('VITE_CONTACT_EMAIL', '');
-    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
     renderPublicSite('/about');
 
     expect(await pageTitle()).toHaveTextContent('About Masaha');
     const main = within(screen.getByRole('main'));
     const contact = main.getByRole('region', { name: 'Contact us' });
     const owners = main.getByRole('region', { name: 'For space owners' });
-    expect(contact).toHaveTextContent('Message us with a question, or a problem with the website.');
+    expect(contact).toHaveTextContent(
+      'Write to us with a question, about a report that got no reply, or about a mistake on the site.',
+    );
     expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
     for (const section of [contact, owners]) {
       expect(within(section).queryAllByRole('link')).toEqual([]);
@@ -398,6 +425,39 @@ describe("the site's routes", () => {
       }
     },
   );
+
+  it('gives the footer its room back on leaving a space’s page with a bar', async () => {
+    stubScreenWidth(390);
+    fakeTransport((request) =>
+      request.url === '/lookups'
+        ? ok({ governorates: [], areas: [], amenities: [] })
+        : request.url?.endsWith('/occupancy')
+          ? ok({ status: null })
+          : request.url === '/spaces' || request.url === '/map/spaces'
+            ? ok([], 200)
+            : ok(publicSpace()),
+    );
+    const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
+      initialEntries: ['/spaces/noor-hub'],
+    });
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+    const footer = screen.getByRole('contentinfo');
+    await waitFor(() => {
+      expect(footer).toHaveClass('pb-24');
+    });
+
+    await router.navigate('/');
+
+    await waitFor(() => {
+      expect(screen.getByRole('contentinfo')).not.toHaveClass('pb-24');
+    });
+  });
 
   it('show offline when a page throws while the browser reports no connection', async () => {
     vi.spyOn(Navigator.prototype, 'onLine', 'get').mockReturnValue(false);

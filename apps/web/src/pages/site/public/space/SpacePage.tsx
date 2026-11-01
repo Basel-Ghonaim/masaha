@@ -1,5 +1,5 @@
-import { ClosureNotice, SpaceAnnouncements } from '@features/announcements';
-import { ReportAction } from '@features/data-reports';
+import { ClosureNotice, SpaceAnnouncements } from '@features/announcements/public';
+import { ReportAction } from '@features/data-reports/public';
 import {
   SpaceDetails,
   useDirectoryReturn,
@@ -7,7 +7,7 @@ import {
   useSpacePageTitle,
 } from '@features/directory';
 import { AreaName } from '@features/lookups';
-import { PlatformContact } from '@features/platform-settings';
+import { PlatformContact } from '@features/platform-settings/public';
 import { useCopy } from '@shared/copy';
 import {
   Breadcrumb,

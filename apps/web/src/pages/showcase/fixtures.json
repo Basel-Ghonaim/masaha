@@ -102,6 +102,11 @@
           "label": "البريد الإلكتروني للحساب",
           "value": "ahmad@riyada",
           "error": "أدخل بريدًا إلكترونيًا صحيحًا، مثل showcase.sample@example.com"
+        },
+        "sizeCaption": "الحجم الكبير: الحقل الرئيسي في الصفحة",
+        "large": {
+          "label": "البحث في الزبائن",
+          "placeholder": "الاسم أو رقم الجوال"
         }
       },
       "textarea": {
@@ -785,6 +790,89 @@
           { "label": "الحقل: الأسعار", "removeLabel": "إزالة فلتر الحقل في العرض" }
         ],
         "clear": "مسح الفلاتر"
+      },
+      "meter": {
+        "title": "مقياس النسبة",
+        "caption": "نسبة من كل: الإشغال، وبلون التنبيه حين يقترب من الامتلاء",
+        "occupancy": {
+          "label": "المقاعد المشغولة",
+          "value": 27,
+          "max": 40,
+          "text": "27 من 40"
+        },
+        "full": {
+          "label": "المقاعد المشغولة في القاعة الصغيرة",
+          "value": 11,
+          "max": 12,
+          "text": "11 من 12"
+        },
+        "progressCaption": "تقدّم مهمة: رفع صورة",
+        "upload": {
+          "label": "رفع صورة المساحة",
+          "value": 45
+        }
+      },
+      "barChart": {
+        "title": "المخطّط العمودي",
+        "stackedCaption": "سلسلتان مكدّستان، بمفتاح الألوان",
+        "singleCaption": "سلسلة واحدة بالحجم الصغير، بلا مفتاح",
+        "chart": "الدخل حسب الشهر",
+        "period": "الشهر",
+        "unit": "₪",
+        "series": ["الزيارات", "الاشتراكات"],
+        "months": [
+          {
+            "label": "يوليو 2026",
+            "tick": "يوليو 26",
+            "values": [1200, 3400]
+          },
+          {
+            "label": "أغسطس 2026",
+            "tick": "أغسطس 26",
+            "values": [980, 3900]
+          },
+          {
+            "label": "سبتمبر 2026",
+            "tick": "سبتمبر 26",
+            "values": [1430, 4100]
+          },
+          {
+            "label": "أكتوبر 2026",
+            "tick": "أكتوبر 26",
+            "values": [1610, 3800]
+          }
+        ]
+      },
+      "heatmap": {
+        "title": "الخريطة الحرارية",
+        "caption": "الأيام في الساعات، بخمس درجات من الأقل إلى الأكثر",
+        "chart": "أوقات الذروة",
+        "unit": "زيارات",
+        "day": "اليوم",
+        "fewer": "أقل",
+        "more": "أكثر",
+        "hours": ["8", "10", "12", "14", "16", "18"],
+        "days": [
+          {
+            "label": "السبت",
+            "values": [2, 9, 14, 12, 6, 1]
+          },
+          {
+            "label": "الأحد",
+            "values": [3, 11, 16, 15, 8, 2]
+          },
+          {
+            "label": "الإثنين",
+            "values": [1, 7, 10, 9, 4, 0]
+          }
+        ]
+      },
+      "refreshing": {
+        "title": "قائمة يُحدَّث محتواها",
+        "restingCaption": "القائمة كما هي",
+        "refreshingCaption": "أثناء تحميل الصفحة التالية: البطاقات باقية، باهتة، والقائمة مشغولة",
+        "list": "المساحات",
+        "cards": ["مساحة التركيز", "مساحة النخيل", "مساحة الزيتون"]
       }
     },
     "en": {
@@ -865,6 +953,11 @@
           "label": "Email address for the account",
           "value": "ahmad@riyada",
           "error": "Enter a valid email, like showcase.sample@example.com"
+        },
+        "sizeCaption": "The large size: a page's main field",
+        "large": {
+          "label": "Search the customers",
+          "placeholder": "Name or mobile number"
         }
       },
       "textarea": {
@@ -1558,6 +1651,89 @@
           { "label": "Field: Prices", "removeLabel": "Remove the sample field filter" }
         ],
         "clear": "Clear filters"
+      },
+      "meter": {
+        "title": "Share meter",
+        "caption": "A share of a whole: occupancy, and in the warning tone when nearly full",
+        "occupancy": {
+          "label": "Seats taken",
+          "value": 27,
+          "max": 40,
+          "text": "27 of 40"
+        },
+        "full": {
+          "label": "Seats taken in the small room",
+          "value": 11,
+          "max": 12,
+          "text": "11 of 12"
+        },
+        "progressCaption": "A task's progress: uploading a photo",
+        "upload": {
+          "label": "Uploading the space's photo",
+          "value": 45
+        }
+      },
+      "barChart": {
+        "title": "Bar chart",
+        "stackedCaption": "Two stacked series, with a legend",
+        "singleCaption": "One series at the small size, without a legend",
+        "chart": "Income by month",
+        "period": "Month",
+        "unit": "shekel amounts",
+        "series": ["Visits", "Subscriptions"],
+        "months": [
+          {
+            "label": "July 2026",
+            "tick": "Jul 26",
+            "values": [1200, 3400]
+          },
+          {
+            "label": "August 2026",
+            "tick": "Aug 26",
+            "values": [980, 3900]
+          },
+          {
+            "label": "September 2026",
+            "tick": "Sep 26",
+            "values": [1430, 4100]
+          },
+          {
+            "label": "October 2026",
+            "tick": "Oct 26",
+            "values": [1610, 3800]
+          }
+        ]
+      },
+      "heatmap": {
+        "title": "Heatmap",
+        "caption": "Days by hours, in five steps from fewer to more",
+        "chart": "Busy hours",
+        "unit": "visits",
+        "day": "Day",
+        "fewer": "Fewer",
+        "more": "More",
+        "hours": ["8", "10", "12", "14", "16", "18"],
+        "days": [
+          {
+            "label": "Saturday",
+            "values": [2, 9, 14, 12, 6, 1]
+          },
+          {
+            "label": "Sunday",
+            "values": [3, 11, 16, 15, 8, 2]
+          },
+          {
+            "label": "Monday",
+            "values": [1, 7, 10, 9, 4, 0]
+          }
+        ]
+      },
+      "refreshing": {
+        "title": "A list being refreshed",
+        "restingCaption": "The list at rest",
+        "refreshingCaption": "While the next page loads: the cards stay, dimmed, and the list is busy",
+        "list": "Spaces",
+        "cards": ["Focus Hub", "Palm Hub", "Olive Desk"]
       }
     }
   }

@@ -5,7 +5,7 @@ import {
   type SpaceSettings,
 } from '@masaha/shared/space-settings';
 import { CATALOGUES, useCopy } from '@shared/copy';
-import { priceText } from '@shared/lib';
+import { priceText, spaceNameOf } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useEffect, useRef, type RefObject } from 'react';
 import { useWatch } from 'react-hook-form';
@@ -42,7 +42,7 @@ export function useReminderCard({
 }: {
   spaceId: number;
   settings: SpaceSettings;
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
   /** The message's field, created by the component, where an insert puts its token. */
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }) {
@@ -141,7 +141,8 @@ export function useReminderCard({
       text: reminderPreview(text, {
         name: words.sampleName,
         amount: priceText(SAMPLE_AGOROT, language),
-        space: spaceName,
+        // One language a message: the English default names it in English.
+        space: spaceNameOf(spaceName, language === 'en' && text === defaultText).text,
       }),
     },
     restore: {

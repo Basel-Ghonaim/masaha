@@ -7,7 +7,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { customerFile, customerRow, subscriptionState } from '../../../../test/deskCustomer';
+import {
+  customerFile,
+  customerRow,
+  subscriptionState,
+  SUBSCRIBED_AT,
+} from '../../../../test/deskCustomer';
 import { deskVisit, visitTerms } from '../../../../test/deskVisit';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { findToast } from '../../../../test/findToast';
@@ -62,6 +67,7 @@ function subscribed(change: Partial<NewSubscription> = {}): FakeAnswer {
       ...subscriptionState({ id: 21, name: '10 days', packageId: 3, totalDays: 10 }),
       paidAgorot: 15000,
       balanceAgorot: 0,
+      createdAt: SUBSCRIBED_AT,
     },
     payments: [],
     debtAgorot: 0,
@@ -105,8 +111,9 @@ function renderSheet(
   const onClose = vi.fn();
   const refreshPrices = vi.fn();
   const retryPackages = vi.fn();
-  render(
-    <QueryClientProvider client={createQueryClient()}>
+  const client = createQueryClient();
+  const tree = (list: Price[]) => (
+    <QueryClientProvider client={client}>
       <SubscriptionSheet
         spaceId={7}
         entry={entry}
@@ -114,16 +121,21 @@ function renderSheet(
           state,
           packages: [TEN_DAYS],
           retry: retryPackages,
-          prices: { state: 'ready', list: prices, refresh: refreshPrices },
+          prices: { state: 'ready', list, refresh: refreshPrices },
           shifts: [],
         }}
         returnFocus={() => null}
         onClose={onClose}
       />
       <Toaster label="Notifications" />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  return { requests, onClose, refreshPrices, retryPackages };
+  const view = render(tree(prices));
+  // The prices as read again: the sheet's parent hands it the new list.
+  const pricesRead = (list: Price[]) => {
+    view.rerender(tree(list));
+  };
+  return { requests, onClose, refreshPrices, retryPackages, pricesRead };
 }
 
 const posts = (requests: Request[]) =>
@@ -313,6 +325,7 @@ describe('useSubscriptionSheet', () => {
                 ...subscriptionState({ id: 21, name: '10 days', packageId: 3, priceAgorot: 16000 }),
                 paidAgorot: 15000,
                 balanceAgorot: 1000,
+                createdAt: SUBSCRIBED_AT,
               },
               payments: [
                 { item: { visitId: 12 }, payment: payment(5, 2000) },
@@ -375,7 +388,8 @@ describe('useSubscriptionSheet', () => {
     expect(await within(sheet).findByText('10 days')).toBeVisible();
     expect(within(sheet).getByRole('button', { name: 'Change package' })).toBeVisible();
     await waitFor(() => {
-      expect(within(sheet).getByLabelText('From')).toHaveValue('2026-11-05');
+      // The start is the layer's date picker, named by its label and the day (G16.1).
+      expect(within(sheet).getByRole('button', { name: 'From 5 November' })).toBeVisible();
     });
     await user.click(within(sheet).getByRole('button', { name: /Renew and receive .?₪150.?$/ }));
 
@@ -408,11 +422,61 @@ describe('useSubscriptionSheet', () => {
     await findToast(heard('Subscription saved · Sara Khalid'));
     const [sent] = posts(requests);
     expect(sent?.body).toEqual({
-      published: { period: 'MONTH', audience: 'STUDENT', name: 'Monthly · students' },
+      // The amount the sheet showed, so a price changed since is refused, never sold (finding 171).
+      published: {
+        period: 'MONTH',
+        audience: 'STUDENT',
+        name: 'Monthly · students',
+        amountAgorot: 20000,
+      },
       startsOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as unknown,
       payment: { amountAgorot: 20000, method: 'CASH' },
     });
     expect(sent?.body).not.toHaveProperty('priceId');
+  });
+
+  it('keeps the sheet open on a changed price, reads the prices again and shows the new amount', async () => {
+    const user = userEvent.setup();
+    const { refreshPrices, onClose, pricesRead } = renderSheet(
+      { mode: 'subscribe', customer: customerRow() },
+      {
+        prices: [STUDENT_MONTH],
+        write: () => refused(409, { type: 'conflict', code: 'PUBLISHED_PRICE_CHANGED' }),
+      },
+    );
+
+    await screen.findByRole('radio', { name: /Monthly · students/ });
+    await user.click(screen.getByRole('button', { name: /Save and receive .?₪200.?$/ }));
+
+    expect(await screen.findByText(/This price changed since the sheet opened/)).toBeVisible();
+    expect(refreshPrices).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    pricesRead([{ ...STUDENT_MONTH, amountAgorot: 25000 }]);
+    expect(await screen.findByRole('button', { name: /Save and receive .?₪250.?$/ })).toBeVisible();
+    expect(screen.getByRole('radio', { name: /Monthly · students/ })).toBeChecked();
+  });
+
+  it('keeps an amount the desk typed when the changed price is read again', async () => {
+    const user = userEvent.setup();
+    const { pricesRead } = renderSheet(
+      { mode: 'subscribe', customer: customerRow() },
+      {
+        prices: [STUDENT_MONTH],
+        write: () => refused(409, { type: 'conflict', code: 'PUBLISHED_PRICE_CHANGED' }),
+      },
+    );
+
+    await screen.findByRole('radio', { name: /Monthly · students/ });
+    const received = screen.getByRole('textbox', { name: 'Received now (₪)' });
+    await user.clear(received);
+    await user.type(received, '150');
+    await user.click(screen.getByRole('button', { name: /Save and receive .?₪150.?$/ }));
+    await screen.findByText(/This price changed since the sheet opened/);
+
+    pricesRead([{ ...STUDENT_MONTH, amountAgorot: 25000 }]);
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Received now (₪)' })).toHaveValue('150');
+    });
   });
 
   it.each([
@@ -612,7 +676,7 @@ describe('useSubscriptionSheet', () => {
 
     const weekly = await screen.findByRole('radio', { name: /Weekly/ });
     await waitFor(() => {
-      expect(screen.getByLabelText('From')).toHaveValue('2026-10-26');
+      expect(screen.getByRole('button', { name: 'From 26 October' })).toBeVisible();
     });
     expect(weekly).not.toBeChecked();
     expect(screen.getByRole('radio', { name: /10 days/ })).not.toBeChecked();

@@ -1,4 +1,5 @@
 import { CustomerFile, useFileTitle } from '@features/desk';
+import { useMySpacesQuery } from '@features/space-links';
 import { useCopy } from '@shared/copy';
 import {
   Breadcrumb,
@@ -26,7 +27,8 @@ function parseCustomerId(value: string | undefined): number | undefined {
  * «ملف الزبون», the owner's and reception's: titled by the customer's name once their file has
  * loaded, under a trail back to «الزبائن», then `desk`'s file, whose archive and restore are the
  * owner's, as the session's link at the space says (S5); the header's «اشتراك جديد» opens `desk`'s
- * subscription sheet. An id that names no one shows the 404.
+ * subscription sheet; the space's name for the reminder as `space-links` lists it, by its Arabic
+ * name when it has one. An id that names no one shows the 404.
  * The guard has checked the space's id and the role.
  */
 export function CustomerPage() {
@@ -57,6 +59,8 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
     (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',
   );
   const sheet = useSheetOpener();
+  const space = useMySpacesQuery().data?.find((one) => one.spaceId === spaceId);
+  const spaceName = space ?? { nameAr: null, nameEn: '' };
 
   return (
     <>
@@ -82,6 +86,7 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
           customerId={customerId}
           owner={owner}
           subscribe={sheet.open}
+          spaceName={spaceName}
         />
       </div>
       {sheet.entry !== null && (

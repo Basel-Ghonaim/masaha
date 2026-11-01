@@ -12,6 +12,7 @@ describe('minuteOf', () => {
     expect(minuteOf(' 23:59 ', { end: false })).toBe(1439);
     expect(minuteOf('٠٨:٣٠', { end: false })).toBe(510);
     expect(minuteOf('١٨٣٠', { end: true })).toBe(1110);
+    expect(minuteOf('۰۸:۳۰', { end: false })).toBe(510);
   });
 
   it('reads 24:00 only as a day’s end', () => {
