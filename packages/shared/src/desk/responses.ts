@@ -104,6 +104,8 @@ export type CustomerFile = { customer: Customer } & CustomerBalance & {
 export type SubscriptionWithMoney = SubscriptionState & {
   paidAgorot: number;
   balanceAgorot: number;
+  /** When it was made: with a visit's, the order a customer's debts are taken in, the oldest first. */
+  createdAt: string;
 };
 
 /** A payment taken with a subscribe, and the item it was allocated to. */

@@ -127,6 +127,7 @@ describe('subscribing a customer', () => {
         dueAgorot: 30_000,
         paidAgorot: 0,
         balanceAgorot: 30_000,
+        createdAt: stored?.createdAt.toISOString(),
       },
       payments: [],
       debtAgorot: 30_000,

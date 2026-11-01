@@ -472,7 +472,7 @@ CustomerRow = Customer & CustomerBalance & {
 }
 CustomerFile = { customer: Customer } & CustomerBalance & {
   present: { kind: "CHECK_IN", id, subscriptionId, since } | { kind: "VISIT", id, since } | null,
-  subscriptions: (SubscriptionState & { paidAgorot, balanceAgorot })[],
+  subscriptions: (SubscriptionState & { paidAgorot, balanceAgorot, createdAt })[],   // createdAt: when it was made, the order debts are taken in (2026-11-01, #132)
   unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[],
   reminderTemplate: string | null   // the space's payment reminder; null: the catalogue's default (2026-10-29, #132)
 }
@@ -486,11 +486,11 @@ A customer's subscriptions, at the desk: made from a package of the space or typ
 
 ```ts
 NewSubscription = {
-  subscription: SubscriptionState & { paidAgorot, balanceAgorot },   // as of the answer
+  subscription: SubscriptionState & { paidAgorot, balanceAgorot, createdAt },   // as of the answer
   payments: { item: { visitId } | { subscriptionId }, payment: VisitPayment }[],
   debtAgorot: number                                                 // the customer's, as of the answer
 }
-SubscriptionStatement = SubscriptionState & { paidAgorot, balanceAgorot } & {
+SubscriptionStatement = SubscriptionState & { paidAgorot, balanceAgorot, createdAt } & {
   customer: { id, name, phone: string | null },
   checkIns: { id, checkedInAt, checkedOutAt: string | null, checkoutMethod: "MANUAL" | "AUTO" | null,
               minutes: number | null }[],                            // a closed stay's whole minutes; the earliest first

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, subscriptionState, SUBSCRIBED_AT } from '../../../../test/deskCustomer';
 import { deskVisit } from '../../../../test/deskVisit';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -19,11 +19,13 @@ const FILE = customerFile({
       ...subscriptionState({ id: 2, name: 'Two weeks', priceTyped: { byId: 14, reason: 'Deal' } }),
       paidAgorot: 10000,
       balanceAgorot: 5000,
+      createdAt: SUBSCRIBED_AT,
     },
     {
       ...subscriptionState({ id: 1, name: 'Exams', status: 'EXPIRED' }),
       paidAgorot: 15000,
       balanceAgorot: 0,
+      createdAt: SUBSCRIBED_AT,
     },
   ],
   unpaidVisits: [

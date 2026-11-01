@@ -1,8 +1,8 @@
 import type { CustomerFile, SubscriptionWithMoney, UnpaidVisit } from '@masaha/shared/desk';
 import { describe, expect, it } from 'vitest';
-import { subscriptionState } from '../../../test/deskCustomer';
+import { subscriptionState, SUBSCRIBED_AT } from '../../../test/deskCustomer';
 import { deskVisit } from '../../../test/deskVisit';
-import { openItems } from './openItems';
+import { oldestOwingKey, openItems } from './openItems';
 
 function unpaid(id: number, checkedOutAt: string, balance: number | null): UnpaidVisit {
   return {
@@ -32,6 +32,7 @@ function owing(id: number, change: Partial<SubscriptionWithMoney> = {}): Subscri
     ...subscriptionState({ id, name: `Plan ${String(id)}` }),
     paidAgorot: 10000,
     balanceAgorot: 5000,
+    createdAt: SUBSCRIBED_AT,
     ...change,
   };
 }
@@ -113,5 +114,51 @@ describe('openItems', () => {
         usage: true,
       },
     ]);
+  });
+});
+
+/** A visit checked in and closed at `at`, still owing `balance` (`null`: unpriced). */
+function visitAt(id: number, at: string, balance: number | null): UnpaidVisit {
+  const visit = unpaid(id, at, balance);
+  return { ...visit, visit: { ...visit.visit, checkedInAt: at } };
+}
+
+describe('oldestOwingKey', () => {
+  it('takes the item made first across both kinds, as the server does', () => {
+    expect(
+      oldestOwingKey(
+        file({
+          unpaidVisits: [visitAt(9, '2026-10-24T10:00:00.000Z', 2000)],
+          subscriptions: [owing(2, { createdAt: '2026-09-01T07:00:00.000Z' })],
+        }),
+      ),
+    ).toBe('subscription-2');
+  });
+
+  it('puts a visit before a subscription made at the same instant, then goes by id', () => {
+    const at = '2026-10-01T07:00:00.000Z';
+    expect(
+      oldestOwingKey(
+        file({
+          unpaidVisits: [visitAt(9, at, 2000), visitAt(4, at, 2000)],
+          subscriptions: [owing(1, { createdAt: at })],
+        }),
+      ),
+    ).toBe('visit-4');
+  });
+
+  it('leaves out an unpriced visit and what owes nothing; none when nothing owes', () => {
+    expect(
+      oldestOwingKey(
+        file({
+          unpaidVisits: [visitAt(4, '2026-08-01T07:00:00.000Z', null)],
+          subscriptions: [
+            owing(1, { createdAt: '2026-08-02T07:00:00.000Z', balanceAgorot: 0 }),
+            owing(2, { createdAt: '2026-09-01T07:00:00.000Z' }),
+          ],
+        }),
+      ),
+    ).toBe('subscription-2');
+    expect(oldestOwingKey(file())).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { subscriptionState } from '../../../../test/deskCustomer';
+import { subscriptionState, SUBSCRIBED_AT } from '../../../../test/deskCustomer';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { PayDialog } from './PayDialog';
@@ -19,6 +19,7 @@ const FILE: CustomerFile = {
       ...subscriptionState({ id: 2, customerId: 5, name: 'Two weeks' }),
       paidAgorot: 10000,
       balanceAgorot: 5000,
+      createdAt: SUBSCRIBED_AT,
     },
   ],
   unpaidVisits: [],

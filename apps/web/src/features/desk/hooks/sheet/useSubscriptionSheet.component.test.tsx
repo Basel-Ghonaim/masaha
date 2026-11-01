@@ -7,7 +7,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { customerFile, customerRow, subscriptionState } from '../../../../test/deskCustomer';
+import {
+  customerFile,
+  customerRow,
+  subscriptionState,
+  SUBSCRIBED_AT,
+} from '../../../../test/deskCustomer';
 import { deskVisit, visitTerms } from '../../../../test/deskVisit';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { findToast } from '../../../../test/findToast';
@@ -62,6 +67,7 @@ function subscribed(change: Partial<NewSubscription> = {}): FakeAnswer {
       ...subscriptionState({ id: 21, name: '10 days', packageId: 3, totalDays: 10 }),
       paidAgorot: 15000,
       balanceAgorot: 0,
+      createdAt: SUBSCRIBED_AT,
     },
     payments: [],
     debtAgorot: 0,
@@ -319,6 +325,7 @@ describe('useSubscriptionSheet', () => {
                 ...subscriptionState({ id: 21, name: '10 days', packageId: 3, priceAgorot: 16000 }),
                 paidAgorot: 15000,
                 balanceAgorot: 1000,
+                createdAt: SUBSCRIBED_AT,
               },
               payments: [
                 { item: { visitId: 12 }, payment: payment(5, 2000) },

@@ -6,7 +6,12 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { customerRow, customersPage, subscriptionState } from '../../../../test/deskCustomer';
+import {
+  customerRow,
+  customersPage,
+  subscriptionState,
+  SUBSCRIBED_AT,
+} from '../../../../test/deskCustomer';
 import { deskVisit } from '../../../../test/deskVisit';
 import { findToast } from '../../../../test/findToast';
 import { bodyOf, fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
@@ -32,6 +37,7 @@ const RAMI_FILE: CustomerFile = {
       ...subscriptionState({ id: 2, customerId: 5, name: 'Two weeks' }),
       paidAgorot: 10000,
       balanceAgorot: 5000,
+      createdAt: SUBSCRIBED_AT,
     },
   ],
   unpaidVisits: [
@@ -72,6 +78,7 @@ const SARA_FILE: CustomerFile = {
       dueAgorot: 9660,
       paidAgorot: 6000,
       balanceAgorot: 3660,
+      createdAt: SUBSCRIBED_AT,
     },
   ],
   unpaidVisits: [],

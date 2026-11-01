@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { subscriptionState } from '../../../../test/deskCustomer';
+import { subscriptionState, SUBSCRIBED_AT } from '../../../../test/deskCustomer';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { useStatement } from './useStatement';
@@ -25,6 +25,7 @@ const STATEMENT: SubscriptionStatement = {
   ...subscriptionState({ id: 3, name: 'Every other day' }),
   paidAgorot: 10000,
   balanceAgorot: 0,
+  createdAt: SUBSCRIBED_AT,
   customer: { id: 4, name: 'Sara Khalid', phone: null },
   checkIns: [
     {

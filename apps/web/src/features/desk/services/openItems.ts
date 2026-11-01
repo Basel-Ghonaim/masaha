@@ -54,3 +54,31 @@ export function openItems(
     }));
   return [...visits, ...subscriptions];
 }
+
+/**
+ * The key of the customer's oldest owing item, by the server's rule (the subscribe's allocation,
+ * finance's oldest item): the item made first across both kinds — a visit when it was checked in,
+ * a subscription when it was made —, a visit before a subscription made at the same instant, then by
+ * id; `null` when nothing owes. An unpriced visit owes nothing yet.
+ */
+export function oldestOwingKey(file: CustomerFile): string | null {
+  const owing = [
+    ...file.unpaidVisits
+      .filter(({ balanceAgorot }) => balanceAgorot !== null && balanceAgorot > 0)
+      .map(({ visit }) => ({
+        key: `visit-${String(visit.id)}`,
+        at: Date.parse(visit.checkedInAt),
+        visitFirst: 0,
+        id: visit.id,
+      })),
+    ...file.subscriptions
+      .filter(({ balanceAgorot }) => balanceAgorot > 0)
+      .map(({ id, createdAt }) => ({
+        key: `subscription-${String(id)}`,
+        at: Date.parse(createdAt),
+        visitFirst: 1,
+        id,
+      })),
+  ].sort((a, b) => a.at - b.at || a.visitFirst - b.visitFirst || a.id - b.id);
+  return owing[0]?.key ?? null;
+}

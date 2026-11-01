@@ -8,7 +8,7 @@ import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { toastFailed, toastSubscriberIn } from '../../components/toast/deskToasts';
 import { currentOf } from '../../services/currentOf';
-import { openItems } from '../../services/openItems';
+import { oldestOwingKey, openItems } from '../../services/openItems';
 import type { OpenSheet } from '../../types/SheetEntry';
 import { useCustomerFileQuery } from '../file/useCustomerFileQuery';
 import type { PayTarget } from '../pay/usePayDialog';
@@ -139,7 +139,9 @@ export function useStateActions({
       });
     }
     const now = new Date();
-    const [oldest] = openItems(file, {
+    // The oldest owing item by the server's rule, across both kinds (DI32); the list keeps its order.
+    const oldestKey = oldestOwingKey(file);
+    const oldest = openItems(file, {
       visitLabel: (visit) =>
         copy.desk.pay.itemVisit({
           day: dayWord(
@@ -149,7 +151,7 @@ export function useStateActions({
             copy.desk.uncollected,
           ),
         }),
-    });
+    }).find(({ key }) => key === oldestKey);
     if (oldest !== undefined) {
       actions.push({
         key: 'receive',

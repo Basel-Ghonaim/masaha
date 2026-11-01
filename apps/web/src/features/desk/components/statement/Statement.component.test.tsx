@@ -5,7 +5,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, SUBSCRIBED_AT, subscriptionState } from '../../../../test/deskCustomer';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { paymentRow } from '../../../../test/paymentRow';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -16,6 +16,7 @@ const SUBSCRIPTION = {
   ...subscriptionState({ id: 3, name: 'Every other day' }),
   paidAgorot: 10000,
   balanceAgorot: 0,
+  createdAt: SUBSCRIBED_AT,
 };
 
 const STATEMENT: SubscriptionStatement = {

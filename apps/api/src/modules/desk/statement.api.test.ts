@@ -117,6 +117,7 @@ describe("a subscription's statement", () => {
       dueAgorot: 6_000,
       paidAgorot: 2_000,
       balanceAgorot: 4_000,
+      createdAt: exams.createdAt.toISOString(),
       customer: { id: sara.id, name: 'Sara', phone: '+970599000205' },
       checkIns: [
         {

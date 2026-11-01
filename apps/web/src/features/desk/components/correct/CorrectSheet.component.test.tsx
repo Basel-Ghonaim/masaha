@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
-import { customerFile, subscriptionState } from '../../../../test/deskCustomer';
+import { customerFile, subscriptionState, SUBSCRIBED_AT } from '../../../../test/deskCustomer';
 import {
   bodyOf,
   fakeTransport,
@@ -22,7 +22,9 @@ import { CustomerFile } from '../file/CustomerFile';
 /** Sara's file: one subscription, ₪150 fixed, ending 2026-10-30, a 12-day total. */
 const SUBSCRIPTION = subscriptionState({ totalDays: 12 });
 const FILE = customerFile({
-  subscriptions: [{ ...SUBSCRIPTION, paidAgorot: 15000, balanceAgorot: 0 }],
+  subscriptions: [
+    { ...SUBSCRIPTION, paidAgorot: 15000, balanceAgorot: 0, createdAt: SUBSCRIBED_AT },
+  ],
 });
 
 /** The card's «⋯», named by the subscription. */
@@ -201,7 +203,11 @@ describe('a subscription’s correction', () => {
       ended: { at: '2026-10-20T08:00:00.000Z', byId: 14 },
     });
     const { writes } = renderFile({
-      file: customerFile({ subscriptions: [{ ...ended, paidAgorot: 15000, balanceAgorot: 0 }] }),
+      file: customerFile({
+        subscriptions: [
+          { ...ended, paidAgorot: 15000, balanceAgorot: 0, createdAt: SUBSCRIBED_AT },
+        ],
+      }),
     });
 
     await screen.findByRole('heading', { level: 3, name: 'Exams by the hour' });

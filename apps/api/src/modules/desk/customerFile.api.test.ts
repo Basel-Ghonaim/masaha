@@ -147,6 +147,8 @@ describe("the customer's file", () => {
           dueAgorot: 30_000,
           paidAgorot: 10_000,
           balanceAgorot: 20_000,
+          // When it was made: with a visit's, the order its customer's debts are taken in.
+          createdAt: monthly.createdAt.toISOString(),
         },
       ],
       unpaidVisits: [

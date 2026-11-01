@@ -12,6 +12,7 @@ import {
   customerRow,
   customersPage,
   subscriptionState,
+  SUBSCRIBED_AT,
 } from '../../../../test/deskCustomer';
 import { deskVisit } from '../../../../test/deskVisit';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
@@ -35,7 +36,12 @@ const OWING = customerFile({
   customer: { id: 5, name: 'Omar', phone: null, archivedAt: null },
   debtAgorot: 6500,
   subscriptions: [
-    { ...subscriptionState({ id: 2, customerId: 5 }), paidAgorot: 10000, balanceAgorot: 5000 },
+    {
+      ...subscriptionState({ id: 2, customerId: 5 }),
+      paidAgorot: 10000,
+      balanceAgorot: 5000,
+      createdAt: SUBSCRIBED_AT,
+    },
   ],
   unpaidVisits: [
     {
@@ -62,7 +68,14 @@ const OWING = customerFile({
 /** A file whose one subscription has `status`. */
 const fileWith = (status: 'ACTIVE' | 'ENDING_SOON' | 'EXPIRED') =>
   customerFile({
-    subscriptions: [{ ...subscriptionState({ status }), paidAgorot: 15000, balanceAgorot: 0 }],
+    subscriptions: [
+      {
+        ...subscriptionState({ status }),
+        paidAgorot: 15000,
+        balanceAgorot: 0,
+        createdAt: SUBSCRIBED_AT,
+      },
+    ],
   });
 
 function renderList(files: Record<number, CustomerFile>) {
@@ -160,6 +173,52 @@ describe('a customer’s state actions', () => {
     expect(buttons[0]).toHaveClass('bg-primary');
     expect(buttons[1]).not.toHaveClass('bg-primary');
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('names the oldest owing item across both kinds: an older subscription before a newer visit', async () => {
+    const user = userEvent.setup();
+    renderFile(
+      customerFile({
+        debtAgorot: 22000,
+        subscriptions: [
+          {
+            ...subscriptionState({ id: 2, name: 'Monthly' }),
+            paidAgorot: 10000,
+            balanceAgorot: 20000,
+            // Made on 1 September: the oldest debt, as the server takes them.
+            createdAt: '2026-09-01T07:00:00.000Z',
+          },
+        ],
+        unpaidVisits: [
+          {
+            visit: deskVisit({
+              id: 3,
+              checkedInAt: '2026-10-24T10:00:00.000Z',
+              checkedOutAt: '2026-10-24T13:00:00.000Z',
+              checkoutMethod: 'MANUAL',
+              charge: {
+                amountAgorot: 2000,
+                roundingRule: null,
+                roundingMinutes: null,
+                capApplied: null,
+                typedById: null,
+                reason: null,
+              },
+            }),
+            payments: [],
+            paidAgorot: 0,
+            balanceAgorot: 2000,
+          },
+        ],
+      }),
+    );
+
+    const buttons = await headerActions();
+    const receive = buttons.find((button) => plain(button.textContent).startsWith('Receive'));
+    expect(plain(receive?.textContent ?? null)).toBe('Receive ₪200');
+    await user.click(receive as HTMLElement);
+    const dialog = await screen.findByRole('dialog');
+    expect(plain(descriptionOf(dialog))).toBe('Oldest item: Monthly');
   });
 
   it('offers «Renew» only while the subscription ends soon or has expired', async () => {

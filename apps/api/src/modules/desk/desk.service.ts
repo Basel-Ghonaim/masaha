@@ -252,10 +252,13 @@ export function createDeskService({
     if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
     const items = await payments.itemBalances(space.id, customerId, at, tx);
     const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
+    // Every subscription of the space is one of its customer's items (`subscription_usage`).
+    if (!money) throw new Error(`The subscription ${String(id)} has no balance.`);
     return {
       ...state,
-      paidAgorot: money?.paidAgorot ?? 0,
-      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
+      paidAgorot: money.paidAgorot,
+      balanceAgorot: money.balanceAgorot ?? state.dueAgorot,
+      createdAt: money.createdAt.toISOString(),
     };
   }
 
@@ -1007,8 +1010,14 @@ export function createDeskService({
           present,
           subscriptions: states.map((state) => {
             const money = subscriptionMoney.get(state.id);
-            const paidAgorot = money?.paidAgorot ?? 0;
-            return { ...state, paidAgorot, balanceAgorot: money?.balanceAgorot ?? state.dueAgorot };
+            // Every subscription of the space is one of its customer's items (`subscription_usage`).
+            if (!money) throw new Error(`The subscription ${String(state.id)} has no balance.`);
+            return {
+              ...state,
+              paidAgorot: money.paidAgorot,
+              balanceAgorot: money.balanceAgorot ?? state.dueAgorot,
+              createdAt: money.createdAt.toISOString(),
+            };
           }),
           unpaidVisits: unpaid.flatMap(({ id, paidAgorot, balanceAgorot }): UnpaidVisit[] => {
             const deskVisit = deskVisits.get(id);

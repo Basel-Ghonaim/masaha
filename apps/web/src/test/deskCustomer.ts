@@ -45,6 +45,9 @@ export function customersPage(rows: CustomerRow[], total = rows.length) {
   };
 }
 
+/** When the fixtures' subscriptions were made, as a file's money says it. */
+export const SUBSCRIBED_AT = '2026-10-01T07:00:00.000Z';
+
 /** A subscription's state as the desk reads it: active, fixed ₪150, no limits. */
 export function subscriptionState(change: Partial<SubscriptionState> = {}): SubscriptionState {
   return {
@@ -102,7 +105,9 @@ export function customerFile(change: Partial<CustomerFile> = {}): CustomerFile {
     debtAgorot: 0,
     creditAgorot: 0,
     present: null,
-    subscriptions: [{ ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0 }],
+    subscriptions: [
+      { ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0, createdAt: SUBSCRIBED_AT },
+    ],
     unpaidVisits: [],
     reminderTemplate: null,
     ...change,
