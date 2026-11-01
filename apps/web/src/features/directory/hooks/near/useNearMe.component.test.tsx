@@ -33,6 +33,7 @@ function fakePermission(state: PermissionState) {
     permissions: { query: () => Promise.resolve(status as unknown as PermissionStatus) },
   });
   return {
+    status,
     change: (next: PermissionState) => {
       status.state = next;
       status.dispatchEvent(new Event('change'));
@@ -183,15 +184,16 @@ describe('useNearMe', () => {
     act(() => {
       result.current.near.press();
     });
-    // The visitor reads the prompt for a minute: no wait is counted meanwhile.
+    // The visitor reads the prompt for most of a minute: the 15 s are not counted meanwhile.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(50_000);
     });
     expect(result.current.near.state.status).toBe('locating');
 
     act(() => {
       permission.change('granted');
     });
+    // Granted, the 15 s replace the prompt's bound: past the minute from the press, still asking.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(14_999);
     });
@@ -200,6 +202,33 @@ describe('useNearMe', () => {
       device.succeed(31.5, 34.46, 30);
     });
     expect(result.current.near.state.status).toBe('granted');
+  });
+
+  it('a prompt that never settles and no answer end as denied a minute from the press, and it may be pressed again', async () => {
+    vi.useFakeTimers();
+    fakeGeolocation();
+    const permission = fakePermission('prompt');
+    const removed = vi.spyOn(permission.status, 'removeEventListener');
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    // Dismissed without a choice (as Firefox allows): no `change`, and the device answers nothing.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(59_999);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.near.state.status).toBe('denied');
+    // Settled, it stops following the permission; a new press asks again.
+    expect(removed).toHaveBeenCalledWith('change', expect.any(Function));
+    act(() => {
+      result.current.near.press();
+    });
+    expect(result.current.near.state.status).toBe('locating');
   });
 
   it('with the permission denied, ends at once as denied', async () => {

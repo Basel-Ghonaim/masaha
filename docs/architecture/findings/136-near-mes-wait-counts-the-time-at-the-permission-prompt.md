@@ -6,4 +6,4 @@
 
 **Resolves when:** the wait starts once the permission is known (the Permissions API's state, where the browser offers it), or the owner accepts the 15 s as it is.
 
-**Resolution (#132):** Near me's wait starts once the permission is known (D9.10).
+**Resolution (#132):** Near me's wait starts once the permission is known (D9.10). While the browser's prompt stays unanswered — one dismissed without a choice fires no `change` — a minute from the press bounds the ask, replaced by the 15 s once the permission is granted; settled, it stops following the permission (2026-11-01).
