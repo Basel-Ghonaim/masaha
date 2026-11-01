@@ -22,7 +22,8 @@ const PAYERS_SHOWN = 5;
  * in the month, and the uncollected visits, never added to the debts (DI9, 193); who owes, largest
  * first, each with the oldest item, the amount, a WhatsApp reminder when there is a phone and
  * «استلام دفعة» to the file (DI15); who is in credit; and five of who paid in the month, «عرض الكل»
- * to the ledger's range of that month. Every figure is the server's.
+ * to the ledger's range of that month. Every figure is the server's. A tile is `ltr` when its value
+ * must keep its order in an RTL page (an amount), never a counted phrase («7 زبائن»).
  */
 export function useDebtsTab(
   spaceId: number,
@@ -109,6 +110,7 @@ export function useDebtsTab(
         key: 'owed',
         label: words.tiles.owed,
         value: shown(totals.owed.agorot),
+        ltr: true,
         helper: words.customers({ count: totals.owed.customers }),
         href: null,
       },
@@ -116,6 +118,7 @@ export function useDebtsTab(
         key: 'credit',
         label: words.tiles.credit,
         value: shown(totals.credit.agorot),
+        ltr: true,
         helper: words.tiles.creditHelper({
           customers: words.customers({ count: totals.credit.customers }),
         }),
@@ -125,6 +128,7 @@ export function useDebtsTab(
         key: 'paid',
         label: words.tiles.paid({ month: label }),
         value: words.customers({ count: payers.data.meta.totalRecords }),
+        ltr: false,
         helper: undefined,
         href: null,
       },
@@ -132,6 +136,7 @@ export function useDebtsTab(
         key: 'uncollected',
         label: words.tiles.uncollected,
         value: words.visits({ count: totals.uncollected.visits }),
+        ltr: false,
         helper:
           words.tiles.uncollectedHelper({ amount: shown(totals.uncollected.owedAgorot) }) +
           (totals.uncollected.unpriced > 0

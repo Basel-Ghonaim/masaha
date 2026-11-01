@@ -15,7 +15,9 @@ const hourOf = (hour: number) => String(hour).padStart(2, '0');
  * Finance › Occupancy (D5.5), ready to render: the month's average stay (all, members, visits), its
  * peak hour and its average daily attendance, «—» with no closed stay; the average present per
  * weekday and hour over the last 4 weeks, a weekday with no presence left out and the hours from the
- * first to the last with any (DI16); and visits and members per day over the last 14 days.
+ * first to the last with any (DI16); and visits and members per day over the last 14 days. A tile is
+ * `ltr` when its value must keep its order in an RTL page (the peak hour, a number), never a
+ * phrase with words («4:12 س»).
  */
 export function useOccupancyTab(spaceId: number, asked: string | undefined) {
   const copy = useCopy();
@@ -62,6 +64,7 @@ export function useOccupancyTab(spaceId: number, asked: string | undefined) {
         key: 'stay',
         label: words.stay.label,
         value: stay.all === null ? words.none : words.stay.value({ time: stayText(stay.all) }),
+        ltr: false,
         helper:
           stay.all === null
             ? noStays
@@ -78,6 +81,7 @@ export function useOccupancyTab(spaceId: number, asked: string | undefined) {
           report.peakHour === null
             ? words.none
             : `${hourOf(report.peakHour)}:00–${hourOf(report.peakHour + 1)}:00`,
+        ltr: true,
         helper: report.peakHour === null ? noStays : month,
       },
       {
@@ -87,6 +91,7 @@ export function useOccupancyTab(spaceId: number, asked: string | undefined) {
           report.averageDailyAttendance === null
             ? words.none
             : report.averageDailyAttendance.toFixed(1),
+        ltr: true,
         helper: report.averageDailyAttendance === null ? noStays : month,
       },
     ],

@@ -94,6 +94,21 @@ describe('Finance › Occupancy', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('keeps the stay in Arabic’s own direction, the peak hour left to right', async () => {
+    startPreferences('ar');
+    const { container } = renderOccupancy(aReport());
+
+    await screen.findByRole('region', { name: 'ساعات الذروة' });
+    const values = [...container.querySelectorAll('[data-slot="stat-card"] dd:first-of-type')];
+    // «4:12 س» reads in the page's own direction; «10:00–11:00» keeps its order in an ltr box.
+    expect(values.map((value) => value.querySelector('[dir="ltr"]') !== null)).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(heard(values[0] as Element)).toBe('4:12 س');
+  });
+
   it('leaves out of the heatmap the weekdays and hours with no presence', async () => {
     renderOccupancy(aReport());
 

@@ -153,6 +153,23 @@ describe('Finance › Debts', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('keeps the counted tiles in Arabic’s own direction, only the amounts left to right', async () => {
+    startPreferences('ar');
+    const { container } = renderDebts(server);
+
+    await screen.findByRole('region', { name: 'عليهم مبالغ' });
+    const values = [...container.querySelectorAll('[data-slot="stat-card"] dd:first-of-type')];
+    // An amount keeps its order in an ltr box; «7 زبائن» and «5 زيارات» read in the page's own.
+    expect(values.map((value) => value.querySelector('[dir="ltr"]') !== null)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(heard(values[2] as Element)).toBe('7 زبائن');
+    expect(heard(values[3] as Element)).toBe('5 زيارات');
+  });
+
   it('shows a debtor’s since, oldest item and amount, and WhatsApp only with a phone', async () => {
     renderDebts(server);
 

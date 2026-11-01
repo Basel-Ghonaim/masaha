@@ -46,7 +46,7 @@ export function OccupancyTab({ spaceId, asked }: { spaceId: number; asked: strin
           <StatCard
             key={tile.key}
             label={tile.label}
-            value={<span dir="ltr">{tile.value}</span>}
+            value={tile.ltr ? <span dir="ltr">{tile.value}</span> : tile.value}
             helper={tile.helper}
           />
         ))}
