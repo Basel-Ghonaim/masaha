@@ -13,7 +13,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
 import { adminReport, reportsPage, spaceReport } from '../../test/dataReport';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
-import { deskVisit, uncollectedPage } from '../../test/deskVisit';
+import { deskVisit } from '../../test/deskVisit';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
@@ -1004,9 +1004,26 @@ describe("the space's front desk", () => {
       // The owner may type a price, so the desk shows the visits waiting for one.
       if (url === '/manage/spaces/7/visit-terms') return ok({ ...VISIT_TERMS, mayTypePrice: true });
       if (url === '/manage/spaces/7/unpriced-visits') {
-        return uncollectedPage([
-          deskVisit({ checkedOutAt: '2026-07-01T09:00:00.000Z', checkoutMethod: 'MANUAL' }),
-        ]);
+        // One visit closed with no price, a page of one.
+        const visit = deskVisit({
+          checkedOutAt: '2026-07-01T09:00:00.000Z',
+          checkoutMethod: 'MANUAL',
+        });
+        return {
+          status: 200,
+          data: {
+            success: true,
+            data: [visit],
+            meta: {
+              currentPage: 1,
+              limit: 20,
+              totalPages: 1,
+              totalRecords: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          },
+        };
       }
       return undefined;
     });
