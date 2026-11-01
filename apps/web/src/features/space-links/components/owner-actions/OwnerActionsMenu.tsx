@@ -33,7 +33,7 @@ export function OwnerActionsMenu({ row }: { row: UserRowView }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem disabled={actions.link.disabled} onSelect={actions.link.open}>
+          <DropdownMenuItem held={actions.link.disabled} onSelect={actions.link.open}>
             <span className="flex flex-col">
               <span>{actions.link.label}</span>
               {actions.link.reason !== undefined && (

@@ -6,4 +6,4 @@
 
 **Resolves when:** Radix's behaviour is checked; if it skips them, the held items stay focusable (`aria-disabled` without `disabled`, the action ignored) or their reason is said where a keyboard reaches it.
 
-**Resolution (#132):** Radix's menu skips a `disabled` item in its arrow-key navigation, so a held item is no longer disabled: it is `aria-disabled`, stays in the roving focus, ignores its action, and is read with its reason (D3.3, the layer's `held`). Both menus use it: the owner's staff menu and the admin's users page.
+**Resolution (#132):** Radix's menu skips a `disabled` item in its arrow-key navigation, so a held item is no longer disabled: it is `aria-disabled`, stays in the roving focus, ignores its action, and is read with its reason (D3.3, the layer's `held`). Every such menu uses it: the owner's staff menu, the admin's users page, and the admin's owners page's «ربط بمساحة» for a suspended account.
