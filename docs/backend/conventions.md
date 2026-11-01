@@ -326,6 +326,8 @@ Masaha runs on Gaza time (`Asia/Gaza`). Built: the clock (below), wired since F-
 The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
 
 - **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs, and it calls `createAppFromEnv`, the one mapping from the validated environment to the ports (the email mode, the storage, Google, the cookies, the trusted proxies). No module, rule or path changes between them.
+  - **Locally, `server.ts`:** it checks the database, starts the jobs' timer, listens, and shuts down on a signal.
+  - **Online, `function.ts`:** Vercel's one function (the root `api/index.js` re-exports its build) answers every `/api/*` path with the same app. It validates the environment once per instance, and on an invalid one answers every request `server` (500), the variables named in the log and never their values. It starts no timer, never listens or exits, handles no signal, and checks no database at load: `/health` does (2026-11-01, #133).
 - **The ports take a different implementation per environment.** Nothing else does.
 
   | Port | Locally | Online |
