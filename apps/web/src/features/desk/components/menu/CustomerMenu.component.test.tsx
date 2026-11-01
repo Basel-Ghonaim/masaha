@@ -18,6 +18,8 @@ function renderMenu(archive: { label: string; run: () => void } | null = null) {
             edit: { label: 'Edit details', run: edit },
             archive,
             state: [],
+            reading: false,
+            readingLabel: 'Loading the actions…',
           }}
         />
       </main>

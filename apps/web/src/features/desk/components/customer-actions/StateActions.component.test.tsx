@@ -14,6 +14,8 @@ import {
   subscriptionState,
   SUBSCRIBED_AT,
 } from '../../../../test/deskCustomer';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { deferred } from '../../../../test/fakeSession';
 import { deskVisit } from '../../../../test/deskVisit';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -161,6 +163,46 @@ describe('a customer’s state actions', () => {
     await user.click(receive);
     const dialog = await screen.findByRole('dialog');
     expect(plain(descriptionOf(dialog))).toMatch(/^Oldest item: Visit of /);
+  });
+
+  it('moves nothing under the pointer: while the file reads, one held busy item, then every item in place', async () => {
+    const user = userEvent.setup();
+    const answer = deferred<FakeAnswer>();
+    fakeTransport((request) => {
+      if (/\/customers\/4$/.test(request.url ?? '')) return answer.promise;
+      return customersPage([customerRow({ id: 4, name: 'Sara Khalid' })]);
+    });
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <main>
+            <CustomersList
+              spaceId={7}
+              owner
+              fileLink={(id) => `/file/${String(id)}`}
+              subscribe={() => undefined}
+              add={() => undefined}
+            />
+          </main>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: /^More actions: .Sara Khalid.$/ }));
+    const menu = await screen.findByRole('menu');
+    // Nothing a tap could hit moves once the file answers: the state's place is held, alone.
+    const [busy, ...rest] = within(menu).getAllByRole('menuitem');
+    expect(rest).toEqual([]);
+    expect(busy).toHaveAttribute('aria-disabled', 'true');
+    expect(busy).toHaveAttribute('aria-busy', 'true');
+    expect(within(menu).queryByRole('menuitem', { name: 'Customer file' })).toBeNull();
+
+    answer.resolve(ok(PRESENT));
+    expect(await within(menu).findByRole('menuitem', { name: 'Check out' })).toBe(
+      within(menu).getAllByRole('menuitem')[0],
+    );
+    expect(within(menu).getByRole('menuitem', { name: 'Customer file' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { busy: true })).toBeNull();
   });
 
   it('the file’s header holds the state’s buttons, the first primary, then «⋯»; axe-clean', async () => {

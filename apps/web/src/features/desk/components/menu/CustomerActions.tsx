@@ -89,6 +89,8 @@ export function CustomerActions({
           setMenuOpened(true);
         }}
         menu={{
+          reading: state === 'menu' && stateActions.reading,
+          readingLabel: words.reading,
           state: inMenu.map((action) => ({
             key: action.key,
             label: action.label,

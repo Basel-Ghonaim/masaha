@@ -315,6 +315,7 @@ export const DESK = {
     menu: {
       label: ({ name }: { name: string }) => `إجراءات أخرى: ${name}`,
       file: 'ملف الزبون',
+      reading: 'جارٍ تحميل الإجراءات…',
       edit: 'تعديل البيانات',
       archive: 'أرشفة…',
       restore: 'استرجاع',

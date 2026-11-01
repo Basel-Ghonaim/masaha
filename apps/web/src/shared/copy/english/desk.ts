@@ -317,6 +317,8 @@ export const DESK = {
     menu: {
       label: ({ name }: { name: string }) => `More actions: ${name}`,
       file: 'Customer file',
+      /** The held item while the file is read for the customer's actions (R5-F4). */
+      reading: 'Loading the actions…',
       edit: 'Edit details',
       archive: 'Archive…',
       restore: 'Restore',

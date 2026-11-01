@@ -49,7 +49,8 @@ export function useStateActions({
 }) {
   const copy = useCopy();
   const language = useLanguage() === 'en' ? 'en' : 'ar';
-  const file = useCustomerFileQuery(spaceId, read ? customerId : null).data;
+  const fileQuery = useCustomerFileQuery(spaceId, read ? customerId : null);
+  const file = fileQuery.data;
   const [pay, setPay] = useState<PayTarget | null>(null);
   const [payOpening, setPayOpening] = useState(0);
   const [visitOut, setVisitOut] = useState(false);
@@ -187,6 +188,8 @@ export function useStateActions({
 
   return {
     actions,
+    /** The file is being read for its actions: their place is held until it answers (R5-F4). */
+    reading: read && fileQuery.isPending,
     dialogs: {
       /** The payment, on the item it opened on; each opening a new intent (S4). */
       pay,
