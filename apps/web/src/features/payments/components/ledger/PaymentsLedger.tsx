@@ -187,6 +187,8 @@ export function PaymentsLedger({
         <p className="text-body-sm text-muted-foreground">{ledger.refreshFailure}</p>
       )}
       <DataTable
+        // The rows of the page before stay dimmed while the page asked loads (finding 132).
+        refreshing={ledger.busy}
         label={ledger.label}
         columns={columns}
         data={ledger.rows}

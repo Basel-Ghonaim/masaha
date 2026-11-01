@@ -182,6 +182,8 @@ export function useDirectoryList(): DirectoryListView {
     results: {
       heading: words.results,
       busy: answer !== undefined && query.isFetching,
+      // The page before's cards, kept while the page asked loads: dimmed (finding 132).
+      refreshing: query.isPlaceholderData,
       state:
         query.isPending || pastLast
           ? 'loading'

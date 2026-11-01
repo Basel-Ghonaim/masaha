@@ -9,6 +9,7 @@ import {
   CardTitle,
   CircleCheckIcon,
   EmptyState,
+  Refreshing,
   Skeleton,
   StatCard,
 } from '@shared/design-system';
@@ -114,11 +115,13 @@ export function DebtsTab({
             {owes.range !== null && (
               <p className="text-caption text-muted-foreground">{owes.range}</p>
             )}
-            <ul className="flex flex-col divide-y">
-              {owes.rows.map((debtor) => (
-                <DebtorRow key={debtor.key} debtor={debtor} />
-              ))}
-            </ul>
+            <Refreshing refreshing={owes.refreshing}>
+              <ul className="flex flex-col divide-y">
+                {owes.rows.map((debtor) => (
+                  <DebtorRow key={debtor.key} debtor={debtor} />
+                ))}
+              </ul>
+            </Refreshing>
             {owes.pagination !== null && <ListPagination pagination={owes.pagination} />}
           </>
         )}
@@ -129,23 +132,25 @@ export function DebtsTab({
             <p className="text-body-sm text-muted-foreground">{credit.none}</p>
           ) : (
             <>
-              <ul className="flex flex-col divide-y">
-                {credit.rows.map((row) => (
-                  <li
-                    key={row.key}
-                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-                  >
-                    <Link
-                      to={row.href}
-                      className="text-label underline-offset-4 hover:underline"
-                      dir="auto"
+              <Refreshing refreshing={credit.refreshing}>
+                <ul className="flex flex-col divide-y">
+                  {credit.rows.map((row) => (
+                    <li
+                      key={row.key}
+                      className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                     >
-                      {row.name}
-                    </Link>
-                    <Badge variant="success">{row.amount}</Badge>
-                  </li>
-                ))}
-              </ul>
+                      <Link
+                        to={row.href}
+                        className="text-label underline-offset-4 hover:underline"
+                        dir="auto"
+                      >
+                        {row.name}
+                      </Link>
+                      <Badge variant="success">{row.amount}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </Refreshing>
               {credit.pagination !== null && <ListPagination pagination={credit.pagination} />}
             </>
           )}

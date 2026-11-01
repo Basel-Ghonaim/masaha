@@ -193,6 +193,35 @@ describe('DirectoryList', () => {
     expect(heading).toHaveFocus();
   });
 
+  it('dims the cards shown while the page asked loads, until its answer replaces them', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    let arrive: () => void = () => undefined;
+    renderDirectory('/spaces', (params) =>
+      (params as { page?: number }).page === 2
+        ? new Promise((resolve) => {
+            arrive = () => {
+              resolve(answerFor(params));
+            };
+          })
+        : answerFor(params),
+    );
+    const first = await screen.findByRole('link', { name: 'مساحة 1' });
+    expect(first.closest('[data-refreshing]')).toBeNull();
+
+    await user.click(screen.getByRole('link', { name: 'الصفحة 2' }));
+
+    // Page 1's cards stay, dimmed, so they are not read or pressed as page 2's (finding 132).
+    await waitFor(() => {
+      expect(
+        screen.getByRole('link', { name: 'مساحة 1' }).closest('[data-refreshing]'),
+      ).not.toBeNull();
+    });
+    arrive();
+    const third = await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(third.closest('[data-refreshing]')).toBeNull();
+  });
+
   it('leaves the focus in the search when a search typed on page 2 brings the first page back', async () => {
     startPreferences('ar');
     const user = userEvent.setup();

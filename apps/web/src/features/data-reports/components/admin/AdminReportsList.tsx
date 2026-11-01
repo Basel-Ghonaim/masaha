@@ -136,6 +136,8 @@ export function AdminReportsList({
           <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
         )}
         <DataTable
+          // The rows of the page before stay dimmed while the page asked loads (finding 132).
+          refreshing={list.busy}
           label={list.label}
           cardsBelow="lg"
           columns={columns}

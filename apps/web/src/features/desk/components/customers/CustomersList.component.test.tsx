@@ -6,6 +6,8 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { customerRow, customersPage } from '../../../../test/deskCustomer';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { deferred } from '../../../../test/fakeSession';
 import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -46,6 +48,44 @@ afterEach(() => {
 });
 
 describe('CustomersList', () => {
+  it('dims the rows shown while the page asked loads, until its answer replaces them', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    const second = deferred<FakeAnswer>();
+    fakeTransport((request) =>
+      (request.params as { page?: number } | undefined)?.page === 2
+        ? second.promise
+        : customersPage([SARA, OMAR], 30),
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={['/c']}>
+          <main>
+            <CustomersList
+              spaceId={7}
+              owner
+              fileLink={(id) => `/file/${String(id)}`}
+              subscribe={() => undefined}
+              add={() => undefined}
+            />
+          </main>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const table = await screen.findByRole('table');
+    await within(table).findByText('Sara Khalid');
+    expect(table.querySelector('[data-refreshing]')).toBeNull();
+    await user.click(await screen.findByRole('link', { name: 'Page 2' }));
+
+    // Page 1's rows stay, dimmed, so they are not read or pressed as page 2's (finding 132).
+    expect(within(table).getByText('Sara Khalid')).toBeInTheDocument();
+    expect(table.querySelector('tbody[data-refreshing]')).not.toBeNull();
+    second.resolve(customersPage([customerRow({ id: 9, name: 'Huda' })], 30));
+    expect(await within(table).findByText('Huda')).toBeInTheDocument();
+    expect(table.querySelector('[data-refreshing]')).toBeNull();
+  });
+
   it('shows five columns from 768 px, the name a link to the file; its filters inline; axe-clean at 1440', async () => {
     stubScreenWidth(1440);
     const { container } = renderList('/c?kind=CUSTOM');

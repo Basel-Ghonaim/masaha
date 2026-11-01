@@ -152,6 +152,8 @@ export function useDebtsTab(
     owes: {
       title: words.owes.title,
       description: words.owes.description,
+      // The page before's rows, kept while the page asked loads: dimmed (finding 132).
+      refreshing: owes.isPlaceholderData,
       rows: owes.data.data.map(owesRow),
       empty: words.owes.empty,
       range: rangeSummary(owes.data.meta, { range: copy.forms.listRange }),
@@ -166,6 +168,7 @@ export function useDebtsTab(
     credit: {
       title: words.credit.title,
       description: words.credit.description,
+      refreshing: credit.isPlaceholderData,
       rows: credit.data.data.map((row) => ({
         key: String(row.customer.id),
         name: row.customer.name,

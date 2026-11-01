@@ -7,6 +7,7 @@ import {
   CardContent,
   CircleCheckIcon,
   EmptyState,
+  Refreshing,
   Skeleton,
   WifiOffIcon,
 } from '@shared/design-system';
@@ -138,17 +139,19 @@ export function WrittenOffVisits({
     </CardContent>
   ) : (
     <>
-      <ul aria-busy={list.busy || undefined} className="flex flex-col divide-y">
-        {list.rows.map((row) => (
-          <WrittenOffRow
-            key={row.key}
-            spaceId={spaceId}
-            row={row}
-            fileLink={fileLink}
-            left={left}
-          />
-        ))}
-      </ul>
+      <Refreshing refreshing={list.busy}>
+        <ul aria-busy={list.busy || undefined} className="flex flex-col divide-y">
+          {list.rows.map((row) => (
+            <WrittenOffRow
+              key={row.key}
+              spaceId={spaceId}
+              row={row}
+              fileLink={fileLink}
+              left={left}
+            />
+          ))}
+        </ul>
+      </Refreshing>
       {list.pagination !== null && (
         <CardContent>
           <ListPagination pagination={list.pagination} />

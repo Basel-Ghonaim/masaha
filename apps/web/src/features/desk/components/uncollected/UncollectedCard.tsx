@@ -10,6 +10,7 @@ import {
   CardTitle,
   CircleCheckIcon,
   EmptyState,
+  Refreshing,
   Skeleton,
   ToggleGroup,
   ToggleGroupItem,
@@ -174,11 +175,17 @@ export function UncollectedCard({
             </CardContent>
           ) : (
             <>
-              <ul id={listId} aria-busy={card.busy || undefined} className="flex flex-col divide-y">
-                {card.rows.map((row) => (
-                  <UncollectedRow key={row.key} row={row} opened={opened} fileLink={fileLink} />
-                ))}
-              </ul>
+              <Refreshing refreshing={card.busy}>
+                <ul
+                  id={listId}
+                  aria-busy={card.busy || undefined}
+                  className="flex flex-col divide-y"
+                >
+                  {card.rows.map((row) => (
+                    <UncollectedRow key={row.key} row={row} opened={opened} fileLink={fileLink} />
+                  ))}
+                </ul>
+              </Refreshing>
               {(card.toggle !== null || card.pagination !== null) && (
                 <CardContent>
                   {card.pagination !== null && <ListPagination pagination={card.pagination} />}

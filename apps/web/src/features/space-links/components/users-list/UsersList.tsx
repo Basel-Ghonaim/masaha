@@ -126,6 +126,8 @@ export function UsersList({
       onFocus={onFocus}
     >
       <DataTable
+        // The rows of the page before stay dimmed while the page asked loads (finding 132).
+        refreshing={list.busy}
         label={list.label}
         columns={columns}
         data={list.rows}

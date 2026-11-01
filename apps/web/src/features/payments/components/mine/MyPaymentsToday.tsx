@@ -112,6 +112,8 @@ export function MyPaymentsToday({ spaceId }: { spaceId: number }) {
           <p className="text-body-sm text-muted-foreground">{mine.refreshFailure}</p>
         )}
         <DataTable
+          // The rows of the page before stay dimmed while the page asked loads (finding 132).
+          refreshing={mine.busy}
           label={mine.label}
           columns={columns}
           data={mine.rows}

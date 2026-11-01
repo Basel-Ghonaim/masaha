@@ -7,6 +7,7 @@ import {
   Button,
   EmptyState,
   MegaphoneIcon,
+  Refreshing,
   Skeleton,
   Tabs,
   TabsContent,
@@ -146,22 +147,24 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
           className="flex flex-col gap-4"
         >
           {list.state === 'ready' ? (
-            <ul className="flex flex-col gap-4">
-              {list.cards.map((card) => (
-                <li key={card.key} data-card-key={card.key}>
-                  <AnnouncementCard
-                    spaceId={spaceId}
-                    card={card}
-                    open={open}
-                    openDialog={openDialog}
-                    showTab={list.choose}
-                    onGone={() => {
-                      leave(card.key);
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
+            <Refreshing refreshing={list.busy}>
+              <ul className="flex flex-col gap-4">
+                {list.cards.map((card) => (
+                  <li key={card.key} data-card-key={card.key}>
+                    <AnnouncementCard
+                      spaceId={spaceId}
+                      card={card}
+                      open={open}
+                      openDialog={openDialog}
+                      showTab={list.choose}
+                      onGone={() => {
+                        leave(card.key);
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Refreshing>
           ) : (
             <ListState list={list} open={open} />
           )}
