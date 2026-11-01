@@ -1,7 +1,7 @@
 # Spaces
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes. Reception's web screens remain planned.
+> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -17,7 +17,6 @@ The managed API lets an active owner read and edit the profile and facts, confir
 manage photos; reception can read the complete space and photo response but cannot mutate it.
 It reuses the admin services and shapes. On the web, the owner edits their space in the same
 editor, on the dashboard's «ملف المساحة» page; its prices lead to Packages & prices, where the owner edits and confirms them.
-Reception's web screens remain planned.
 
 ## Who uses it
 
