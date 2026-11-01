@@ -369,6 +369,8 @@ Drafted here; its full contract is written in its plan step. It comes right afte
 
 **Out of scope:** the scheduler's endpoint, object storage and the email sender online. Each is built by the slice that first needs it, within ADR 0014.
 
+**Built** (2026-11-01, #133), with the endpoint, the storage and the sender those slices built: [setup › The deployment](../development/setup.md#the-deployment). By the owner's decision, production deploys from `main` only and there are **no previews**: a preview would need a database of its own, and Google sign-in and the CORS origin each hold one fixed address; a Neon branch per preview can be revisited. The acceptance's checks at the public address are the runbook's first checks.
+
 ## 6. Risks
 
 | Risk | Mitigation |

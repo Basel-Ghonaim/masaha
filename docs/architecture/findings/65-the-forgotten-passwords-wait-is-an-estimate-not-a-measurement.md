@@ -7,3 +7,5 @@
 **Resolves when:** the send is timed on the deployment, and `NO_SEND_WAIT` (the auth module) is set from that measurement.
 
 **To the deployment item** (the owner's F1, 2026-10-29).
+
+**2026-11-01, #133:** measured after the deployment, not before it: the runbook's first checks say how ([setup › The first checks](../../development/setup.md#the-first-checks)).

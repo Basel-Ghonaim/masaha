@@ -81,7 +81,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
 - [workflow.md](development/workflow.md) — how work is executed, including what to read, two workers in parallel and the AI tooling · read it at the start of every Work Item.
 - [engineering-principles.md](development/engineering-principles.md) — code-design rules · read it when your task changes code.
 - [testing.md](development/testing.md) — where each behaviour is proven · read it when your task changes code or its tests.
-- [setup.md](development/setup.md) — install, run, check and test locally; what CI runs · read it when you set up, run or check the project, or change CI.
+- [setup.md](development/setup.md) — install, run, check and test locally; what CI runs; the deployment and its runbook · read it when you set up, run or check the project, change CI, or change what runs online.
 - [`.claude/skills/`](../.claude/skills/) — runbooks for the procedures every Work Item repeats; they own no facts and link to the documents that do · used when their step comes.
 
 ### Deferred documents
