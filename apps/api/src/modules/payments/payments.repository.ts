@@ -121,7 +121,8 @@ function balancesOf(
     FROM subscription_usage(${spaceId}, NULL::integer, ${today}::date, ${weekStart}::date) u
     JOIN subscriptions s ON s.id = u.subscription_id
     LEFT JOIN LATERAL (
-      SELECT sum(amount_agorot)::integer AS paid FROM payments
+      -- A usage-based subscription may be paid past its due, so past integer (as its due is).
+      SELECT sum(amount_agorot)::bigint AS paid FROM payments
       WHERE subscription_id = u.subscription_id AND voided_at IS NULL
     ) p ON true
     ${customerIds ? Prisma.sql`WHERE u.customer_id = ANY(${[...customerIds]}::integer[])` : Prisma.empty}
@@ -477,7 +478,8 @@ export function createPaymentsRepository() {
           id: number;
           /** `bigint` for a subscription, as `subscription_usage` answers it. */
           due: bigint | number | null;
-          paid: number;
+          /** `bigint`, as the subscriptions' paid sum is (the union's type). */
+          paid: bigint | number;
           created_at: Date;
         }[]
       >`
@@ -488,7 +490,7 @@ export function createPaymentsRepository() {
         kind,
         id,
         dueAgorot: due === null ? null : Number(due),
-        paidAgorot: paid,
+        paidAgorot: Number(paid),
         createdAt: created_at,
       }));
     },

@@ -396,6 +396,36 @@ describe('the customers list', () => {
       subscriptions: [{ dueAgorot: 2_150_000_000, balanceAgorot: 2_150_000_000 }],
     });
   });
+
+  it("the list and the file answer a subscription whose paid sum is past the integer's range", async () => {
+    // The same due, paid in full: 215 payments at the payment's bound, 2,150,000,000 agorot paid.
+    const dana = await createCustomer(spaceId, { name: 'Dana' });
+    const perDay = await createSubscription(dana, { billing: 'PER_DAY', priceAgorot: 10_000_000 });
+    await prisma.$executeRaw`
+      INSERT INTO check_ins (space_id, customer_id, subscription_id, request_id, checked_in_at,
+                             checked_out_at, checkout_method, updated_at)
+      SELECT ${spaceId}, ${dana.id}, ${perDay.id}, gen_random_uuid(),
+             '2026-01-01T09:00:00+02:00'::timestamptz + n * interval '1 day',
+             '2026-01-01T10:00:00+02:00'::timestamptz + n * interval '1 day', 'MANUAL', now()
+      FROM generate_series(0, 214) n`;
+    await prisma.$executeRaw`
+      INSERT INTO payments (space_id, subscription_id, request_id, amount_agorot, method, recorded_by_id)
+      SELECT ${spaceId}, ${perDay.id}, gen_random_uuid(), 10000000, 'CASH', ${owner.id}
+      FROM generate_series(1, 215)`;
+
+    const page = await list(owner);
+    expect(page.status).toBe(200);
+    expect(dataOf(page)).toMatchObject([{ name: 'Dana', debtAgorot: 0 }]);
+    expect(total(await list(owner, '?payment=OWES'))).toBe(0);
+    const file = await request(app)
+      .get(`/api/v1/manage/spaces/${String(spaceId)}/customers/${String(dana.id)}`)
+      .set('Authorization', owner.authorization);
+    expect(file.status).toBe(200);
+    expect(dataOf(file)).toMatchObject({
+      debtAgorot: 0,
+      subscriptions: [{ dueAgorot: 2_150_000_000, paidAgorot: 2_150_000_000, balanceAgorot: 0 }],
+    });
+  });
 });
 
 /** A customer as a row shows them. */
