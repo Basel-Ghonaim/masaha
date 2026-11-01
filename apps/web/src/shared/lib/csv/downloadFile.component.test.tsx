@@ -2,11 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { downloadFile } from './downloadFile';
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
 describe('downloadFile', () => {
-  it('saves the text as a UTF-8 CSV under its name, and lets its address go', async () => {
+  it('saves the text as a UTF-8 CSV under its name, and lets its address go after the click', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
     const created: Blob[] = [];
     vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
       created.push(blob as Blob);
@@ -29,6 +31,9 @@ describe('downloadFile', () => {
     // The byte order mark is kept in the file (Blob.text() would drop it while reading).
     const bytes = new Uint8Array((await created[0]?.arrayBuffer()) ?? new ArrayBuffer(0));
     expect([...bytes]).toEqual([0xef, 0xbb, 0xbf, 0x61, 0x2c, 0x62]);
+    // Not in the click's own tick: a browser may begin the save after it (Safari, older Firefox).
+    expect(revoke).not.toHaveBeenCalled();
+    vi.runAllTimers();
     expect(revoke).toHaveBeenCalledWith('blob:masaha/1');
     expect(document.querySelector('a[download]')).toBeNull();
   });
