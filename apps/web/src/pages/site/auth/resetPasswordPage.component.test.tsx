@@ -116,6 +116,23 @@ describe('the reset password page', () => {
     );
   });
 
+  it('marks the recovery done once the password is set, and not before', async () => {
+    localStorage.removeItem('masaha.recoveredAt');
+    renderSite('/reset-password', (config) =>
+      config.method === 'get' ? ok(PASSWORD) : { status: 204 },
+    );
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('New password'), 'gaza2026x');
+    expect(localStorage.getItem('masaha.recoveredAt')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Save password' }));
+
+    await screen.findByRole('link', { name: 'Sign in' });
+    // The sign-in after it is the recovery's round trip: a guest's held action may run (168).
+    expect(Number(localStorage.getItem('masaha.recoveredAt'))).toBeGreaterThan(0);
+    localStorage.removeItem('masaha.recoveredAt');
+  });
+
   it('offers the way back to sign in until the password is set', async () => {
     renderSite('/reset-password#token=link-token', () => ok(PASSWORD));
     const main = within(await screen.findByRole('main'));

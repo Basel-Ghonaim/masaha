@@ -13,6 +13,11 @@ export const STORAGE_KEYS = {
    * after its sign-in (finding 168; shared/routing's guest/heldIntent.ts).
    */
   heldIntent: 'masaha.heldIntent',
+  /**
+   * When a password reset was completed in this browser, for 10 minutes: the sign-in after it may run
+   * the held intent (shared/routing's guest/heldIntent.ts).
+   */
+  recoveredAt: 'masaha.recoveredAt',
 } as const;
 
 type Keys = typeof STORAGE_KEYS;

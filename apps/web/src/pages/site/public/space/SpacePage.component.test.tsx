@@ -1,4 +1,4 @@
-import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
+import { DocumentTitle, noteRecoveryDone, RecordTitleProvider } from '@shared/routing';
 import { establishSession, restoreSession } from '@shared/session';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -183,6 +183,8 @@ describe('a space’s page', () => {
         at: Date.now(),
       }),
     );
+    // The reset page marked the password set: this sign-in is the recovery's round trip.
+    noteRecoveryDone();
 
     await act(async () => {
       establishSession(aSession(), { source: 'signIn' });
@@ -195,6 +197,32 @@ describe('a space’s page', () => {
     expect(localStorage.getItem('masaha.heldIntent')).toBeNull();
     // Closed, it lets the report go.
     await userEvent.click(within(dialog).getByRole('button', { name: 'Back' }));
+  });
+
+  it('runs no report held in another tab for a sign-in here that follows no recovery', async () => {
+    stubScreenWidth(1440);
+    await becomeGuest();
+    const { router } = await renderSpacePage({}, '/about');
+    await screen.findByRole('heading', { level: 1, name: 'About Masaha' });
+    // Another person's tab held it on this shared computer; this sign-in is not its round trip.
+    localStorage.setItem(
+      'masaha.heldIntent',
+      JSON.stringify({
+        kind: 'report',
+        slug: 'noor-hub',
+        path: '/spaces/noor-hub',
+        at: Date.now(),
+      }),
+    );
+
+    await act(async () => {
+      establishSession(aSession(), { source: 'signIn' });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/about');
+    expect(localStorage.getItem('masaha.heldIntent')).toBeNull();
   });
 
   it('runs no report held in another tab when the session is only restored', async () => {

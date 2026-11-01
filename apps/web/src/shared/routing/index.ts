@@ -12,6 +12,7 @@ export { noteSitePage, onGuestLeaving, sitePage } from './guest/guestLeaving';
 export {
   dropHeldIntent,
   holdIntent,
+  noteRecoveryDone,
   onIntentConfirmed,
   takeIntentPath,
   type HeldIntent,

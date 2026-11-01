@@ -6,4 +6,4 @@
 
 **Resolves when:** the held action survives a new page without travelling in the address (a short-lived, same-origin store the session confirms), or the owner accepts pressing again as enough.
 
-**Resolution (#132):** The held action is kept 15 minutes in the browser's storage and run only after a sign-in (D9.6).
+**Resolution (#132):** The held action is kept 15 minutes in the browser's storage and run only by the sign-in of the round trip it serves (D9.6): one in the tab that held it, or one that follows a password reset completed in this browser, which the reset page marks for 10 minutes. Any other sign-in — another tab's unrelated one, a later visit's — lets it go without running it, so it never fires into another account on a shared computer (the supervisor's decision on #132's review, R14-F3, 2026-11-01; [architecture §4](../../frontend/architecture.md#4-session-and-preferences)).

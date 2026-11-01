@@ -21,6 +21,12 @@ export type HeldAction =
 /** How long a held action waits for its sign-in: the round trip it serves, no more (S14). */
 export const HELD_INTENT_MS = 15 * 60 * 1000;
 
+/**
+ * How long a password reset completed in this browser lets the sign-in after it confirm the stored
+ * intent: the recovery's round trip, the reset card's «تسجيل الدخول» just after it (R14-F3).
+ */
+export const RECOVERY_ROUND_TRIP_MS = 10 * 60 * 1000;
+
 type Runner = (intent: HeldIntent) => void;
 
 // Each kind's runner, which the feature that holds it registers; and the intent a sign-in confirmed
@@ -29,6 +35,8 @@ const runners = new Map<HeldIntent['kind'], Runner>();
 let confirmed: HeldIntent | null = null;
 // Where the app goes once a sign-in confirmed an intent, until the site's shell has gone there.
 let returnTo: string | null = null;
+// Whether this tab held the stored intent: a sign-in here is the round trip it serves.
+let heldHere = false;
 
 function isName(value: unknown): value is HeldName {
   return (
@@ -51,6 +59,14 @@ function isIntent(value: unknown): value is HeldIntent {
   return intent.kind === 'report' && typeof intent.slug === 'string';
 }
 
+/** Whether a password reset was completed in this browser just before; the mark is removed as read. */
+function takeRecovery(now: number): boolean {
+  const raw = storage.read(STORAGE_KEYS.recoveredAt);
+  storage.remove(STORAGE_KEYS.recoveredAt);
+  const at = Number(raw);
+  return raw !== null && Number.isFinite(at) && at <= now && now - at <= RECOVERY_ROUND_TRIP_MS;
+}
+
 /** The stored intent, when it is one and within its life; it is removed as it is read. */
 function takeStored(now: number): HeldIntent | null {
   const raw = storage.read(STORAGE_KEYS.heldIntent);
@@ -71,12 +87,23 @@ function takeStored(now: number): HeldIntent | null {
  * password recovery's new tab can still run it once its sign-in confirms it: never in the address.
  */
 export function holdIntent(action: HeldAction): void {
+  heldHere = true;
   storage.write(STORAGE_KEYS.heldIntent, JSON.stringify({ ...action, at: Date.now() }));
+}
+
+/**
+ * Marks a password reset completed in this browser (the reset page, once the password is set): the
+ * sign-in that follows it, in whichever tab, is the recovery's round trip, and may run the stored
+ * intent (finding 168). Short-lived, and let go by the next sign-in.
+ */
+export function noteRecoveryDone(): void {
+  storage.write(STORAGE_KEYS.recoveredAt, String(Date.now()));
 }
 
 /** Lets the held action go: the guest closed the sign-in, left its page, or signed out. */
 export function dropHeldIntent(): void {
   storage.remove(STORAGE_KEYS.heldIntent);
+  heldHere = false;
   confirmed = null;
   returnTo = null;
 }
@@ -100,12 +127,18 @@ export function takeIntentPath(): string | null {
   return path;
 }
 
-// Only a sign-in in this browser confirms the stored intent (D9.6): a restore or a refresh never
-// runs it. A sign-out lets it go.
+// Only the round trip it serves confirms the stored intent (D9.6, R14-F3): a sign-in in the tab that
+// held it, or the sign-in after a password reset completed in this browser. Any other sign-in — an
+// unrelated one in another tab, a later visit's — lets it go without running it; a restore or a
+// refresh never runs it. A sign-out lets it go.
 onSessionEstablished((_session, { source }) => {
   if (source !== 'signIn') return;
-  const intent = takeStored(Date.now());
-  if (intent === null) return;
+  const now = Date.now();
+  const here = heldHere;
+  heldHere = false;
+  const recovered = takeRecovery(now);
+  const intent = takeStored(now);
+  if (intent === null || !(here || recovered)) return;
   returnTo = intent.path;
   const run = runners.get(intent.kind);
   if (run === undefined) confirmed = intent;

@@ -15,6 +15,8 @@ export type ResetPasswordCardProps = {
   signInLink: ReactNode;
   /** Back to sign in, at the card's foot, until the password is set (C4). */
   backLink: ReactNode;
+  /** Hears the password set, once the server has set it: the page's to act on. */
+  onPasswordSet?: () => void;
 };
 
 /**
@@ -26,6 +28,7 @@ export function ResetPasswordCard({
   requestLinkLink,
   signInLink,
   backLink,
+  onPasswordSet,
 }: ResetPasswordCardProps) {
   const copy = useCopy();
   const words = copy.auth.resetPassword;
@@ -55,7 +58,12 @@ export function ResetPasswordCard({
         <>
           <StepHeader title={words.title} description={view.forAccount} />
           <CardContent>
-            <ResetPasswordForm saved={view.saved} />
+            <ResetPasswordForm
+              saved={() => {
+                view.saved();
+                onPasswordSet?.();
+              }}
+            />
           </CardContent>
         </>
       )}
