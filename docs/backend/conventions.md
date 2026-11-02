@@ -326,6 +326,8 @@ Masaha runs on Gaza time (`Asia/Gaza`). Built: the clock (below), wired since F-
 The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
 
 - **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs, and it calls `createAppFromEnv`, the one mapping from the validated environment to the ports (the email mode, the storage, Google, the cookies, the trusted proxies). No module, rule or path changes between them.
+  - **Locally, `server.ts`:** it checks the database, starts the jobs' timer, listens, and shuts down on a signal.
+  - **Online, `function.ts`:** Vercel's one function (the root `api/index.js` re-exports its build) answers every `/api/*` path with the same app. It validates the environment once per instance, and on an invalid one answers every request `server` (500), the variables named in the log and never their values. It starts no timer, never listens or exits, handles no signal, and checks no database at load: `/health` does (2026-11-01, #133).
 - **The ports take a different implementation per environment.** Nothing else does.
 
   | Port | Locally | Online |
@@ -333,7 +335,7 @@ The application runs in two environments: a long-running server locally, and a f
   | Storage | the local disk under `apps/api/.storage/`, its files served by the API itself at `/api/v1/files/…`, so they reach the web through its proxy at one origin | Cloudinary's free plan, as a plain store: files uploaded as they are and delivered as they were, with no transformation, under a folder per environment (`masaha/<NODE_ENV>/`). Production refuses the local disk. Tests pass the local disk in a temporary folder |
   | Google identity | Google's published keys, when `GOOGLE_CLIENT_ID` is set | the same. Tests inject a fake |
   | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: through an SMTP relay ([security.md](security.md#passwords)) |
-  | Scheduler | an in-process timer started by `server.ts`: the same jobs every 5 minutes, the first 10 s after start | `POST /api/v1/internal/jobs/run`, behind `JOBS_SECRET` ([api-contract › Internal](../api/api-contract.md#internal)), which an external cron calls every 5 minutes |
+  | Scheduler | an in-process timer started by `server.ts`: the same jobs every 5 minutes, the first 10 s after start | `POST /api/v1/internal/jobs/run`, behind `JOBS_SECRET` ([api-contract › Internal](../api/api-contract.md#internal)), which an external cron calls every 15 minutes, so the free database sleeps between calls ([finding 213](../architecture/findings/213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md); 2026-11-01, #133) |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
   | Timer | `setTimeout` | the same. Tests inject one that records and waits no real time (§11) |
 - **The storage port is bytes by key** (`shared/storage`): a key's extension names its type, and a URL is built from the key at read time, never stored. It also lists the files under a prefix with when each was stored (`list`): the local disk by walking its folder (each file's last write), Cloudinary by its Admin API's listing of the environment's folder, page by page, with the key and the secret (2026-10-29, #132). A new kind of file is a new consumer of the port, with its own content check; a new provider is a new adapter behind the same port.

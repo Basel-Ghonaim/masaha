@@ -35,6 +35,12 @@
         root.dir = language === 'ar' ? 'rtl' : 'ltr';
       })(window, document);
     </script>
+    <script>
+      // Before any module: the schemas' library, zod, reads its settings from this global, and
+      // jitless it never probes for eval, which the site's Content-Security-Policy refuses and would
+      // report on every page (docs/development/setup.md, The deployment).
+      globalThis.__zod_globalConfig = { jitless: true };
+    </script>
     <link rel="stylesheet" href="/src/shared/design-system/tokens/tailwind.css" />
   </head>
   <body>

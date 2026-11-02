@@ -1,0 +1,37 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "NODE_ENV=production npm run build && node apps/api/scripts/migrateOnDeploy.ts",
+  "outputDirectory": "apps/web/dist",
+  "regions": ["fra1"],
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/((?!api/).*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'sha256-dy6NDMUPHxzM7v6Q6+dcqVVieSYsVYsvW6OAgGvMQlE=' 'sha256-huEnvwR8Sry4SZ7qhQC0MA5H+TDMvdQ/tzaA1HwU1/c=' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://tile.openstreetmap.org https://res.cloudinary.com; font-src 'self' data:; connect-src 'self' https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}

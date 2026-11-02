@@ -7,3 +7,5 @@
 **Resolves when:** a retention rule is decided and built — for example, the desk's entries (visits, check-ins, payments) older than two years summarised or dropped, the platform's and the money's decisions kept — or the database's limit is raised and the cost accepted, and either is stated in the data model.
 
 **To the deployment item** (the owner's F1, 2026-10-29).
+
+**2026-11-01, #133:** measured after the deployment, not before it: the runbook's first checks say how ([setup › The first checks](../../development/setup.md#the-first-checks)).

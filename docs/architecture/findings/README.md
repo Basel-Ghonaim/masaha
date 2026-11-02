@@ -14,9 +14,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 ## Open
 
 - [23. No per-address ceiling for signed-in requests](23-no-per-address-ceiling-for-signed-in-requests.md)
-- [33. The deployment's headers must let Google's sign-in work](33-the-deployments-headers-must-let-googles-sign-in-work.md)
-- [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
-- [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
 
@@ -62,6 +59,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [29. Two folders cannot each run the web against their own API](29-two-folders-cannot-each-run-the-web-against-their-own-api.md)
 - [31. The backend documents still call for injecting a repository only tests pass](31-the-backend-documents-still-call-for-injecting-a-repository-only-tests-pass.md)
 - [32. The Google sign-in answer does not say whether it created the account](32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md)
+- [33. The deployment's headers must let Google's sign-in work](33-the-deployments-headers-must-let-googles-sign-in-work.md)
 - [34. Passwords stay in the mutation cache after a sign-in, a registration or a password change](34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)
 - [35. The web sets no document title](35-the-web-sets-no-document-title.md)
 - [36. A new space's empty fact groups count as fresh](36-a-new-spaces-empty-fact-groups-count-as-fresh.md)
@@ -74,6 +72,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
 - [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)
+- [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 - [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
@@ -84,6 +83,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
+- [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
 - [69. The owners endpoint refuses a deleted space with a code the contract does not name](69-the-owners-endpoint-refuses-a-deleted-space-with-a-code-the-contract-does-not-name.md)
 - [73. The gallery's per-tile progress has no component in the layer](73-the-gallerys-per-tile-progress-has-no-component-in-the-layer.md)
@@ -158,3 +158,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
 - [204. A CSV built in the browser keeps a value that reads as a formula](204-a-csv-built-in-the-browser-keeps-a-value-that-reads-as-a-formula.md)
 - [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
+- [213. A cron every 5 minutes keeps Neon's free database awake all month](213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)

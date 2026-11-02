@@ -7,3 +7,5 @@
 **Resolves when:** F-7 sizes a per-address ceiling for signed-in requests against the deployment's real limits, or records why it is not needed.
 
 **To the deployment item** (the owner's F1, 2026-10-29).
+
+**2026-11-01, #133:** measured after the deployment, not before it: the runbook's first checks say how ([setup › The first checks](../../development/setup.md#the-first-checks)).
