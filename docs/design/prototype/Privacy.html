@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سياسة الخصوصية — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge, CircleCheckIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+
+function PrivacyScreen() {
+  const [theme, setTheme] = useTheme();
+  const c = M.platformContact;
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="privacy" theme={theme} setTheme={setTheme} />
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-14 px-4 py-10 md:px-8 md:py-16">
+        <section className="flex flex-col gap-4">
+          <h1 className="text-heading-1">{tr("سياسة الخصوصية", "Privacy Policy")}</h1>
+          <p className="text-body text-muted-foreground">{tr("آخر تحديث: 2026-11-04", "Last updated: 2026-11-04")}</p>
+        </section>
+
+        <section aria-labelledby="intro" className="flex flex-col gap-4">
+          <h2 id="intro" className="text-heading-2">{tr("مقدمة", "Introduction")}</h2>
+          <p className="text-body">{tr("مساحة منصة تجمع مساحات العمل في قطاع غزة في دليل واحد، وتساعد أصحابها على إدارتها. نحترم خصوصيتك، ونجمع أقل ما نحتاجه لتعمل المنصة. توضح هذه الصفحة ما نجمعه، ولماذا، ومن يراه، وكيف نحميه.", "Masaha brings the coworking spaces of the Gaza Strip together in one directory, and helps their owners run them. We respect your privacy and collect only what the platform needs to work. This page explains what we collect, why, who sees it, and how we protect it.")}</p>
+        </section>
+
+        <section aria-labelledby="collect" className="flex flex-col gap-4">
+          <h2 id="collect" className="text-heading-2">{tr("البيانات التي نجمعها", "What we collect")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li><strong>{tr("عند إنشاء حساب:", "When you create an account:")}</strong> {tr("اسمك، وبريدك الإلكتروني، وكلمة المرور، ولغة الواجهة التي تختارها. لا نحفظ كلمة المرور كما هي أبدًا، بل نحفظها مشفّرة بطريقة لا يمكن عكسها.", "your name, your email address, your password, and the interface language you choose. We never store your password as it is: we store it encrypted in a way that cannot be reversed.")}</li>
+            <li><strong>{tr("عند الدخول بحساب Google:", "When you sign in with Google:")}</strong> {tr("نتلقى من Google اسمك وبريدك ومعرّف حسابك فقط. لا نصل إلى كلمة مرورك في Google، ولا إلى أي بيانات أخرى في حسابك.", "Google gives us only your name, your email and your Google account ID. We never see your Google password or any other data in your account.")}</li>
+            <li><strong>{tr("ما تضيفه بنفسك:", "What you add yourself:")}</strong> {tr("المساحات التي تحفظها في المفضّلة، والبلاغات التي ترسلها عن معلومات مساحة، والردود عليها.", "the spaces you save to your favourites, the reports you send about a space's information, and the replies to them.")}</li>
+            <li><strong>{tr("لأصحاب المساحات وموظفيهم:", "For space owners and their staff:")}</strong> {tr("معلومات المساحة وصورها، وما يسجّلونه عن زبائنهم: الاسم، ورقم الجوال، والزيارات، والاشتراكات، والدفعات. تحفظ مساحة هذه البيانات نيابةً عن المساحة، ولا يراها إلا طاقمها.", "the space's information and photos, and what they record about their customers: name, mobile number, visits, subscriptions and payments. Masaha keeps this data on the space's behalf, and only its staff can see it.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="dont-collect" className="flex flex-col gap-4">
+          <h2 id="dont-collect" className="text-heading-2">{tr("ما لا نجمعه", "What we don't collect")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li><strong>{tr("موقعك الجغرافي لا يُحفظ:", "Your location is never stored:")}</strong> {tr("عند استخدام «الأقرب إليّ» يُقرَّب موقعك على جهازك (إلى نحو 100 متر)، ويُرسَل فقط لترتيب المساحات حسب المسافة، ثم لا يُحفظ ولا يُسجَّل.", "when you use \"Nearest to me\", your location is rounded on your device (to about 100 metres) and sent only to sort spaces by distance; it is never stored or logged.")}</li>
+            <li><strong>{tr("لا بيانات دفع:", "No payment data:")}</strong> {tr("لا يوجد دفع إلكتروني في مساحة في الوقت الحالي، ولا نطلب بطاقة بنكية أبدًا. الدفعات تُسجَّل يدويًا لدى المساحة.", "Masaha has no online payment at present, and we never ask for a bank card. Payments are recorded by hand at the space.")}</li>
+            <li><strong>{tr("لا تتبّع ولا إعلانات:", "No tracking, no ads:")}</strong> {tr("لا نستخدم أدوات تحليل أو تتبّع أو إعلانات من أي طرف ثالث.", "we use no third-party analytics, tracking or advertising tools.")}</li>
+            <li><strong>{tr("الصور بلا بيانات مخفية:", "Photos without hidden data:")}</strong> {tr("قبل حفظ أي صورة نزيل منها كل البيانات المخفية، مثل موقع التصوير ونوع الكاميرا.", "before a photo is stored, we remove all its hidden data, such as where it was taken and the camera used.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="use" className="flex flex-col gap-4">
+          <h2 id="use" className="text-heading-2">{tr("كيف نستخدم بياناتك", "How we use your data")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li>{tr("لتشغيل حسابك وإبقائك مسجّلًا للدخول.", "To run your account and keep you signed in.")}</li>
+            <li>{tr("لعرض دليل المساحات، وحفظ مفضّلتك، ومتابعة بلاغاتك.", "To show the directory of spaces, keep your favourites and follow your reports.")}</li>
+            <li>{tr("لتشغيل لوحة التحكم لأصحاب المساحات وموظفيهم.", "To run the dashboard for space owners and their staff.")}</li>
+            <li>{tr("لإرسال رابط استعادة كلمة المرور إلى بريدك عندما تطلبه.", "To email you a password reset link when you ask for one.")}</li>
+            <li>{tr("لحماية الحسابات من محاولات الدخول المتكررة.", "To protect accounts from repeated sign-in attempts.")}</li>
+          </ul>
+          <p className="text-body text-muted-foreground">{tr("لا نبيع بياناتك، ولا نشاركها مع أي جهة لأغراض تسويقية.", "We do not sell your data, and we do not share it with anyone for marketing.")}</p>
+        </section>
+
+        <section aria-labelledby="cookies" className="flex flex-col gap-4">
+          <h2 id="cookies" className="text-heading-2">{tr("ملفات تعريف الارتباط (Cookies) والتخزين في المتصفح", "Cookies and browser storage")}</h2>
+          <p className="text-body">{tr("نستخدم ملفات تعريف ارتباط ضرورية فقط، لإبقائك مسجّلًا للدخول بأمان. ويحفظ متصفحك بعض تفضيلاتك، مثل اللغة والمظهر (فاتح أو داكن). لا نستخدم أي ملفات تعريف ارتباط للتتبّع أو الإعلانات.", "We use only the cookies needed to keep you signed in securely. Your browser also keeps some of your preferences, such as the language and the appearance (light or dark). We use no cookies for tracking or advertising.")}</p>
+        </section>
+
+        <section aria-labelledby="who-sees" className="flex flex-col gap-4">
+          <h2 id="who-sees" className="text-heading-2">{tr("من يرى بياناتك", "Who sees your data")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li><strong>{tr("أنت:", "You:")}</strong> {tr("ترى بيانات حسابك ومفضّلتك وبلاغاتك.", "you see your account, your favourites and your reports.")}</li>
+            <li><strong>{tr("طاقم المساحة:", "A space's staff:")}</strong> {tr("يرى صاحب المساحة وموظفوه ما يخص مساحتهم فقط، ولا يرون شيئًا عن مساحات أخرى.", "a space's owner and staff see only what belongs to their space, and nothing about other spaces.")}</li>
+            <li><strong>{tr("البلاغات:", "Reports:")}</strong> {tr("يصل بلاغك عن مساحة إلى صاحبها ", "your report about a space reaches its owner ")}<strong>{tr("دون اسمك", "without your name")}</strong>{tr(".", ".")}</li>
+            <li><strong>{tr("فريق مساحة:", "The Masaha team:")}</strong> {tr("لإدارة المنصة والرد على البلاغات وتقديم الدعم.", "to run the platform, answer reports and give support.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="protect" className="flex flex-col gap-4">
+          <h2 id="protect" className="text-heading-2">{tr("كيف نحمي بياناتك", "How we protect your data")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li>{tr("كلمات المرور مشفّرة، ولا يطّلع عليها أحد، ولا حتى فريقنا.", "Passwords are encrypted, and no one can read them, not even our team.")}</li>
+            <li>{tr("صلاحيات كل مستخدم تُفحص على الخادم في كل طلب.", "Every user's permissions are checked on the server, on every request.")}</li>
+            <li>{tr("تنتهي جلسة الدخول تلقائيًا بعد مدة محددة، وتنتهي جلسة موظف الاستقبال بعد فترة دون استخدام.", "Your session ends automatically after a set period, and a reception session ends after a period without use.")}</li>
+            <li>{tr("نحدّ من محاولات الدخول المتكررة، ونستخدم عنوان الشبكة (IP) لهذا الغرض مؤقتًا فقط.", "We limit repeated sign-in attempts, and use your network address (IP) for this purpose only, and only temporarily.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="retention" className="flex flex-col gap-4">
+          <h2 id="retention" className="text-heading-2">{tr("مدة الاحتفاظ بالبيانات", "How long we keep data")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li>{tr("يبقى حسابك ما دام فعّالًا. عند طلب إيقافه، ", "Your account stays as long as it is active. When you ask to close it, ")}<strong>{tr("يُوقَف الحساب ولا يُحذف", "the account is suspended, not deleted")}</strong>{tr(" في النسخة الحالية من مساحة.", ", in the current version of Masaha.")}</li>
+            <li>{tr("السجلات المالية وسجل التدقيق محفوظة، لأنها جزء من سجلات المساحات وحساباتها.", "Financial records and the audit log are kept, because they are part of the spaces' records and accounts.")}</li>
+            <li>{tr("روابط استعادة كلمة المرور والجلسات المنتهية تُحذف تلقائيًا.", "Password reset links and ended sessions are deleted automatically.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="rights" className="flex flex-col gap-4">
+          <h2 id="rights" className="text-heading-2">{tr("حقوقك", "Your rights")}</h2>
+          <ul className="flex list-disc-inside flex-col gap-2 ps-5 text-body">
+            <li>{tr("يمكنك تعديل اسمك ولغتك وطرق دخولك من «إعدادات حسابي».", "You can change your name, your language and how you sign in from \"My account settings\".")}</li>
+            <li>{tr("يمكنك أن تطلب إيقاف حسابك، أو أن تسألنا عن بياناتك، عبر التواصل معنا.", "You can ask us to suspend your account, or ask us about your data, by contacting us.")}</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="changes" className="flex flex-col gap-4">
+          <h2 id="changes" className="text-heading-2">{tr("التغييرات على هذه السياسة", "Changes to this policy")}</h2>
+          <p className="text-body">{tr("قد نحدّث هذه السياسة عندما تتغيّر المنصة. سنُظهر تاريخ آخر تحديث أعلى الصفحة.", "We may update this policy when the platform changes. The date of the last update is shown at the top of this page.")}</p>
+        </section>
+
+        <section id="contact" aria-labelledby="contact-title" className="flex flex-col gap-4">
+          <h2 id="contact-title" className="text-heading-2">{tr("تواصل معنا", "Contact us")}</h2>
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-5">
+              <p className="text-body">{tr("لأي سؤال عن خصوصيتك: ", "For any question about your privacy: ")}<Button variant="outline" className="justify-between" asChild><a href={'mailto:' + c.email}>{tr("بريد ", "Email ")}<span dir="ltr" className="text-muted-foreground">{c.email}</span></a></Button></p>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+      <SiteFooter />
+      <PageToaster />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><PrivacyScreen /></DirectionProvider>);
+</script>
+</body>
+</html>
