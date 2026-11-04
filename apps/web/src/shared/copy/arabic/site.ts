@@ -219,7 +219,6 @@ export const SITE = {
     contact: {
       title: 'تواصل معنا',
       text: 'لأي سؤال عن خصوصيتك:',
-      end: '.',
     },
   },
 } satisfies Catalogue['site'];
