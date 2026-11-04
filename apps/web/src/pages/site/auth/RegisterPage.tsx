@@ -16,8 +16,8 @@ import { nextSearch } from './nextSearch';
 import { OrDivider } from './OrDivider';
 
 /**
- * Register: the card around Google sign-in and the register form, the way to sign in instead, and
- * where space owners get their accounts (the about page's owners), and the way back. Once the
+ * Register: the card around Google sign-in and the register form, the way to sign in instead, the
+ * privacy policy, where space owners get their accounts (the about page's owners), and the way back. Once the
  * account is signed in, `RequireGuest` sends the user on to the page they came for.
  */
 export function RegisterPage() {
@@ -49,6 +49,12 @@ export function RegisterPage() {
           <Button asChild variant="link" size="sm">
             <Link to={signIn}>{copy.auth.register.signIn}</Link>
           </Button>
+        </p>
+        <p className="text-center text-caption">
+          {copy.auth.register.privacy.read}{' '}
+          <Link to={SITE_PATHS.privacy} className="text-primary">
+            {copy.auth.register.privacy.link}
+          </Link>
         </p>
         <p className="text-center text-caption">
           {copy.auth.register.ownerNote}{' '}

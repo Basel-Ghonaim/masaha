@@ -20,6 +20,8 @@ export const SITE_PATHS = {
   contact: `${ABOUT}#${CONTACT_ANCHOR}`,
   /** The about page's section for space owners, which Home's owners' card links to. */
   owners: `${ABOUT}#${OWNERS_ANCHOR}`,
+  /** The privacy policy (screen 33), which the footer and Register link to. */
+  privacy: '/privacy',
   signIn: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',

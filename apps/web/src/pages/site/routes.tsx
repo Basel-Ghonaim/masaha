@@ -50,6 +50,13 @@ export const siteRoutes: RouteObject[] = [
             }),
           },
           {
+            path: SITE_PATHS.privacy,
+            handle: { title: (copy) => copy.site.links.privacy } satisfies TitledHandle,
+            lazy: async () => ({
+              Component: (await import('./public/privacy/PrivacyPage')).PrivacyPage,
+            }),
+          },
+          {
             // The account's pages, in its layout; each signed-in only, a guest sent to sign-in.
             lazy: async () => ({
               Component: (await import('./account/AccountLayout')).AccountLayout,

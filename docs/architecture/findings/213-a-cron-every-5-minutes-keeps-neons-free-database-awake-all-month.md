@@ -7,3 +7,5 @@
 **Resolves when:** the online cron runs rarely enough that the database sleeps between calls, within the free hours, and every document that names the online interval says so.
 
 **Resolution (#133):** The online cron runs every 15 minutes; the local server's timer stays at 5 ([conventions §12](../../backend/conventions.md#12-environments)). Each call wakes the database for about the 5 idle minutes that follow it, about a third of the month at 0.25 CU: about 60 CU-hours, leaving the rest of the 100 to the visitors' own use, to be watched on Neon's usage page once the site is live ([setup › Timed jobs](../../development/setup.md#timed-jobs)). A later run never corrupts data: an auto check-out records the cut-off it was due at, never the time the job ran.
+
+**Note (2026-11-04, #135):** the online cron runs every 60 minutes since 2026-11-04 (the owner's decision, while the site is not launched): fewer database wake-ups, about a twelfth of the month awake, and a stay's auto check-out may close up to an hour after its due cut-off, which it still records. To revisit at launch.

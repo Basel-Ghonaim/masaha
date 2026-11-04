@@ -6,7 +6,7 @@ import { startEvery } from './shared/jobs/index.ts';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 // How often this process runs the timed jobs (ADR 0014). Online, the external cron calls them every
-// 15 minutes instead, so the free database can sleep between calls (docs/development/setup.md).
+// 60 minutes instead, so the free database can sleep between calls (docs/development/setup.md).
 const JOBS_EVERY_MS = 5 * 60_000;
 
 function readEnv(): Env {

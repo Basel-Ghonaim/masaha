@@ -64,6 +64,7 @@ export const AUTH = {
     haveAccount: 'لديك حساب؟',
     signIn: 'تسجيل الدخول',
     signInInstead: 'سجّل الدخول بهذا البريد',
+    privacy: { read: 'اقرأ', link: 'سياسة الخصوصية' },
     ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
     welcome: ({ name }: { name: string }) => `أهلًا ${name}، تم إنشاء حسابك`,
   },
