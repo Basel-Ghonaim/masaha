@@ -38,16 +38,16 @@ function renderPages(total: number, current = 1) {
 }
 
 describe('ListPagination', () => {
-  it('keeps a one-page list its steps, both disabled', () => {
+  it('shows no bar for a one-page list', () => {
     renderPages(1);
 
-    const pages = screen.getByRole('navigation', { name: 'Pages of customers' });
-    expect(within(pages).getByText('Previous').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(within(pages).getByText('Next').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(within(pages).getByRole('link', { name: 'Page 1' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(screen.queryByRole('navigation', { name: 'Pages of customers' })).toBeNull();
+  });
+
+  it('shows the bar for a two-page list, as today', () => {
+    renderPages(2);
+
+    expect(screen.getByRole('navigation', { name: 'Pages of customers' })).toBeInTheDocument();
   });
 
   it('marks the page asked current at once, before its answer arrives', async () => {

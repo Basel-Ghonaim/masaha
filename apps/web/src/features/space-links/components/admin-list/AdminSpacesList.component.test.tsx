@@ -328,20 +328,11 @@ describe('AdminSpacesList, from 1024 px', () => {
     expect(await listRegion()).not.toHaveAttribute('aria-busy');
   });
 
-  it('keeps the steps of its one page, Previous and Next unavailable', async () => {
+  it('shows no pagination bar for a one-page list', async () => {
     renderList('/spaces');
 
     await screen.findByText('Focus Hub');
-    const pages = screen.getByRole('navigation', { name: 'Pages of the spaces list' });
-    expect(within(pages).getByRole('link', { name: 'Page 1' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    const steps = within(pages).getAllByRole('link', { name: /Previous|Next/ });
-    expect(steps).toHaveLength(2);
-    for (const step of steps) {
-      expect(step).toHaveAttribute('aria-disabled', 'true');
-    }
+    expect(screen.queryByRole('navigation', { name: 'Pages of the spaces list' })).toBeNull();
   });
 
   it('sets the search, the place, the state and the stale or missing chip above the table', async () => {
