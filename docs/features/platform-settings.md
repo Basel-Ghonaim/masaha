@@ -1,6 +1,6 @@
 # Platform settings
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-05 · **Owner:** Basel Ghoneim
 > **Authority:** The `platform-settings` capability: the platform's own settings, which the admin edits and other modules read. Its endpoints are owned by the [API contract](../api/api-contract.md#platform-settings); its entity by the [data model](../architecture/data-model.md#operations). The API is built; so is the admin's screen, «إعدادات المنصة» (2026-10-29, #132).
 > **Scope:** the API module `platform-settings` (L0); `@masaha/shared/platform-settings`, and the new-space defaults' schema in `@masaha/shared/space-settings`; the web feature `platform-settings` (the admin's cards in its `index.ts`, the site's contact in its `public.ts`).
 
@@ -17,7 +17,7 @@
 - **The admin,** under `/admin/settings/{new-space-defaults|staleness|contact}`. On the dashboard, the admin edits «إعدادات المنصة» (`/dashboard/admin/settings`, screen 32; 2026-10-29, #132).
 - **Anyone,** at `/settings/public`: the contact, for the site's About and the owner's line.
 - **`spaces`** reads the defaults when a space is created and the thresholds for its stale groups.
-- **The site** reads the contact from `GET /settings/public` on About and in an unverified space's dialog (`PlatformContact`, the capability's `public.ts`; 2026-10-29, #132).
+- **The site** reads the contact from `GET /settings/public` on About and in an unverified space's dialog (`PlatformContact`, the capability's `public.ts`; 2026-10-29, #132), and its email on the privacy policy (`usePlatformContact`; 2026-11-05, #135).
 
 ## Responsibility boundary
 
@@ -81,3 +81,4 @@
 
 - #132 — the admin's «إعدادات المنصة» (screen 32): the contact, the data's freshness and the new spaces' defaults, each card read, saved and refused on its own.
 - #132 — the site reads the platform's contact from `GET /settings/public`; the web's `VITE_CONTACT_*` are removed.
+- #135 — the privacy policy (screen 33) gives the platform's email.
