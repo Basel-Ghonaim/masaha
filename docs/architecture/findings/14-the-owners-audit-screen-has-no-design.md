@@ -6,7 +6,7 @@
 - The scope includes it: [overview.md](../../project/overview.md) lists "Audit log" in the owner and reception dashboard. `can()` has `space.auditLog.read` for the owner, and the planned API has `GET /manage/spaces/:spaceId/audit-log`.
 - A reader exists for it: [conventions §6](../../backend/conventions.md#6-audit) gives the `audit` module a `manage` router.
 - No design covers it:
-  - [foundation §13](../../frontend/design-system/foundation.md#13-screens-to-design-32) lists owner screens 12–24, none of them an audit log. Screen 31, *Audit log*, is the admin's.
+  - [foundation §13](../../frontend/design-system/foundation.md#13-screens-to-design-33) lists owner screens 12–24, none of them an audit log. Screen 31, *Audit log*, is the admin's.
   - The [design archive](../../design/SCREENS.md) has only `Admin audit.html`.
   - The owner's navigation in the [design brief](../../design/prototype/BRIEF.md) has no audit entry.
 
