@@ -77,6 +77,8 @@ export const AUTH = {
     signIn: 'Sign in',
     /** Under the email field when the address already has an account. */
     signInInstead: 'Sign in with this email',
+    /** The line under the form: its words, then its link to the privacy policy. */
+    privacy: { read: 'Read the', link: 'privacy policy' },
     ownerNote: 'Run a coworking space? Space owner accounts are created by the Masaha team.',
     /** The toast once the account is created, with its name. */
     welcome: ({ name }: { name: string }) => `Welcome ${name}, your account is ready`,

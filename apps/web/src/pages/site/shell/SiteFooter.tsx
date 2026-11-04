@@ -3,7 +3,8 @@ import { Link } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 
 /**
- * The site's footer: the tagline, and the links to the spaces, to about and to its contact section.
+ * The site's footer: the tagline, and the links to the spaces, to about, to the privacy policy and
+ * to about's contact section.
  * Below 768 px it keeps `barRoom` free under it while the page shows a bar fixed at its foot.
  */
 export function SiteFooter({ barRoom }: { barRoom: boolean }) {
@@ -19,6 +20,9 @@ export function SiteFooter({ barRoom }: { barRoom: boolean }) {
           </Link>
           <Link to={SITE_PATHS.about} className="text-primary">
             {copy.site.links.about}
+          </Link>
+          <Link to={SITE_PATHS.privacy} className="text-primary">
+            {copy.site.links.privacy}
           </Link>
           <Link to={SITE_PATHS.contact} className="text-primary">
             {copy.site.contact}

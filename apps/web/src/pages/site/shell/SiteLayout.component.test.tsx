@@ -98,11 +98,15 @@ describe('the site shell', () => {
     expect(header.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
-  it('links the footer to about and to its contact section', async () => {
+  it('links the footer to about, to the privacy policy and to the contact section', async () => {
     await renderSite('/');
     const footer = within(screen.getByRole('contentinfo'));
 
     expect(footer.getByRole('link', { name: 'About Masaha' })).toHaveAttribute('href', '/about');
+    expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
     expect(footer.getByRole('link', { name: 'Contact us' })).toHaveAttribute(
       'href',
       '/about#contact',

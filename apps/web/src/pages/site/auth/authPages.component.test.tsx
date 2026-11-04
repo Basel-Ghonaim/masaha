@@ -271,6 +271,16 @@ describe('the register page', () => {
     expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', '/about#owners');
   });
 
+  it('offers the privacy policy in one small line', async () => {
+    renderSite('/register');
+    const main = within(await screen.findByRole('main'));
+
+    const privacy = await main.findByRole('link', { name: 'privacy policy' });
+    expect(privacy).toHaveAttribute('href', '/privacy');
+    expect(privacy.closest('p')).toHaveTextContent(/^Read the privacy policy$/);
+    expect(privacy.closest('p')).toHaveClass('text-caption');
+  });
+
   it('offers to sign in with a taken email, carrying the return page', async () => {
     fakeTransport(() =>
       refused(409, { type: 'conflict', code: 'EMAIL_TAKEN', errors: { email: ['not_unique'] } }),
