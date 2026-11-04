@@ -439,13 +439,13 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 ---
 
-## 13. Screens to design (32)
+## 13. Screens to design (33)
 
 Every screen: phone and desktop, light and dark. Key screens also in LTR (English). States: default, loading (skeleton), empty, error.
 
 The final designs are archived in [docs/design/](../../design/README.md): [SCREENS.md](../../design/SCREENS.md) maps each screen below to its prototype page and screenshots.
 
-### Public site (8)
+### Public site (9)
 1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «متاحة الآن»
 2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, an "Other" group («أسعار للطلاب», «مفتوحة يوم الجمعة»), verified only, available now; sort, including «الأقرب إليّ»
    - **Near me:** the browser's location, rounded on the device to 3 decimals and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent; [security › Location](../../backend/security.md#location)); distances are straight-line and labelled approximate.
@@ -456,6 +456,8 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 6. **Register** — name, email and password
 7. **Forgot / reset password** — a reset link by email; lost access to the email → contact Masaha on WhatsApp
 8. **404**
+
+33\. **Privacy policy** — what Masaha collects and why, who sees it, how it is protected; linked from the footer and from Register (the owner's decision, 2026-11-04)
 
 ### My account (3)
 9. **Profile & settings** — name, password (a Google-only account can add one), language, theme; the ways the account signs in, Google and the password (2026-10-29, #132)

@@ -1,8 +1,8 @@
-# The 32 screens → prototype files and screenshots
+# The 33 screens → prototype files and screenshots
 
 The screen list is owned by `docs/frontend/design-system/foundation.md` §13. This table only says **where each screen lives in this archive**. Board sections are the folders under `screens/` (see `INDEX.md` for every frame).
 
-## Public site (8)
+## Public site (9)
 
 | # | Screen | Prototype page | Board sections |
 |---|---|---|---|
@@ -14,6 +14,7 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 | 6 | Register | `Register.html` | 05, 07, 11, 12, 13 |
 | 7 | Forgot / reset password (+ the reset email) | `Forgot password.html`, `Reset password.html`, `Reset email.html` | 08, 09, 11, 13 |
 | 8 | 404 / error / offline | `Error.html` | 10, 11 |
+| 33 | Privacy policy | `Privacy.html` | — |
 
 ## My account (3)
 

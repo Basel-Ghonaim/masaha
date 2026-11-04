@@ -223,6 +223,7 @@ table, the data model's write-off) are the web's, the API's and the docs'.
 | **DK-015, K4** | «دفعاتي اليوم» shows the payment the owner voided, **struck through with «ألغاها أحمد: سُجّلت بالخطأ»**, and leaves it out of the figures to hand over. On a phone the three figures are one card, «نقدًا للتسليم» first; under them, «خطأ في دفعة؟ يلغيها صاحب المساحة، وتظهر هنا مشطوبة.» | `My payments.html`, `masaha/desk-core.jsx`, `desk-data.js` |
 | **DK-016, DK-017, A7, DI-36** | Payments has **five columns from 768** — the time under the date, the item under the customer, the method under the amount — and **the void in each row's «⋯»**, its `AlertDialog` as the file's. «إظهار الملغاة» is a chip by the count. `?month=2026-08` opens a month, and Finance's «عرض الكل» carries its month there | `Payments.html`, `Finance.html`, `masaha/desk-data.js` |
 | **Board** | A new section, «Batch 6 — the front desk», with 37 frames of the states above — the board's first at 768 — listed in `INDEX.md` §56; the board's twelve desk frames whose state moved are relabelled | `Flows - states.html`, `INDEX.md`, `README.md`, `SCREENS.md` |
+|---|---|---|
 
 ## The build's corrections (2026-10-29)
 
@@ -231,3 +232,16 @@ Corrections the build asked of the living design, each with the decision of the 
 | Decision | What changed | Where |
 |---|---|---|
 | **D6.14** (finding 74) | The gallery's line says **the contract's limits**: «حتى 10 صور · JPEG أو PNG أو WebP · حتى 4 ميغابايت للصورة», the file chooser and its refusals the same; an uploading tile keeps its progress bar with its percentage, as the web's `Meter` draws it | `masaha/profile-b.jsx` (`Admin space edit.html`, `Owner space profile.html`) |
+
+## Privacy page (2026-11-04)
+
+Added the privacy policy page to the prototype with the owner's approved text (unchanged). Changes:
+
+| Decision | What changed | Where |
+|---|---|---|
+| **PRIVACY-1** | New page `Privacy.html` — calm reading page with the full privacy policy in Arabic and English, `?lang=en` and `?theme=dark` supported, sample date 2026-11-04, contact email from platform data | `docs/design/prototype/Privacy.html` |
+| **PRIVACY-2** | Footer link «سياسة الخصوصية» / "Privacy Policy" added beside «عن مساحة» and «تواصل معنا» | `docs/design/prototype/masaha/shared.jsx` (`SiteFooter`) |
+| **PRIVACY-3** | Register screen: small muted line «اقرأ سياسة الخصوصية» / "Read the privacy policy" under the button | `docs/design/prototype/Register.html` (`CardFooter`) |
+| **PRIVACY-4** | Documents updated: foundation.md §13 (32→33, Public site 8→9, item 33), SCREENS.md (32→33, row 33), CHANGES.md (this section) | `docs/frontend/design-system/foundation.md`, `docs/design/SCREENS.md`, `docs/design/CHANGES.md` |
+
+Text is the owner's approved text, to be built in the web app in a separate PR.
