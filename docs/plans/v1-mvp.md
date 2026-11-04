@@ -37,7 +37,7 @@ Each step names its goal and points to what supports it:
 
 **Goal:** a user signs in and lands in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 - **Screens:**
-  - [public site](../design/SCREENS.md#public-site-8): 5 Sign in, 6 Register, 7 Forgot / reset password, 8 404 / error / offline;
+  - [public site](../design/SCREENS.md#public-site-9): 5 Sign in, 6 Register, 7 Forgot / reset password, 8 404 / error / offline;
   - [my account](../design/SCREENS.md#my-account-3): 9 Profile & settings; its forced password change belongs to F-5.
 - **Supported by:** the contracts of F-5, F-6 and F-7 in the [foundation plan](foundation.md#5-work-items).
 - **Settles:** the reset-email provider (F-5).
@@ -59,11 +59,11 @@ Each step names its goal and points to what supports it:
 ### 3. Public directory
 
 **Goal:** anyone finds a space, in the list or on the map, near them or by filter, and sees its page and how to contact Masaha.
-- **Screens:** [public site](../design/SCREENS.md#public-site-8): 1 Home, 2 Directory, 3 Space details, 4 About / Contact.
+- **Screens:** [public site](../design/SCREENS.md#public-site-9): 1 Home, 2 Directory, 3 Space details, 4 About / Contact.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md) (live status);
   - conventions §9: [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads);
-  - [frontend architecture §6](../frontend/architecture.md#6-map) (the map) and [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32) (near me, under *Directory*).
+  - [frontend architecture §6](../frontend/architecture.md#6-map) (the map) and [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-33) (near me, under *Directory*).
 - **Settles:** live-status delivery and caching.
 - **Built:** screen 2, the directory: the list (#101), the filters (#103) and the map (#105); screen 3, a space's page (#107, #108); screens 1 and 4, Home and About (#111); each finished, and About's contact read from the platform's settings (2026-10-29, #132).
 

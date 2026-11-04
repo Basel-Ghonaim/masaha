@@ -74,7 +74,7 @@ A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5a auth API �
                   └─► A-2 space tables ─► the space-management and front-desk slices
 ```
 
-F-3b waits until the dashboard screens (Owner and Reception, [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32)) are reviewed, so the model follows the reviewed designs. F-5 waits for F-3b, because it needs the account changes.
+F-3b waits until the dashboard screens (Owner and Reception, [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-33)) are reviewed, so the model follows the reviewed designs. F-5 waits for F-3b, because it needs the account changes.
 
 The backend architecture was settled before F-5 (2026-09-30), as three items:
 - **A-1** records it.

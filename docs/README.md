@@ -75,7 +75,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
 - [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens · read it when your task builds or changes UI.
 
 ### `design/` — the final screen designs
-- [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 32 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-32) to it · read it when your task builds a screen.
+- [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 33 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-33) to it · read it when your task builds a screen.
 
 ### `development/`
 - [workflow.md](development/workflow.md) — how work is executed, including what to read, two workers in parallel and the AI tooling · read it at the start of every Work Item.

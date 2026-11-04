@@ -47,7 +47,7 @@ Global roles `USER` · `OWNER` · `ADMIN`. At a space, a user is `OWNER` or `REC
 
 ### Public site
 - Directory of spaces: the list **or** the map, one at a time, the list by default; search and filters (area, price, student prices, open on Friday, verified, available now); sort, including nearest to me.
-- Near me: the device's location, rounded on the device and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent), with an area or a pin on the map as fallbacks ([the rule](../frontend/design-system/foundation.md#13-screens-to-design-32), under *Directory*; [security › Location](../backend/security.md#location)). Home shows the nearest spaces when a location is in use, otherwise the spaces available now.
+- Near me: the device's location, rounded on the device and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent), with an area or a pin on the map as fallbacks ([the rule](../frontend/design-system/foundation.md#13-screens-to-design-33), under *Directory*; [security › Location](../backend/security.md#location)). Home shows the nearest spaces when a location is in use, otherwise the spaces available now.
 - Space page: photos, prices (display only), amenities, hours, contact, announcements, live status — available, full or closed now, never a seat count (verified spaces) — and "last updated" per fact.
 - Verified / unverified spaces: every space is listed whether or not its owner has joined.
 - "Are you the owner?": contact by email or WhatsApp (no in-app request).
