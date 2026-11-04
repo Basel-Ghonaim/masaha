@@ -105,6 +105,7 @@ function RegisterScreen() {
             {tr("لديك حساب؟", "Have an account?")}
             <Button variant="link" size="sm" asChild><a href={withNext('Sign in.html')}>{tr("تسجيل الدخول", "Sign in")}</a></Button>
           </p>
+          <p className="text-center text-caption">{tr("اقرأ ", "Read ")}<a href="Privacy.html">{tr("سياسة الخصوصية", "privacy policy")}</a></p>
           <AuthWayBack />
           <p className="text-center text-caption">{tr("تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة — ", "Run a coworking space? Space owner accounts are created by the Masaha team — ")}<a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a></p>
         </CardFooter>

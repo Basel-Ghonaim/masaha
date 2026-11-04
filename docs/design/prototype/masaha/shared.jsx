@@ -345,6 +345,7 @@ function SiteFooter() {
         <p>{tr("مساحة — دليل مساحات العمل المشتركة في قطاع غزة", "Masaha — a directory of coworking spaces in the Gaza Strip")}</p>
         <div className="flex flex-wrap gap-4">
           <a href="About.html">{tr("عن مساحة", "About Masaha")}</a>
+          <a href="Privacy.html">{tr("سياسة الخصوصية", "Privacy Policy")}</a>
           <a href="About.html#contact">{tr("تواصل معنا", "Contact us")}</a>
         </div>
       </div>
