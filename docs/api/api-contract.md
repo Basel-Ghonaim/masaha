@@ -1127,7 +1127,7 @@ AdminOverview = {
 
 ### Internal
 
-The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 15 minutes (2026-11-01, #133; [finding 213](../architecture/findings/213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)); locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
+The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 60 minutes (2026-11-04, #135; [finding 213](../architecture/findings/213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)); locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
 
 #### `POST /internal/jobs/run`
 - **Mounted only when `JOBS_SECRET` is set;** otherwise `not_found` (404), as any unknown path.

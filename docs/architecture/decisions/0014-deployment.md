@@ -6,6 +6,7 @@
 > **Revised:** 2026-10-10 — the context names the demonstration on the local environment, in general terms; the decision is unchanged
 > **Revised:** 2026-10-13 — files: the free object storage is Cloudinary's free plan, used as a plain store, and photos are resized on the client and sent through the API, never uploaded directly; the decision is unchanged
 > **Revised:** 2026-11-01 — the external cron calls the jobs' endpoint every 15 minutes, so the free database sleeps between calls within its compute hours ([finding 213](../findings/213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)); the local timer stays at 5; the decision is unchanged
+> **Revised:** 2026-11-04 — the external cron calls the jobs' endpoint every 60 minutes while the site is not launched, for fewer database wake-ups ([finding 213](../findings/213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)); the local timer stays at 5; the decision is unchanged
 
 ## Context
 The demonstration runs on the local environment: the database in Docker and the development servers. It works offline, which matters with Gaza's power and internet cuts.
