@@ -236,7 +236,6 @@ export const SITE = {
     contact: {
       title: 'Contact us',
       text: 'For any question about your privacy:',
-      end: '.',
     },
   },
 } as const;

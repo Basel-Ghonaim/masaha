@@ -128,7 +128,7 @@ describe('the privacy page', () => {
     const email = await contact.findByRole('link', { name: 'Email team@example.com' });
     expect(email).toHaveAttribute('href', 'mailto:team@example.com');
     expect(email.closest('p')).toHaveTextContent(
-      'For any question about your privacy: Email team@example.com.',
+      'For any question about your privacy: Email team@example.com',
     );
     expect(contact.getAllByRole('link')).toHaveLength(1);
   });

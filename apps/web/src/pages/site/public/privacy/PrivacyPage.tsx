@@ -94,7 +94,6 @@ function PrivacyContact() {
               </span>
             </a>
           </Button>
-          {words.end}
         </>
       )}
     </p>
