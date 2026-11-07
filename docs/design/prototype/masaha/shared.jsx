@@ -353,9 +353,23 @@ function SiteFooter() {
   );
 }
 
-const statusWord = (s) => !s.verified ? tr("لا تتوفر حالة مباشرة", "No live status") : s.status === 'open' ? tr("متاح", "Available") : s.status === 'full' ? tr("ممتلئ", "Full") : tr("مغلق الآن", "Closed now");
+// The hours are read on Gaza's clock, whatever the visitor's own zone: the day and the minute there.
+function gazaNow() {
+  const at = {};
+  new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Gaza', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).forEach((p) => { at[p.type] = p.value; });
+  return { day: at.weekday.slice(0, 3).toLowerCase(), mins: Number(at.hour) * 60 + Number(at.minute) };
+}
+const toMins = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+// Open now by the hours: today's hold this minute and no closure is in force. A space without hours never
+// is. The directory's «مفتوحة الآن» and an unverified space's state both read it.
+const openNow = (s, now = gazaNow()) => { if (!s.hours || s.closure) return false; const h = s.hours[now.day]; return !!h && now.mins >= toMins(h[0]) && now.mins < toMins(h[1]); };
+
+// A verified space says its live state; an unverified one with hours says, by them, whether it is open
+// now — a neutral badge, since it is no live state; one without hours has nothing to say.
+const statusWord = (s) => !s.verified ? (!s.hours ? tr("لا تتوفر حالة مباشرة", "No live status") : openNow(s) ? tr("مفتوحة الآن", "Open now") : tr("مغلقة الآن", "Closed now")) : s.status === 'open' ? tr("متاح", "Available") : s.status === 'full' ? tr("ممتلئ", "Full") : tr("مغلق الآن", "Closed now");
 
 function LiveStatus({ space }) {
+  if (!space.verified && space.hours) return <Badge variant="neutral">{statusWord(space)}</Badge>;
   if (!space.verified) return <span className="text-body-sm text-muted-foreground">{tr("لا تتوفر حالة مباشرة", "No live status")}</span>;
   if (space.status === 'open') return <Badge variant="success">{tr("متاح", "Available")}</Badge>;
   if (space.status === 'full') return <Badge variant="warning">{tr("ممتلئ", "Full")}</Badge>;
@@ -364,6 +378,7 @@ function LiveStatus({ space }) {
 
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 function TodayHours({ space }) {
+  if (!space.hours) return <span>{tr("ساعات العمل غير متوفرة", "Hours not available")}</span>;
   const h = space.hours[DAY_KEYS[new Date().getDay()]];
   return h ? <span>{tr("اليوم ", "Today ")}<Ltr>{h[0]}–{h[1]}</Ltr></span> : <span>{tr("مغلقة اليوم", "Closed today")}</span>;
 }
@@ -619,7 +634,8 @@ function FilterSheet({ children, active = 0, onClear, count, at = 'md', wide: wi
     </>
   );
 }
-const resultsLabel = (n) => tr(`عرض ${n} نتيجة`, `Show ${n} result${n === 1 ? '' : 's'}`);
+// The sheet's button counts in Arabic's plural forms: none, one, two, 3–10, 11 and more.
+const resultsLabel = (n) => n === 0 ? tr("لا توجد نتائج", "Show 0 results") : n === 1 ? tr("عرض نتيجة واحدة", "Show 1 result") : n === 2 ? tr("عرض نتيجتين", "Show 2 results") : tr(n <= 10 ? `عرض ${n} نتائج` : `عرض ${n} نتيجة`, `Show ${n} results`);
 
 // P5: the result count belongs by the toolbar, where the user looks after filtering,
 // not only after the list.

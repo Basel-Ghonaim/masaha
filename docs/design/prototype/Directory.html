@@ -15,6 +15,7 @@
 <script src="_vendor/babel.min.js"></script>
 <script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
 <script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
 </head>
 <body class="bg-background text-foreground">
 <div id="ds-root"></div>
@@ -22,62 +23,105 @@
 <script type="text/babel" src="masaha/location.jsx"></script>
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, Checkbox, SearchIcon, SearchXIcon, XIcon, CircleCheckIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
 const list = (k) => (pageParams.get(k) || '').split(',').filter(Boolean);
-const initialFilters = () => ({
-  q: pageParams.get('q') || '',
-  areas: list('area'),
-  availableOnly: pageParams.get('available') === '1',
-  verifiedOnly: pageParams.get('verified') === '1',
-  period: pageParams.get('period') || 'day',
-  priceMin: pageParams.get('priceMin') || '',
-  priceMax: pageParams.get('priceMax') || '',
-  others: pageParams.get('demo') === 'noresults' ? ['friday'] : list('other')
-});
+// The subscriptions a price is read on, shortest first; none chosen («الكل») means no price filter.
+const SUBS = ['hour', 'day', 'week', 'month'];
+// The boxes kept in `other`, in the order the address writes them. «مفتوحة الآن» is `open` on its own.
+const OTHERS = ['evening', 'friday', 'students', 'verified'];
+const initialFilters = () => {
+  const others = pageParams.get('demo') === 'noresults' ? ['friday'] : list('other').filter((o) => OTHERS.includes(o));
+  // An old `?verified=1` is still read, then written the new way, in `other`.
+  if (pageParams.get('verified') === '1' && !others.includes('verified')) others.push('verified');
+  return {
+    q: pageParams.get('q') || '',
+    areas: list('area'),
+    open: pageParams.get('open') === '1',
+    others,
+    sub: SUBS.includes(pageParams.get('sub')) ? pageParams.get('sub') : '',
+    priceMin: SUBS.includes(pageParams.get('sub')) ? pageParams.get('priceMin') || '' : '',
+    priceMax: SUBS.includes(pageParams.get('sub')) ? pageParams.get('priceMax') || '' : ''
+  };
+};
+// The order by price needs a subscription: without `sub` a price order in an old link is dropped.
+const initialSort = (nearCoords) => pageParams.get('sort') === 'price' && SUBS.includes(pageParams.get('sub'))
+  ? (pageParams.get('dir') === 'desc' ? 'price-desc' : 'price-asc')
+  : nearCoords ? 'distance' : 'updated';
 // Filters live in the URL so the space page's back link returns to the same results.
-function syncUrl(f, view) {
+function syncUrl(f, view, sort) {
   const p = new URLSearchParams(location.search);
   const put = (k, v) => (v ? p.set(k, v) : p.delete(k));
-  put('q', f.q.trim()); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
-  put('verified', f.verifiedOnly ? '1' : ''); const range = priceRange(f); put('period', range.on ? f.period : ''); put('priceMin', f.priceMin.trim()); put('priceMax', f.priceMax.trim()); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
-  ['sheet', 'selected', 'pick', 'gov', 'am'].forEach((k) => p.delete(k));
+  put('q', f.q.trim()); put('area', f.areas.join(',')); put('open', f.open ? '1' : ''); put('other', OTHERS.filter((o) => f.others.includes(o)).join(',')); put('view', view === 'map' ? 'map' : '');
+  put('sub', f.sub);
+  put('priceMin', f.sub ? f.priceMin.trim() : '');
+  put('priceMax', f.sub ? f.priceMax.trim() : '');
+  put('sort', sort.startsWith('price') ? 'price' : '');
+  put('dir', sort === 'price-desc' ? 'desc' : '');
+  ['sheet', 'selected', 'pick', 'gov', 'am', 'available', 'opennow', 'verified'].forEach((k) => p.delete(k));
   const qs = p.toString() ? '?' + p.toString() : '';
   history.replaceState(null, '', location.pathname + qs);
   try { const keep = new URLSearchParams(qs); ['state', 'demo', 'loc'].forEach((k) => keep.delete(k)); sessionStorage.setItem('masaha:dir-query', keep.toString() ? '?' + keep : ''); } catch (e) {}
 }
-const clearedFilters = (f) => ({ ...f, q: '', areas: [], availableOnly: false, verifiedOnly: false, period: 'day', priceMin: '', priceMax: '', others: [] });
-const activeCount = (f) => f.areas.length + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (priceRange(f).on ? 1 : 0) + f.others.length;
+const clearedFilters = (f) => ({ ...f, q: '', areas: [], open: false, others: [], sub: '', priceMin: '', priceMax: '' });
+// Each box counts once; the price is one filter: a subscription chosen, with or without its range.
+const activeCount = (f) => f.areas.length + (f.open ? 1 : 0) + f.others.length + (f.sub ? 1 : 0);
+
+// A bound is a whole number of shekels above zero; Arabic-Indic digits are read as digits. One that is
+// not is said on its field and not applied, and a «إلى» under the «من» is said on «إلى».
+const toLatin = (t) => t.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+const readBound = (t) => { const v = toLatin(t.trim()); if (v === '') return { v: null }; return /^\d{1,5}$/.test(v) && Number(v) > 0 ? { v: Number(v) } : { v: null, err: tr("اكتب المبلغ بالشيكل، أرقامًا فقط.", "Enter the amount in shekels, digits only.") }; };
+function priceRange(f) {
+  const a = readBound(f.priceMin), b = readBound(f.priceMax);
+  const errMax = b.err || (a.v != null && b.v != null && a.v > b.v ? tr("«إلى» أقل من «من».", "“To” is below “From”.") : undefined);
+  return { min: a.v, max: errMax ? null : b.v, errMin: a.err, errMax };
+}
 const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
 
 // U3: the search matches both names of a space and its area's, in either language.
 const matches = (s, q) => { const a = M.findArea(s.area) || {}; return [s.name, s.nameAr, a.ar, a.en].some((t) => t && t.toLowerCase().includes(q)); };
 
-// The count says where: the Strip, or the one area chosen.
+// The count says where: the Strip, or the areas chosen.
 const placeLine = (ids) => ids.length === 1 ? tr(`في ${M.areaName(ids[0])}`, `in ${M.areaName(ids[0])}`) : ids.length ? tr('في المناطق المحددة', 'in the chosen areas') : tr('في قطاع غزة', 'in the Gaza Strip');
 
+// «مفتوحة الآن» is `openNow` (shared.jsx), on Gaza's clock, for every space, verified or not. A full
+// one stays (its card says «ممتلئ»); one without hours never passes.
+// Open in the evening: one open day of its week closes at 20:00 or later, or its owner declares an
+// evening shift (`eveningShift`). Without hours and without the shift, never.
+const openEvening = (s) => !!s.eveningShift || (!!s.hours && Object.values(s.hours).some((h) => h && toMins(h[1]) >= 20 * 60));
+
+// The price shown and filtered: the chosen subscription's, none while the page hides the space's
+// prices (unverified and stale).
+const priceOf = (s, sub) => (sub && !M.priceHidden(s) ? s.prices[sub] ?? null : null);
+
+// A subscription chosen keeps only the spaces with its price, inside the range when one is set.
 function applyFilters(f, sort, coords) {
   const q = f.q.trim().toLowerCase();
-  const list = M.spaces.filter((s) =>
-    (!f.areas.length || f.areas.includes(s.area)) &&
-    (!f.availableOnly || (s.verified && s.status === 'open')) &&
-    (!f.verifiedOnly || s.verified) &&
-    inRange(s, f) &&
-    f.others.every((o) => s.others.includes(o)) &&
-    (!q || matches(s, q))
-  ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
+  const r = priceRange(f);
+  const now = gazaNow();
+  const list = M.spaces.filter((s) => {
+    const p = priceOf(s, f.sub);
+    return (!f.areas.length || f.areas.includes(s.area)) &&
+      (!f.open || openNow(s, now)) &&
+      f.others.every((o) => o === 'evening' ? openEvening(s) : o === 'verified' ? s.verified : s.others.includes(o)) &&
+      (!f.sub || (p != null && (r.min == null || p >= r.min) && (r.max == null || p <= r.max))) &&
+      (!q || matches(s, q));
+  }).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
+  const byId = (a, b) => (a.s.id < b.s.id ? -1 : a.s.id > b.s.id ? 1 : 0);
   const by = {
     distance: (a, b) => a.km - b.km,
-    updated: (a, b) => a.s.updatedDays - b.s.updatedDays,
-    name: (a, b) => spaceName(a.s).localeCompare(spaceName(b.s), LANG)
+    updated: (a, b) => a.s.updatedDays - b.s.updatedDays || byId(a, b),
+    name: (a, b) => spaceName(a.s).localeCompare(spaceName(b.s), LANG) || byId(a, b),
+    'price-asc': (a, b) => priceOf(a.s, f.sub) - priceOf(b.s, f.sub) || byId(a, b),
+    'price-desc': (a, b) => priceOf(b.s, f.sub) - priceOf(a.s, f.sub) || byId(a, b)
   };
   return list.sort(by[sort] || by.updated);
 }
 
 // U1: the directory covers the Strip, and place is one filter — the areas of the public
-// catalogue, each governorate a group, nothing chosen by default. A governorate with no active
-// area has no group. The amenities are no filter (the owner, 2026-10-12).
+// catalogue, each governorate a group, searchable in both languages, nothing chosen by default.
+// A governorate with no active area has no group.
 const placeSummary = (ids) => ids.length === 0 ? tr("كل المناطق", "All areas") : ids.length === 1 ? M.areaName(ids[0]) : ids.length === 2 ? tr("منطقتان محددتان", "2 areas chosen") : LANG === 'en' ? `${ids.length} areas chosen` : ids.length <= 10 ? `${ids.length} مناطق محددة` : `${ids.length} منطقة محددة`;
 function PlaceField({ value, onChange }) {
   return (
@@ -96,76 +140,160 @@ function PlaceField({ value, onChange }) {
   );
 }
 
-// U5 with S1: a budget. The period says which price the range reads — it is not a filter on its
-// own, so it always holds one («يوم» by default) and is sent only with a bound. A bound is a whole
-// number of shekels above zero (no price is ever 0); one that is not is said on its field and not
-// applied. An unverified space with stale prices shows none, so the range leaves it out.
-const toLatin = (t) => t.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
-function priceRange(f) {
-  const read = (t) => { const v = toLatin(t); return v === '' ? { v: null } : /^[1-9][0-9]*$/.test(v) ? { v: Number(v) } : { bad: true }; };
-  const min = read(f.priceMin), max = read(f.priceMax);
-  const order = min.v != null && max.v != null && max.v < min.v;
-  const errMin = min.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : null;
-  const errMax = max.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : order ? tr("أقل من الحد الأدنى", "Below the minimum") : null;
-  const ok = !errMin && !errMax;
-  return { min: ok ? min.v : null, max: ok ? max.v : null, on: ok && (min.v != null || max.v != null), errMin, errMax };
+// The price order reads the subscription chosen in the price filter, and names it: «الأرخص شهريًا».
+const PRICE_NAME = { hour: ["السعر بالساعة", "Hourly price"], day: ["السعر اليومي", "Daily price"], week: ["السعر الأسبوعي", "Weekly price"], month: ["السعر الشهري", "Monthly price"] };
+const PRICE_ADV = { hour: "بالساعة", day: "يوميًا", week: "أسبوعيًا", month: "شهريًا" };
+const priceName = (sub) => (sub ? tr(...PRICE_NAME[sub]) : tr("السعر", "Price"));
+const SORTS = (sub) => ({
+  distance: tr("حسب المسافة", "By distance"),
+  updated: tr("الأحدث تحديثًا", "Recently updated"),
+  name: tr("حسب الاسم", "By name"),
+  'price-asc': sub ? tr(`الأرخص ${PRICE_ADV[sub]}`, `${PRICE_NAME[sub][1]}: low to high`) : '',
+  'price-desc': sub ? tr(`الأغلى ${PRICE_ADV[sub]}`, `${PRICE_NAME[sub][1]}: high to low`) : ''
+});
+
+function DirectoryPriceCard({ space, km, action, sub }) {
+  const v = M.priceHidden(space) ? null : space.prices[sub];
+  const p = (M.periods.find((x) => x.id === sub) || {}).short || '';
+  const label = LANG === 'en' ? `₪${v} / ${sub === 'month' ? 'month' : sub === 'week' ? 'week' : sub === 'day' ? 'day' : 'hour'}` : `${v} ₪ / ${p}`;
+  return (
+    <div className="relative h-full">
+      <a href={spaceHref(space)} className="block h-full rounded-lg text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        <Card className="h-full pt-0 transition-colors hover:bg-accent">
+          <SpaceCover space={space} />
+          <CardHeader>
+            <CardTitle><SpaceName space={space} /></CardTitle>
+            <CardDescription>{areaLine(space)}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col justify-end gap-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <LiveStatus space={space} />
+              {space.verified && <span className="inline-flex items-center gap-1 text-body-sm text-primary"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr("موثّقة", "Verified")}</span>}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              <TodayHours space={space} />
+              {km != null && <Distance km={km} />}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              <span>{LANG === 'en' ? <bdi dir="ltr" className="num-iso">{label}</bdi> : <><bdi dir="ltr" className="num-iso">{`${v} ₪`}</bdi> / {p}</>}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </a>
+      {action}
+    </div>
+  );
 }
-const inRange = (s, f) => {
-  const r = priceRange(f);
-  if (!r.on) return true;
-  const v = M.priceHidden(s) ? null : s.prices[f.period];
-  return v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max);
+
+function NoResults({ onClear, sub, price, inRange }) {
+  const p = (M.periods.find((x) => x.id === sub) || {}).filter || '';
+  const name = p ? tr(` ${p}`, ` ${p.toLowerCase()}`) : '';
+  const title = price && inRange ? tr("لا توجد مساحات بسعر ضمن هذا النطاق", "No spaces priced within this range")
+    : price ? tr(`لا توجد مساحات لها سعر${name}`, `No spaces with ${sub === 'hour' ? 'an' : 'a'}${name} price`)
+    : tr("لا توجد مساحات تطابق الفلاتر", "No spaces match the filters");
+  return (
+    <EmptyState icon={<SearchXIcon />} title={title} description={tr("جرّب إزالة بعض الفلاتر أو البحث باسم آخر.", "Try removing some filters or searching for another name.")}>
+      <Button variant="outline" onClick={onClear}>{tr("مسح الفلاتر", "Clear filters")}</Button>
+    </EmptyState>
+  );
+}
+
+const subName = (id) => (M.periods.find((p) => p.id === id) || {}).filter || id;
+const priceCountLabel = (n, sub) => {
+  const name = LANG === 'en' ? subName(sub).toLowerCase() : subName(sub);
+  if (n === 0) return tr(`لا توجد مساحات لها سعر ${name}`, `No spaces with ${name} prices`);
+  if (n === 1) return tr(`مساحة واحدة لها سعر ${name}`, `1 space with ${sub === 'hour' ? 'an' : 'a'} ${name} price`);
+  if (n === 2) return tr(`مساحتان لهما سعر ${name}`, `2 spaces with ${name} prices`);
+  return LANG === 'en' ? `${n} spaces with ${name} prices` : n <= 10 ? `${n} مساحات لها سعر ${name}` : `${n} مساحة لها سعر ${name}`;
 };
+
+// The price (the owner, 2026-11-07): the subscription as one segmented choice, «الكل» by default;
+// once one is chosen, its range in shekels shows under it. The order by price is the sort's, which
+// reads this subscription; it is not repeated here.
+const SUB_LABEL = { '': ["الكل", "All"], hour: ["ساعة", "Hour"], day: ["يوم", "Day"], week: ["أسبوع", "Week"], month: ["شهر", "Month"] };
+function SubscriptionChoice({ value, onChange }) {
+  const options = ['', ...SUBS];
+  const refs = React.useRef([]);
+  const move = (e, i) => {
+    const step = { ArrowLeft: DIR === 'rtl' ? 1 : -1, ArrowRight: DIR === 'rtl' ? -1 : 1, ArrowDown: 1, ArrowUp: -1 }[e.key];
+    const to = e.key === 'Home' ? 0 : e.key === 'End' ? options.length - 1 : step ? (i + step + options.length) % options.length : null;
+    if (to == null) return;
+    e.preventDefault(); onChange(options[to]); refs.current[to]?.focus();
+  };
+  return (
+    <div role="radiogroup" aria-label={tr("نوع الاشتراك", "Subscription")} className="flex rounded-lg bg-muted p-1">
+      {options.map((v, i) => {
+        const on = value === v;
+        return (
+          <button key={v || 'all'} ref={(el) => { refs.current[i] = el; }} type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
+            onClick={() => onChange(v)} onKeyDown={(e) => move(e, i)}
+            className={'h-8 min-w-0 flex-1 rounded-md px-1 text-label transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ' + (on ? 'bg-card text-foreground shadow-raised' : 'text-muted-foreground hover:text-foreground')}>
+            {tr(...SUB_LABEL[v])}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PriceField({ f, set }) {
-  const r = priceRange(f);
-  // The form is drawn twice below `lg` (the hidden sidebar and the sheet), so its ids are its own.
   const groupId = React.useId();
-  // «50 ₪» in Arabic, «₪50» in English: the sign leads the field in both directions.
+  const r = priceRange(f);
+  // The hints are the lowest and the highest price of the chosen subscription among the spaces.
+  const known = f.sub ? M.spaces.map((s) => priceOf(s, f.sub)).filter((p) => p != null) : [];
+  const lo = known.length ? Math.min(...known) : null, hi = known.length ? Math.max(...known) : null;
   const shekel = <span aria-hidden="true">₪</span>;
   return (
     <div role="group" aria-labelledby={groupId} className="flex flex-col gap-3">
       <p id={groupId} className="text-label">{tr("السعر", "Price")}</p>
-      <ToggleGroup type="single" aria-label={tr("الفترة", "Period")} value={f.period} onValueChange={(v) => v && set({ period: v })}>
-        {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.short}</ToggleGroupItem>)}
-      </ToggleGroup>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={tr("من", "From")} error={r.errMin}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMin} onChange={(e) => set({ priceMin: e.target.value })} /></Field>
-        <Field label={tr("إلى", "To")} error={r.errMax}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMax} onChange={(e) => set({ priceMax: e.target.value })} /></Field>
-      </div>
-      <p className="text-caption text-muted-foreground">{tr("النطاق على سعر الفترة المختارة.", "The range reads the chosen period’s price.")}</p>
+      <SubscriptionChoice value={f.sub} onChange={(v) => set(v ? { sub: v } : { sub: '', priceMin: '', priceMax: '' })} />
+      {f.sub ? (
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={tr("من", "From")} error={r.errMin}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} placeholder={lo != null ? String(lo) : ''} value={f.priceMin} onChange={(e) => set({ priceMin: toLatin(e.target.value) })} /></Field>
+            <Field label={tr("إلى", "To")} error={r.errMax}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} placeholder={hi != null ? String(hi) : ''} value={f.priceMax} onChange={(e) => set({ priceMax: toLatin(e.target.value) })} /></Field>
+          </div>
+          <p className="text-caption text-muted-foreground">{tr(`بالشيكل، على ${priceName(f.sub)}.`, `In shekels, on the ${priceName(f.sub).toLowerCase()}.`)}</p>
+        </div>
+      ) : (
+        <p className="text-caption text-muted-foreground">{tr("اختر نوع الاشتراك لتحديد نطاق السعر أو الترتيب حسبه.", "Choose a subscription to set a price range or to sort by price.")}</p>
+      )}
     </div>
   );
 }
 
+// A heading over its boxes, each box a `Field` of its own.
+function CheckGroup({ label, items }) {
+  const id = React.useId();
+  return (
+    <div role="group" aria-labelledby={id} className="flex flex-col gap-2">
+      <p id={id} className="text-label">{label}</p>
+      {items.map((o) => (
+        <Field key={o.id} label={o.label} orientation="horizontal">
+          <Checkbox checked={o.on} onCheckedChange={o.toggle} />
+        </Field>
+      ))}
+    </div>
+  );
+}
+
+// The panel, top to bottom: the place, the price, the hours, the rest.
 function FiltersForm({ f, set }) {
-  const spacesId = React.useId();
+  const box = (id, label) => ({ id, label, on: f.others.includes(id), toggle: () => set({ others: f.others.includes(id) ? f.others.filter((o) => o !== id) : [...f.others, id] }) });
   return (
     <div className="flex flex-col gap-6">
       <PlaceField value={f.areas} onChange={(v) => set({ areas: v })} />
-      {/* U5: the two switches are one group; an unverified space never has a live state. */}
-      <div role="group" aria-labelledby={spacesId} className="flex flex-col gap-2">
-        <p id={spacesId} className="text-label">{tr("المساحات", "Spaces")}</p>
-        <Field label={tr("متاحة الآن فقط", "Available now only")} orientation="horizontal"><Switch checked={f.availableOnly} onCheckedChange={(v) => set({ availableOnly: v })} /></Field>
-        <Field label={tr("المساحات الموثّقة فقط", "Verified spaces only")} orientation="horizontal"><Switch checked={f.verifiedOnly} onCheckedChange={(v) => set({ verifiedOnly: v })} /></Field>
-        <p className="text-caption text-muted-foreground">{tr("تشمل «متاحة الآن» المساحات الموثّقة فقط.", "“Available now” covers verified spaces only.")}</p>
-      </div>
       <PriceField f={f} set={set} />
-      <Field label={tr("أخرى", "Other")}>
-        <ToggleGroup type="multiple" value={f.others} onValueChange={(v) => set({ others: v })}>
-          {M.others.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
+      <CheckGroup label={tr("الدوام", "Hours")} items={[
+        { id: 'open', label: tr("مفتوحة الآن", "Open now"), on: f.open, toggle: () => set({ open: !f.open }) },
+        box('evening', tr("مفتوحة مساءً", "Open in the evening")),
+        box('friday', tr("مفتوحة يوم الجمعة", "Open on Friday"))
+      ]} />
+      <CheckGroup label={tr("أخرى", "Other")} items={[
+        box('verified', tr("المساحات الموثّقة فقط", "Verified spaces only")),
+        box('students', tr("أسعار للطلاب", "Student prices"))
+      ]} />
     </div>
-  );
-}
-
-const SORTS = () => ({ distance: tr("حسب المسافة", "By distance"), updated: tr("الأحدث تحديثًا", "Recently updated"), name: tr("حسب الاسم", "By name") });
-
-function NoResults({ onClear }) {
-  return (
-    <EmptyState icon={<SearchXIcon />} title={tr("لا توجد مساحات تطابق الفلاتر", "No spaces match the filters")} description={tr("جرّب إزالة بعض الفلاتر أو البحث باسم آخر.", "Try removing some filters or searching for another name.")}>
-      <Button variant="outline" onClick={onClear}>{tr("مسح الفلاتر", "Clear filters")}</Button>
-    </EmptyState>
   );
 }
 
@@ -220,11 +348,11 @@ function DirectoryScreen() {
   const [view, setView] = React.useState(pageParams.get('view') === 'map' || near.loc.status === 'picking' ? 'map' : 'list');
   const [sheetOpen, setSheetOpen] = React.useState(pageParams.get('sheet') === 'filters');
   const [selectedId, setSelectedId] = React.useState(pageParams.get('selected'));
-  const [sort, setSort] = React.useState(near.coords ? 'distance' : 'updated');
+  const [sort, setSort] = React.useState(() => initialSort(near.coords));
   const set = (patch) => setF((prev) => ({ ...prev, ...patch }));
+  // Without a subscription there is no price to order by: the order returns to the latest update.
+  React.useEffect(() => { if (!f.sub) setSort((s) => (s.startsWith('price') ? 'updated' : s)); }, [f.sub]);
 
-  // U2: «الأقرب إليّ» is a control of its own, not an item of the sort list. A location that
-  // arrives sorts by distance; another sort leaves it, keeping the location until «مسح موقعي».
   React.useEffect(() => {
     if (near.coords) setSort('distance');
     else setSort((s) => (s === 'distance' ? 'updated' : s));
@@ -234,18 +362,14 @@ function DirectoryScreen() {
   const chooseSort = (v) => setSort(v);
   const changeView = (v) => setView(v);
   const firstSync = React.useRef(true);
-  React.useEffect(() => { if (firstSync.current && pageParams.get('sheet')) { firstSync.current = false; return; } firstSync.current = false; syncUrl(f, view); }, [f, view]);
+  React.useEffect(() => { if (firstSync.current && pageParams.get('sheet')) { firstSync.current = false; return; } firstSync.current = false; syncUrl(f, view, sort); }, [f, view, sort]);
   const pickOnMap = () => { changeView('map'); setSelectedId(null); near.startPick(); };
   // «اختر منطقتك»: from 1024 the list view's filters are the sidebar, so the focus goes to its
   // «المنطقة»; below it, or on the map, the sheet opens.
-  const chooseArea = () => {
-    const place = isDesktop && view === 'list' && document.querySelector('aside [role=combobox]');
-    if (!place) return setSheetOpen(true);
-    place.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    place.focus({ preventScroll: true });
-  };
+  const chooseArea = () => { const place = isDesktop && view === 'list' && document.querySelector('aside [role=combobox]'); if (!place) return setSheetOpen(true); place.scrollIntoView({ behavior: 'smooth', block: 'center' }); place.focus({ preventScroll: true }); };
 
-  const results = applyFilters(f, sort === 'distance' && !near.coords ? 'updated' : sort, near.coords);
+  const activeSort = (sort.startsWith('price') && !f.sub) || (sort === 'distance' && !near.coords) ? 'updated' : sort;
+  const results = applyFilters(f, activeSort, near.coords);
   const selected = results.find((r) => r.s.id === selectedId);
   const count = activeCount(f);
   const clear = () => setF(clearedFilters);
@@ -254,7 +378,8 @@ function DirectoryScreen() {
   const picking = near.loc.status === 'picking';
   const phoneSheet = view === 'map' && !picking && !!selected && !isTablet;
 
-    return (
+
+  return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SiteHeader current="directory" theme={theme} setTheme={setTheme} />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-8">
@@ -262,7 +387,6 @@ function DirectoryScreen() {
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
           </div>
-          {/* PU-013: two pressed states of one control, not a tab list with no panels. */}
           <Field label={<span className="sr-only">{tr("طريقة العرض", "View")}</span>}>
             <ToggleGroup type="single" value={view} onValueChange={(v) => v && changeView(v)}>
               <ToggleGroupItem value="list">{tr("قائمة", "List")}</ToggleGroupItem>
@@ -271,38 +395,38 @@ function DirectoryScreen() {
           </Field>
         </div>
 
-        {/* On the map a phone has no sort, so the search and «الفلاتر» share one row, and the map leads. */}
         <div className={'flex gap-2 md:flex-row md:items-center ' + (view === 'map' ? 'flex-row items-center' : 'flex-col')}>
           <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className={view === 'map' ? 'min-w-0 flex-1' : 'md:flex-1'} value={f.q} onChange={(e) => set({ q: e.target.value })} />
           <div className="flex items-center gap-2">
-            {/* P5: the one filter sheet. From 1024 the list view's filters are in the sidebar, so the
-                            toolbar draws none; the map has no sidebar, so there the sheet stays at every width. */}
             <FilterSheet at="lg" wide={view === 'map' ? 'sheet' : 'none'} open={sheetOpen} onOpenChange={setSheetOpen} active={count} count={results.length} onClear={clear} description={tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}>
               <FiltersForm f={f} set={set} />
             </FilterSheet>
             {view === 'list' && (
-              <div className="flex-1 md:w-48 md:flex-none">
-                <Select value={sort} onValueChange={chooseSort}>
-                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue>{tr("الترتيب: ", "Sort: ")}{SORTS()[sort]}</SelectValue></SelectTrigger>
+              <div className="flex-1 md:w-64 md:flex-none">
+                <Select value={activeSort} onValueChange={chooseSort}>
+                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue>{`${tr("الترتيب: ", "Sort: ")}${SORTS(f.sub)[activeSort]}`}</SelectValue></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="updated">{tr("الأحدث تحديثًا", "Recently updated")}</SelectItem>
-                    <SelectItem value="name">{tr("حسب الاسم", "By name")}</SelectItem>
+                    <SelectItem value="updated">{SORTS(f.sub).updated}</SelectItem>
+                    <SelectItem value="name">{SORTS(f.sub).name}</SelectItem>
+                    {/* Without a subscription chosen in the filters there is no price to order by, so no item. */}
+                    {f.sub && <SelectItem value="price-asc">{SORTS(f.sub)['price-asc']}</SelectItem>}
+                    {f.sub && <SelectItem value="price-desc">{SORTS(f.sub)['price-desc']}</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
             )}
           </div>
         </div>
-        {/* U2 and P5: the count by the toolbar, «الأقرب إليّ» beside it in both views, its one state line under them. */}
+
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <ResultCount>{ready ? `${countLabel(results.length)} ${placeLine(f.areas)}` : '\u00a0'}</ResultCount>
+          <ResultCount>{ready ? (f.sub ? `${priceCountLabel(results.length, f.sub)} ${placeLine(f.areas)}` : `${countLabel(results.length)} ${placeLine(f.areas)}`) : '\u00a0'}</ResultCount>
           {!picking && <NearMeButton near={near} on={sortingByDistance} onToggle={toggleNear} />}
         </div>
         {!picking && <LocationStatus near={near} sorting={sortingByDistance} onStop={() => setSort('updated')} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
 
         {state === 'error' && (
           <Alert variant="destructive">
-            <AlertTitle>{tr("تعذّر تحميل المساحات", "Couldn’t load spaces")}</AlertTitle>
+            <AlertTitle>{tr("تعذّر تحميل المساحات", "Couldn't load spaces")}</AlertTitle>
             <AlertDescription>{tr("تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.", "Check your internet connection and try again.")}</AlertDescription>
             <AlertAction><Button variant="outline" size="sm" onClick={retry}>{tr("إعادة المحاولة", "Try again")}</Button></AlertAction>
           </Alert>
@@ -310,7 +434,7 @@ function DirectoryScreen() {
 
         {view === 'list' && (
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
-            <aside className="hidden lg:col-span-3 lg:block" aria-label={tr("الفلاتر", "Filters")}>
+            <aside className="dir-filters hidden lg:col-span-3 lg:block" aria-label={tr("الفلاتر", "Filters")}>
               <Card>
                 <CardHeader>
                   <CardTitle>{tr("الفلاتر", "Filters")}</CardTitle>
@@ -319,11 +443,13 @@ function DirectoryScreen() {
                 <CardContent><FiltersForm f={f} set={set} /></CardContent>
               </Card>
             </aside>
-            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
+            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="dir-results grid gap-4 md:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
               {state === 'loading' && [0, 1, 2, 3].map((i) => <SpaceCardSkeleton key={i} />)}
               {ready && (results.length
-                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />)
-                : <Card className="md:col-span-2 xl:col-span-3"><NoResults onClear={clear} /></Card>)}
+                ? results.map((r) => f.sub
+                  ? <DirectoryPriceCard key={r.s.id} space={r.s} km={r.km} sub={f.sub} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />
+                  : <SpaceCard key={r.s.id} space={r.s} km={r.km} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />)
+                : <Card className="md:col-span-2 xl:col-span-3"><NoResults onClear={clear} sub={f.sub} price={!!f.sub} inRange={!!(f.priceMin.trim() || f.priceMax.trim())} /></Card>)}
             </section>
           </div>
         )}
@@ -346,7 +472,6 @@ function DirectoryScreen() {
                 label={tr("خريطة المساحات", "Map of spaces")}
                 className="map-canvas">
                 {({ confirmCentre }) => picking ? (
-                  // U7: a keyboard, a screen reader and a thumb all reach the centre and its button.
                   <Card className="shadow-overlay">
                     <CardHeader>
                       <CardTitle>{tr("حدّد موقعك على الخريطة", "Set your location on the map")}</CardTitle>
@@ -358,7 +483,7 @@ function DirectoryScreen() {
                     </CardFooter>
                   </Card>
                 ) : selected && isTablet ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
-                  : ready && !results.length ? <Card className="shadow-overlay"><NoResults onClear={clear} /></Card> : null}
+                  : ready && !results.length ? <Card className="shadow-overlay"><NoResults onClear={clear} sub={f.sub} price={!!f.sub} inRange={!!(f.priceMin.trim() || f.priceMax.trim())} /></Card> : null}
               </SpaceMap>
             )}
             {phoneSheet && <SelectedSheet item={selected} onClose={() => setSelectedId(null)} />}
