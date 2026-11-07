@@ -57,6 +57,15 @@ function Gallery({ space }) {
 
 // U4: the live status shows its state alone — it is derived now, so it is never dated (ADR 0008).
 function StatusLine({ space }) {
+  // An unverified space with hours says, by them, whether it is open now: neutral, since it is no live state.
+  if (!space.verified && space.hours) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <SBadge variant="neutral">{statusWord(space)}</SBadge>
+        <span className="text-caption text-muted-foreground">{tr("حسب ساعات العمل؛ الحالة المباشرة تظهر للمساحات الموثّقة فقط", "By its opening hours; live status is shown for verified spaces only")}</span>
+      </div>
+    );
+  }
   if (!space.verified) {
     return (
       <div className="flex flex-col gap-1">
@@ -89,8 +98,9 @@ function Freshness({ space, group, lead }) {
 }
 
 function TodayLine({ space }) {
-  const h = space.hours[todayKey()];
   if (space.closure) return <span>{tr("مغلقة مؤقتًا اليوم", "Temporarily closed today")}</span>;
+  if (!space.hours) return <span>{tr("ساعات العمل غير متوفرة", "Hours not available")}</span>;
+  const h = space.hours[todayKey()];
   return h ? <span>{tr("اليوم ", "Today ")}<span dir="ltr">{h[0]}–{h[1]}</span></span> : <span>{tr("مغلقة اليوم", "Closed today")}</span>;
 }
 
@@ -206,8 +216,16 @@ const TodayBadge = () => <SBadge variant="primary">{tr("اليوم", "Today")}</
 
 function HoursSection({ space }) {
   const t = todayKey();
-  const groups = groupDays(space.hours);
   const [all, setAll] = React.useState(false);
+  // Hours are optional: without them the section stays, saying so in place of the week.
+  if (!space.hours) {
+    return (
+      <Section id="hours" title={tr("ساعات العمل", "Opening hours")}>
+        <p className="text-body-sm text-muted-foreground">{tr("ساعات العمل غير متوفرة", "Hours not available")}</p>
+      </Section>
+    );
+  }
+  const groups = groupDays(space.hours);
   const canExpand = groups.length > 2;
   const rows = all ? SM.weekOrder.map(([k, name]) => ({ keys: [k], names: [name], range: space.hours[k] })) : groups;
   return (

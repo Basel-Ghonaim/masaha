@@ -41,7 +41,12 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Parameter | Where | What it shows |
 |---|---|---|
 | `?area=nasr,rimal` | `Directory.html` | the place filter: a list of areas, from any governorate (U1). `?gov=` and the amenity filter's `?am=` are gone; an old link still opens, unfiltered by them |
-| `?period=day&priceMin=10&priceMax=20` | `Directory.html` | the price filter (U5): the range on that period's price; the period alone filters nothing (S1). `?priceMin=50&priceMax=20` shows the range's error on its field |
+| `?sub=month` | `Directory.html` | the price's subscription (Refactor 1): «الكل · ساعة · يوم · أسبوع · شهر», «الكل» by default and not written. With one chosen, only the spaces with that price stay and their cards show it |
+| `?sub=month&priceMin=250&priceMax=400` | `Directory.html` | the range on that subscription's price, in shekels, read only with `sub`. `?priceMin=400&priceMax=250` shows the error on «إلى» |
+| `?sub=week&sort=price&dir=desc` | `Directory.html` | the price order, in the sort: «الأرخص أسبوعيًا», or «الأغلى أسبوعيًا» with `dir=desc`; read only with `sub`. Under «الكل» the sort lists no price item |
+| `?open=1` | `Directory.html` | «مفتوحة الآن»: today's hours on Gaza's clock hold this minute and no closure is in force, for every space; a full one stays. An unverified card says «مفتوحة الآن» / «مغلقة الآن» by the same rule, as a neutral badge |
+| `?other=evening,friday,students,verified` | `Directory.html` | the other boxes: «مفتوحة مساءً» (closes at 20:00 or later on one open day, or an owner-declared evening shift), «مفتوحة يوم الجمعة», «أسعار للطلاب», «المساحات الموثّقة فقط». An old `?verified=1` opens as `other=verified`; `?available=`, `?opennow=` and `?period=` are gone |
+| `Space details.html?id=zm` | the space page | a space without hours (ZM Hub): «ساعات العمل غير متوفرة» on the today line and in the hours section; its card says the same, with «لا تتوفر حالة مباشرة» |
 | `?photos=loading` · `?photos=failed` | Home, `Directory.html`, `Favorites.html` | every card's cover frame waiting for its photo, or showing the space's mark where the photo did not load (U12, S5) |
 | `?auth=1` | Home, `Directory.html` | a signed-in visitor: the heart over each card's photo, saving a space where the comparing happens (PU-014) |
 | `Error.html?type=offline&fail=retry` · `?type=error&fail=retry` | `Error.html` | the retry failing: «ما زال الاتصال مفقودًا» under the buttons (offline also says so while the device is offline) |
@@ -854,7 +859,7 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Directory · place and price filters — desktop 1440 | `Directory.html?loc=none&area=nasr,rimal&period=day&priceMax=20` | 1440×1000 | — |
+| Directory · place and price filters — desktop 1440 | `Directory.html?loc=none&area=nasr,rimal&sub=day&priceMax=20` | 1440×1000 | — |
 | Directory · striking cards, signed in — phone 390 | `Directory.html?loc=none&auth=1` | 390×844 | — |
 | Directory · map, selected space as a sheet — phone 390 | `Directory.html?view=map&selected=focus&loc=none` | 390×844 | — |
 | Manual pin · centre crosshair — phone 390 | `Directory.html?view=map&loc=picking` | 390×844 | — |
@@ -960,3 +965,20 @@ Added by the desk's fix (`CHANGES.md` › *Batch 6*). No screenshot yet: `screen
 | Payments · five columns, voided shown — tablet 768 | `Payments.html?range=today&voided=1` | 768×1024 | — |
 | Payments · a month from Finance — desktop 1440 | `Payments.html?month=2026-08` | 1440×1000 | — |
 | My payments · the handover — desktop 1440 | `My payments.html?role=reception` | 1440×1000 | — |
+
+## 57 · Refactor 1 — the directory's filters
+
+Added by the directory's filters round (`CHANGES.md` › *Refactor 1*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Price filter · monthly, 250–400 ₪ — desktop 1440 | `Directory.html?loc=none&sub=month&priceMin=250&priceMax=400` | 1440×1000 | — |
+| Price filter · filters sheet — phone 390 | `Directory.html?loc=none&sub=month&priceMin=250&priceMax=400&sheet=filters` | 390×844 | — |
+| Price sort · «الأغلى أسبوعيًا» — desktop 1440 | `Directory.html?loc=none&sub=week&sort=price&dir=desc` | 1440×1000 | — |
+| Price sort · «الأغلى أسبوعيًا» — phone 390 | `Directory.html?loc=none&sub=week&sort=price&dir=desc` | 390×844 | — |
+| «الدوام» · «مفتوحة الآن» — desktop 1440 | `Directory.html?loc=none&open=1` | 1440×1000 | — |
+| «الدوام» · «مفتوحة الآن», filters sheet — phone 390 | `Directory.html?loc=none&open=1&sheet=filters` | 390×844 | — |
+| Area combobox · two areas chosen — desktop 1440 | `Directory.html?loc=none&area=nasr,rimal` | 1440×1000 | — |
+| «أخرى» · verified, student prices, filters sheet — phone 390 | `Directory.html?loc=none&other=students,verified&sheet=filters` | 390×844 | — |
+| A space without hours · its card (ZM Hub) — desktop 1440 | `Directory.html?loc=none&q=ZM` | 1440×1000 | — |
+| A space without hours · its page — phone 390 | `Space details.html?id=zm&loc=none` | 390×844 | — |
