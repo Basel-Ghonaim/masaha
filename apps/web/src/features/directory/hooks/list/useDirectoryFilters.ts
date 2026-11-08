@@ -47,11 +47,11 @@ export function useDirectoryFilters() {
     },
   });
 
-  // The filters in force, each counted once: the place, whatever its number of areas, the price, and
-  // each of the five boxes (design issue 14).
+  // The filters in force, each counted once: the place, whatever its number of areas, the
+  // subscription, with or without its budget, and each of the five boxes (design issue 14).
   const applied = [
     filters.areas.length > 0,
-    filters.min !== undefined || filters.max !== undefined,
+    filters.period !== undefined,
     filters.openNow,
     filters.evening,
     filters.openFriday,
@@ -82,7 +82,10 @@ export function useDirectoryFilters() {
         page: 1,
       });
     },
-    /** Takes off the filters, keeping the search, the order and the view. */
+    /**
+     * Takes off the filters, keeping the search, the order and the view; a price order goes with its
+     * subscription, back to the default.
+     */
     clearFilters: () => {
       const current = filtersOf(latest.current);
       write({

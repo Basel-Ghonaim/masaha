@@ -5,7 +5,7 @@ import { filtersOf, paramsOf, searchOf } from './filtersOf';
 const DEFAULTS: DirectoryFilters = {
   q: undefined,
   areas: [],
-  period: 'DAY',
+  period: undefined,
   min: undefined,
   max: undefined,
   openNow: false,
@@ -49,13 +49,13 @@ describe('filtersOf', () => {
     const fiftyOne = Array.from({ length: 51 }, (_, index) => String(index + 1)).join(',');
     expect(read(`area=${fiftyOne}`).areas).toEqual([]);
     expect(read('area=3,x').areas).toEqual([]);
-    expect(read('period=YEAR').period).toBe('DAY');
-    expect(read('min=0').min).toBeUndefined();
-    expect(read('max=abc').max).toBeUndefined();
-    expect(read('max=100001').max).toBeUndefined();
-    expect(read('max=100000').max).toBe(100_000);
-    expect(read('min=50&max=10')).toMatchObject({ min: 50, max: undefined });
-    expect(read('min=10&max=10')).toMatchObject({ min: 10, max: 10 });
+    expect(read('period=YEAR').period).toBeUndefined();
+    expect(read('period=DAY&min=0').min).toBeUndefined();
+    expect(read('period=DAY&max=abc').max).toBeUndefined();
+    expect(read('period=DAY&max=100001').max).toBeUndefined();
+    expect(read('period=DAY&max=100000').max).toBe(100_000);
+    expect(read('period=DAY&min=50&max=10')).toMatchObject({ min: 50, max: undefined });
+    expect(read('period=DAY&min=10&max=10')).toMatchObject({ min: 10, max: 10 });
     expect(read('open=true').openNow).toBe(false);
     expect(read('evening=yes').evening).toBe(false);
     expect(read('sort=relevance').sort).toBeUndefined();
@@ -63,6 +63,16 @@ describe('filtersOf', () => {
     expect(read('page=0').page).toBe(1);
     expect(read('page=2.5').page).toBe(1);
     expect(read('view=grid').view).toBe('list');
+  });
+
+  it('reads the subscription alone, its bounds only with it, and a price order only with it', () => {
+    expect(read('period=MONTH')).toEqual({ ...DEFAULTS, period: 'MONTH' });
+    expect(read('min=10&max=30')).toEqual(DEFAULTS);
+    expect(read('period=DAY&min=10')).toMatchObject({ period: 'DAY', min: 10 });
+    expect(read('period=DAY&sort=priceAsc').sort).toBe('priceAsc');
+    expect(read('period=DAY&sort=priceDesc').sort).toBe('priceDesc');
+    expect(read('sort=priceAsc').sort).toBeUndefined();
+    expect(read('sort=priceDesc&min=10').sort).toBeUndefined();
   });
 
   it('reads the retired available=1 and availableNow=true as nothing: an old link opens unfiltered', () => {
@@ -90,7 +100,6 @@ describe('filtersOf', () => {
 describe('paramsOf', () => {
   it('writes no default into the address', () => {
     expect(paramsOf(DEFAULTS).toString()).toBe('');
-    expect(paramsOf({ ...DEFAULTS, period: 'MONTH' }).toString()).toBe('');
     expect(paramsOf({ ...DEFAULTS, q: 'Focus', sort: 'relevance' }).toString()).toBe('q=Focus');
     expect(paramsOf({ ...DEFAULTS, page: 1, sort: 'updated' }).toString()).toBe('');
   });
@@ -110,6 +119,35 @@ describe('paramsOf', () => {
         page: 2,
       }).toString(),
     ).toBe('q=Focus&area=3%2C7&period=WEEK&max=30&open=1&evening=1&verified=1&sort=updated&page=2');
-    expect(paramsOf({ ...DEFAULTS, min: 10 }).toString()).toBe('period=DAY&min=10');
+  });
+
+  it('writes the subscription alone, its bounds and a price order only with it', () => {
+    expect(paramsOf({ ...DEFAULTS, period: 'MONTH' }).toString()).toBe('period=MONTH');
+    expect(paramsOf({ ...DEFAULTS, min: 10, max: 30 }).toString()).toBe('');
+    expect(paramsOf({ ...DEFAULTS, period: 'DAY', sort: 'priceAsc' }).toString()).toBe(
+      'period=DAY&sort=priceAsc',
+    );
+    expect(paramsOf({ ...DEFAULTS, sort: 'priceDesc' }).toString()).toBe('');
+  });
+
+  it('reads back what it writes, and an old shared link still reads', () => {
+    const filters: DirectoryFilters = {
+      ...DEFAULTS,
+      q: 'Hub',
+      areas: [3],
+      period: 'MONTH',
+      min: 100,
+      max: 400,
+      openNow: true,
+      evening: true,
+      openFriday: true,
+      verified: true,
+      studentPrices: true,
+      sort: 'priceDesc',
+      page: 3,
+      view: 'map',
+    };
+    expect(read(paramsOf(filters).toString())).toEqual(filters);
+    expect(read('period=DAY&min=10')).toEqual({ ...DEFAULTS, period: 'DAY', min: 10 });
   });
 });

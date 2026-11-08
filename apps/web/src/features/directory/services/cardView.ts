@@ -1,8 +1,9 @@
 import type { DirectorySpace, MapPin } from '@masaha/shared/directory';
 import type { HoursStatus, LiveStatus } from '@masaha/shared/occupancy';
 import type { Catalogue } from '@shared/copy';
+import type { PRICE_PERIODS } from '@masaha/shared/spaces';
 import { isolated } from '@shared/forms';
-import { spaceNameOf } from '@shared/lib';
+import { priceText, spaceNameOf } from '@shared/lib';
 import type { SpaceCardView } from '../types/SpaceCardView';
 import { distanceText } from './distanceText';
 import { todayHours } from './todayHours';
@@ -44,7 +45,9 @@ function cardStatusOf(
  * A space's card, worded in the interface's language: its name, its mark, its state (`cardStatusOf`),
  * whether it is verified, today's hours (or that they are not available), and how far it is while
  * the list is ordered by distance (`byDistance`): an answer asked by distance and still shown once
- * the order stops says no distance. A map's pin makes the same card, its area by its id. No price.
+ * the order stops says no distance. While the list is filtered by a subscription (`period`), the
+ * price its answer carries, «15 ₪ / يوم», the amount left to right. A map's pin makes the same
+ * card, its area by its id, with no price.
  */
 export function cardViewOf(
   space: DirectorySpace | MapPin,
@@ -53,8 +56,16 @@ export function cardViewOf(
     now,
     copy,
     byDistance,
-  }: { english: boolean; now: Date; copy: Catalogue; byDistance: boolean },
+    period,
+  }: {
+    english: boolean;
+    now: Date;
+    copy: Catalogue;
+    byDistance: boolean;
+    period?: (typeof PRICE_PERIODS)[number] | undefined;
+  },
 ): SpaceCardView {
+  const amount = 'priceAgorot' in space ? space.priceAgorot : undefined;
   const words = copy.directory;
   const name = spaceNameOf(space, english);
   return {
@@ -73,6 +84,13 @@ export function cardViewOf(
         ? null
         : words.card.distance({
             km: isolated(distanceText(space.distanceMeters, english ? 'en' : 'ar')),
+          }),
+    price:
+      period === undefined || amount === undefined
+        ? null
+        : words.card.price({
+            price: isolated(priceText(amount, english ? 'en' : 'ar')),
+            period: words.card.periods[period],
           }),
   };
 }

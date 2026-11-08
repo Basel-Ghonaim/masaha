@@ -20,4 +20,6 @@ export type SpaceCardView = {
   today: string;
   /** How far, in a straight line, while the list is ordered by distance. */
   distance: string | null;
+  /** While a subscription is chosen, its price: «15 ₪ / يوم», the amount left to right. */
+  price: string | null;
 };

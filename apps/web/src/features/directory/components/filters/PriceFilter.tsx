@@ -1,50 +1,57 @@
-import { Field, Input, ToggleGroup, ToggleGroupItem } from '@shared/design-system';
+import { Field, Input, SegmentedControl, SegmentedControlItem } from '@shared/design-system';
 import { useId } from 'react';
 import type { PriceFilterView } from '../../types/FiltersView';
 
 /**
- * The price filter, a group named «السعر»: the period's four chips two by two (design issue 10),
- * then «من» and «إلى» side by side in whole shekels, each with its line, and the help line naming
- * the period.
+ * The price filter, a group named «السعر»: the subscription as one segmented choice, «الكل · ساعة ·
+ * يوم · أسبوع · شهر», named «نوع الاشتراك»; once one is chosen, «من» and «إلى» side by side in whole
+ * shekels, each with its hint and its line; and the line under them, the hint under «الكل» or the
+ * help line, which describes the subscription.
  */
 export function PriceFilter({ price }: { price: PriceFilterView }) {
   const labelId = useId();
+  const lineId = useId();
+  const { subscription, range } = price;
 
   return (
     <div role="group" aria-labelledby={labelId} className="flex flex-col gap-3">
       <p id={labelId} className="text-label">
         {price.label}
       </p>
-      <Field label={price.period.label}>
-        <ToggleGroup
-          type="single"
-          value={price.period.value}
-          onValueChange={price.period.choose}
-          className="grid grid-cols-2"
-        >
-          {price.period.options.map((option) => (
-            <ToggleGroupItem key={option.value} value={option.value}>
-              {option.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        {[price.min, price.max].map((bound) => (
-          <Field key={bound.label} label={bound.label} error={bound.error}>
-            <Input
-              dir="ltr"
-              inputMode="numeric"
-              startIcon={price.currency}
-              value={bound.text}
-              onChange={(event) => {
-                bound.change(event.target.value);
-              }}
-            />
-          </Field>
+      <SegmentedControl
+        aria-label={subscription.label}
+        aria-describedby={lineId}
+        value={subscription.value}
+        onValueChange={subscription.choose}
+      >
+        {subscription.options.map((option) => (
+          <SegmentedControlItem key={option.value} value={option.value}>
+            {option.label}
+          </SegmentedControlItem>
         ))}
-      </div>
-      <p className="text-caption text-muted-foreground">{price.help}</p>
+      </SegmentedControl>
+      {range !== null && (
+        <div className="grid grid-cols-2 gap-3">
+          {[range.min, range.max].map((bound) => (
+            <Field key={bound.label} label={bound.label} error={bound.error}>
+              <Input
+                dir="ltr"
+                inputMode="numeric"
+                autoComplete="off"
+                startIcon={range.currency}
+                placeholder={bound.placeholder}
+                value={bound.text}
+                onChange={(event) => {
+                  bound.change(event.target.value);
+                }}
+              />
+            </Field>
+          ))}
+        </div>
+      )}
+      <p id={lineId} className="text-caption text-muted-foreground">
+        {price.line}
+      </p>
     </div>
   );
 }

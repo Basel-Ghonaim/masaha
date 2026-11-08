@@ -3,6 +3,7 @@ import {
   type DirectorySpace,
   type FavoriteSpace,
   type MapPins,
+  type PriceRanges,
   type PublicSpace,
 } from '@masaha/shared/directory';
 import type { PublicOccupancy } from '@masaha/shared/occupancy';
@@ -24,8 +25,10 @@ export interface DirectoryRepository {
   pins(request: PinsRequest): Promise<MapPins>;
   /** A publicly listed space's page, by its slug; a hidden, deleted or unknown one is a 404. */
   space(slug: string): Promise<PublicSpace>;
-  /** A publicly listed space's live status, by its slug. */
+  /** A publicly listed space's live status and its state by its hours, by its slug. */
   status(slug: string): Promise<PublicOccupancy>;
+  /** Each subscription's lowest and highest price over the listed spaces whose prices are shown. */
+  priceRanges(): Promise<PriceRanges>;
   /**
    * The signed-in user's favourites, whole, as cards: newest saved first, or nearest first from the
    * point, which travels in the `Masaha-Near` header only; a space that left the directory by its name.
@@ -43,6 +46,7 @@ export function createDirectoryRepository(): DirectoryRepository {
     pins: (request) => api.get<MapPins>('/map/spaces', { params: request }),
     space: (slug) => api.get<PublicSpace>(`/spaces/${encodeURIComponent(slug)}`),
     status: (slug) => api.get<PublicOccupancy>(`/spaces/${encodeURIComponent(slug)}/occupancy`),
+    priceRanges: () => api.get<PriceRanges>('/price-ranges'),
     favorites: ({ near }) =>
       api.get<FavoriteSpace[]>(
         '/me/favorites',

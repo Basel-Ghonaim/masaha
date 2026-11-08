@@ -29,7 +29,10 @@ export interface PublicFilter {
   /** Only these spaces: the favourites, resolved to ids. */
   onlyIds?: readonly number[] | undefined;
   verifiedOnly?: boolean | undefined;
-  /** A general price of this period, within the bounds, inclusive. */
+  /**
+   * A general price of this period, within the bounds, inclusive: the space's lowest such price is
+   * its card's price and the price order's key.
+   */
   price?: { period: Price['period']; min?: number | undefined; max?: number | undefined };
   studentPrices?: boolean | undefined;
   openFriday?: boolean | undefined;
@@ -54,7 +57,9 @@ export type PublicOrder =
   | { by: 'updated' }
   | { by: 'name'; lang: Language }
   | { by: 'distance'; from: Location }
-  | { by: 'relevance' };
+  | { by: 'relevance' }
+  /** By the filter's price (`price`), which this order needs. */
+  | { by: 'price'; direction: 'asc' | 'desc' };
 
 export interface PublicSpaceRecord {
   id: number;
@@ -67,6 +72,15 @@ export interface PublicSpaceRecord {
   isVerified: boolean;
   /** In metres, straight-line, only when ordered by distance. */
   distance: number | null;
+  /** In agorot: the lowest general price of the filter's period within its bounds; only with it. */
+  price: number | null;
+}
+
+/** Each period's lowest and highest general price, in agorot, over the spaces whose are shown. */
+export interface PriceRangeRecord {
+  period: Price['period'];
+  min: number;
+  max: number;
 }
 
 const { sql, join, empty } = Prisma;
@@ -79,28 +93,42 @@ function distanceFrom({ lat, lng }: Location): Prisma.Sql {
       * power(sin(radians(s.lng - ${lng}::float8) / 2), 2))))`;
 }
 
+/** Whether the space is verified: its id among the verified ones. */
+const verifiedOf = (filter: Pick<PublicFilter, 'verifiedIds'>) =>
+  sql`(s.id = ANY(${[...filter.verifiedIds]}::int[]))`;
+
+/** The rule of `pricesHidden`, in the query: a verified space's prices, or fresh ones. */
+const pricesShownOf = (filter: Pick<PublicFilter, 'verifiedIds' | 'pricesStaleBefore'>) =>
+  sql`(${verifiedOf(filter)} OR s.prices_updated_at >= ${filter.pricesStaleBefore})`;
+
+/** Publicly listed: not deleted, not hidden, in a listed area (data-model › Derived values). */
+const listedConditions = (filter: Pick<PublicFilter, 'areaIds'>) => [
+  sql`s.deleted_at IS NULL`,
+  sql`NOT s.is_hidden`,
+  sql`s.area_id = ANY(${[...filter.areaIds]}::int[])`,
+];
+
 /**
- * The listed spaces that pass the filter, with what each order needs: publicly listed means not
- * deleted, not hidden, in a listed area (data-model › Derived values).
+ * The listed spaces that pass the filter, with what each order needs. With a price filter, each
+ * space's lowest general price of the period within the bounds is one lateral `min()`: the space
+ * passes when it has one and its prices are shown, and it is the card's price and the price order's
+ * key, so the three never disagree.
  */
 function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
-  const verified = sql`(s.id = ANY(${[...filter.verifiedIds]}::int[]))`;
-  // The rule of `pricesHidden`, in the query: a verified space's prices, or fresh ones.
-  const pricesShown = sql`(${verified} OR s.prices_updated_at >= ${filter.pricesStaleBefore})`;
-  const conditions = [
-    sql`s.deleted_at IS NULL`,
-    sql`NOT s.is_hidden`,
-    sql`s.area_id = ANY(${[...filter.areaIds]}::int[])`,
-  ];
+  const verified = verifiedOf(filter);
+  const pricesShown = pricesShownOf(filter);
+  const conditions = listedConditions(filter);
   if (filter.verifiedOnly) conditions.push(verified);
   if (filter.onlyIds) conditions.push(sql`s.id = ANY(${[...filter.onlyIds]}::int[])`);
+  let priceJoin = empty;
   if (filter.price) {
     const { period, min, max } = filter.price;
-    conditions.push(sql`${pricesShown} AND EXISTS (
-      SELECT 1 FROM space_prices p
+    priceJoin = sql`CROSS JOIN LATERAL (
+      SELECT min(p.amount_agorot) AS amount FROM space_prices p
       WHERE p.space_id = s.id AND p.audience = 'GENERAL' AND p.period = ${period}::"PricePeriod"
         ${min === undefined ? empty : sql`AND p.amount_agorot >= ${min}`}
-        ${max === undefined ? empty : sql`AND p.amount_agorot <= ${max}`})`);
+        ${max === undefined ? empty : sql`AND p.amount_agorot <= ${max}`}) pr`;
+    conditions.push(sql`${pricesShown} AND pr.amount IS NOT NULL`);
   }
   if (filter.studentPrices) {
     conditions.push(sql`${pricesShown} AND EXISTS (
@@ -148,8 +176,9 @@ function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
                s.amenities_updated_at, s.contacts_updated_at) AS last_updated,
       ${verified} AS is_verified,
       ${score} AS score,
-      ${from ? distanceFrom(from) : sql`NULL::float8`} AS distance
-    FROM spaces s ${areaMatches}
+      ${from ? distanceFrom(from) : sql`NULL::float8`} AS distance,
+      ${filter.price ? sql`pr.amount` : sql`NULL::int`} AS price
+    FROM spaces s ${areaMatches} ${priceJoin}
     WHERE ${join(conditions, ' AND ')}`;
 }
 
@@ -171,6 +200,9 @@ function orderOf(order: PublicOrder): Prisma.Sql {
       return sql`distance, id`;
     case 'relevance':
       return sql`score DESC, id`;
+    case 'price':
+      // Equal prices end by the id ascending in both directions, as every order does.
+      return order.direction === 'asc' ? sql`price ASC, id` : sql`price DESC, id`;
   }
 }
 
@@ -184,6 +216,7 @@ interface Row {
   lng: number;
   is_verified: boolean;
   distance: number | null;
+  price: number | null;
 }
 
 function toRecord(row: Row): PublicSpaceRecord {
@@ -197,6 +230,7 @@ function toRecord(row: Row): PublicSpaceRecord {
     lng: row.lng,
     isVerified: row.is_verified,
     distance: row.distance,
+    price: row.price,
   };
 }
 
@@ -214,7 +248,7 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
       const spaces = listed(filter, order.by === 'distance' ? order.from : undefined);
       const [rows, [count]] = await Promise.all([
         db.$queryRaw<Row[]>`
-          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance
+          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance, price
           FROM (${spaces}) listed ${matching(filter)}
           ORDER BY ${orderOf(order)}
           LIMIT ${take} OFFSET ${skip}`,
@@ -227,11 +261,28 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
     /** The first `limit` listed spaces that pass the filter, by id. */
     async findFirst(filter: PublicFilter, limit: number): Promise<PublicSpaceRecord[]> {
       const rows = await db.$queryRaw<Row[]>`
-        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance
+        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance, price
         FROM (${listed(filter)}) listed ${matching(filter)}
         ORDER BY id
         LIMIT ${limit}`;
       return rows.map(toRecord);
+    },
+
+    /**
+     * Each period's lowest and highest general price over the listed spaces whose prices are shown,
+     * in one grouped query; a period no such space prices has no row.
+     */
+    async priceRanges(
+      filter: Pick<PublicFilter, 'areaIds' | 'verifiedIds' | 'pricesStaleBefore'>,
+    ): Promise<PriceRangeRecord[]> {
+      const conditions = [...listedConditions(filter), pricesShownOf(filter)];
+      const rows = await db.$queryRaw<{ period: Price['period']; min: number; max: number }[]>`
+        SELECT p.period::text AS period, min(p.amount_agorot)::int AS min,
+          max(p.amount_agorot)::int AS max
+        FROM space_prices p JOIN spaces s ON s.id = p.space_id
+        WHERE p.audience = 'GENERAL' AND ${join(conditions, ' AND ')}
+        GROUP BY p.period`;
+      return rows;
     },
   };
 }

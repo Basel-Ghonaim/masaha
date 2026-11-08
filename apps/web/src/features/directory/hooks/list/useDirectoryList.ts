@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { DirectorySort } from '@masaha/shared/directory';
 import { cardViewOf } from '../../services/cardView';
+import { sortLabelOf, sortOrders } from '../../services/sortOrders';
 import { focusFilters } from '../../services/focusFilters';
 import { requestOf } from '../../services/requestOf';
 import type { DirectoryOrder } from '../../types/DirectoryFilters';
@@ -69,10 +70,14 @@ export function useDirectoryList(): DirectoryListView {
   });
 
   const searching = filters.filters.q !== undefined;
+  const { period } = filters.filters;
+  // The subscription the shown answer was asked with: the asked one once its answer has arrived,
+  // the previous one while that answer stays on screen, so a card never words a day's price as a
+  // month's.
+  const [shownPeriod, setShownPeriod] = useState(period);
+  if (!query.isPlaceholderData && shownPeriod !== period) setShownPeriod(period);
   const chosen: DirectoryOrder = filters.filters.sort ?? (searching ? 'relevance' : 'updated');
-  const orders: DirectoryOrder[] = searching
-    ? ['relevance', 'updated', 'name']
-    : ['updated', 'name'];
+  const orders = sortOrders({ searching, period });
   const order: DirectorySort = point === null ? chosen : 'distance';
   const shownOrders: DirectorySort[] = point === null ? orders : ['distance', ...orders];
   // The count is worded from a real answer only: while the shown answer is the one before, the
@@ -141,7 +146,7 @@ export function useDirectoryList(): DirectoryListView {
   // A distance only while the list is ordered by distance, never from an answer kept once it stops.
   const byDistance = point !== null;
   const cards = (answer?.data ?? []).map((space) =>
-    cardViewOf(space, { english, now, copy, byDistance }),
+    cardViewOf(space, { english, now, copy, byDistance, period: shownPeriod }),
   );
 
   return {
@@ -154,9 +159,12 @@ export function useDirectoryList(): DirectoryListView {
     },
     sort: {
       label: words.sort.label,
-      valueText: words.sort.value({ sort: words.sort.options[order] }),
+      valueText: words.sort.value({ sort: sortLabelOf(order, period, words.sort) }),
       value: order,
-      options: shownOrders.map((value) => ({ value, label: words.sort.options[value] })),
+      options: shownOrders.map((value) => ({
+        value,
+        label: sortLabelOf(value, period, words.sort),
+      })),
       choose: (value) => {
         const next = orders.find((candidate) => candidate === value);
         if (next === undefined) return;

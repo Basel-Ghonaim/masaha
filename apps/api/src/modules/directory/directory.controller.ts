@@ -25,6 +25,12 @@ export function createDirectoryController(directory: DirectoryService) {
       sendSuccess(res, pins);
     },
 
+    priceRanges: async (_req: Request, res: Response) => {
+      const ranges = await directory.priceRanges();
+      cachePublicly(res);
+      sendSuccess(res, ranges);
+    },
+
     page: async (req: Request, res: Response) => {
       const space = await directory.page(String(req.params.slug));
       cachePublicly(res);

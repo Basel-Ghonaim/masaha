@@ -6,7 +6,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { fakeGeolocation } from '../../../../test/fakeGeolocation';
-import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
 import { nearMeStore } from '../near/nearMeStore';
@@ -44,9 +44,19 @@ function page(spaces: DirectorySpace[], { current = 1, total = 1, records = spac
   } satisfies FakeAnswer;
 }
 
+/** No subscription priced yet: the budget's fields have no hint. */
+const NO_RANGES = { HOUR: null, DAY: null, WEEK: null, MONTH: null };
+
 /** The list at `path`, the fake server answering each request with `answer`. */
 function renderList(path: string, answer: Parameters<typeof fakeTransport>[0]) {
-  const requests = fakeTransport(answer);
+  // The budget's hints are a read of their own, answered apart; `requests` holds the others, each
+  // handed its index among them.
+  const requests: Parameters<typeof answer>[0][] = [];
+  fakeTransport((request) => {
+    if (request.url === '/price-ranges') return ok(NO_RANGES);
+    const index = requests.push(request) - 1;
+    return answer(request, index);
+  });
   const Query = queryWrapper();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Query>
@@ -411,5 +421,81 @@ describe('useDirectoryList', () => {
     expect(result.current.list.near.button.on).toBe(false);
     expect(result.current.list.results.cards.map((card) => card.slug)).toEqual(['space-1']);
     expect(result.current.list.results.cards[0]?.distance).toBeNull();
+  });
+
+  it('offers the price orders only once a subscription is chosen, named by it, and sends the one chosen with the period', async () => {
+    const { result, requests } = renderList('/spaces', () => page([space(1)]));
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(result.current.list.sort.options.map(({ value }) => value)).toEqual(['updated', 'name']);
+
+    act(() => {
+      void result.current.navigate('/spaces?period=MONTH');
+    });
+    expect(result.current.list.sort.options).toEqual([
+      { value: 'updated', label: 'الأحدث تحديثًا' },
+      { value: 'name', label: 'حسب الاسم' },
+      { value: 'priceAsc', label: 'الأرخص شهريًا' },
+      { value: 'priceDesc', label: 'الأغلى شهريًا' },
+    ]);
+
+    act(() => {
+      result.current.list.sort.choose('priceAsc');
+    });
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toEqual({ limit: 20, period: 'MONTH', sort: 'priceAsc' });
+    });
+    expect(result.current.search).toBe('?period=MONTH&sort=priceAsc');
+    expect(result.current.list.sort.valueText).toBe('الترتيب: الأرخص شهريًا');
+  });
+
+  it('shows each card’s price while a subscription is chosen, and none under «الكل»', async () => {
+    const { result } = renderList('/spaces?period=DAY', () =>
+      page([{ ...space(1), priceAgorot: 1500 }]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(result.current.list.results.cards[0]?.price).toBe('\u2066\u200f15\u00a0₪\u2069 / يوم');
+
+    act(() => {
+      void result.current.navigate('/spaces');
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.cards[0]?.price).toBeNull();
+    });
+  });
+
+  it('while another subscription’s page loads, the cards shown keep their own period’s word, never the new one over the old prices', async () => {
+    let release: (answer: FakeAnswer) => void = () => undefined;
+    const { result } = renderList('/spaces?period=DAY', (request) =>
+      (request.params as { period?: string }).period === 'MONTH'
+        ? new Promise<FakeAnswer>((resolve) => {
+            release = resolve;
+          })
+        : page([{ ...space(1), priceAgorot: 2000 }]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.cards[0]?.price).toBe('\u2066\u200f20\u00a0₪\u2069 / يوم');
+    });
+
+    act(() => {
+      void result.current.navigate('/spaces?period=MONTH');
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.busy).toBe(true);
+    });
+    // The day's answer still shown: its price says the day, never «/ شهر».
+    expect(result.current.list.results.cards[0]?.price).toBe('\u2066\u200f20\u00a0₪\u2069 / يوم');
+
+    act(() => {
+      release(page([{ ...space(1), priceAgorot: 30000 }]));
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.cards[0]?.price).toBe(
+        '\u2066\u200f300\u00a0₪\u2069 / شهر',
+      );
+    });
   });
 });

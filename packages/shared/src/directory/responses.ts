@@ -12,8 +12,9 @@ import type {
 } from '../spaces/index.ts';
 
 // The public directory's answers (docs/api/api-contract.md §5, Directory (public)). Nothing here
-// carries a capacity or a count (ADR 0008), nor a price but on a space's page; the card and the pin
-// carry the live status and the state by the hours.
+// carries a capacity or a count (ADR 0008); a price only on a space's page, and on a card while the
+// list is filtered by a period; the card and the pin carry the live status and the state by the
+// hours.
 
 /** A space's area, named in both languages; its governorate is the public catalogue's. */
 export interface DirectoryArea {
@@ -35,6 +36,11 @@ export interface DirectorySpace {
   days: (OpeningRange | null)[] | null;
   /** Straight-line, from the rounded point, to the nearest 100 m: only when sorted by distance. */
   distanceMeters?: number;
+  /**
+   * Only while the list is filtered by a period: its lowest general price of that period within the
+   * bounds, in agorot — the value the filter kept and the price order reads.
+   */
+  priceAgorot?: number;
   /** The cover's card-size URL (its first photo), or `null`: the web then draws the space's mark. */
   cover: string | null;
   /** The live status now; `null` when the space has none (data-model › Live status). */
@@ -131,3 +137,9 @@ export interface PublicSpace {
   /** Its running and upcoming announcements, by start then id, at most `PUBLIC_ANNOUNCEMENTS_MAX`. */
   announcements: PublicAnnouncement[];
 }
+
+/**
+ * Each period's lowest and highest general price, in agorot, over the publicly listed spaces whose
+ * prices are shown (`GET /price-ranges`); `null` for a period no such space prices.
+ */
+export type PriceRanges = Record<Price['period'], { minAgorot: number; maxAgorot: number } | null>;

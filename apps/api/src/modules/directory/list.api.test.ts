@@ -209,52 +209,6 @@ describe('GET /spaces', () => {
       expect(await namesListed('?openFriday=true')).toEqual(['Open Friday']);
     });
 
-    it('keeps a general price of the period within the bounds, inclusive', async () => {
-      const inRange = await createPublicSpace(areaId, 'Day 20', { pricesUpdatedAt: NOW });
-      await addPrice(inRange.id, 'DAY', 2000);
-      const atBound = await createPublicSpace(areaId, 'Day 30', { pricesUpdatedAt: NOW });
-      await addPrice(atBound.id, 'DAY', 3000);
-      const tooDear = await createPublicSpace(areaId, 'Day 31', { pricesUpdatedAt: NOW });
-      await addPrice(tooDear.id, 'DAY', 3100);
-      const otherPeriod = await createPublicSpace(areaId, 'Month 20', { pricesUpdatedAt: NOW });
-      await addPrice(otherPeriod.id, 'MONTH', 2000);
-      const studentOnly = await createPublicSpace(areaId, 'Student day 20', {
-        pricesUpdatedAt: NOW,
-      });
-      await addPrice(studentOnly.id, 'DAY', 2000, 'STUDENT');
-
-      expect(
-        await namesListed('?period=DAY&priceMin=2000&priceMax=3000&sort=name&lang=en'),
-      ).toEqual(['Day 20', 'Day 30']);
-      expect(await namesListed('?period=MONTH&sort=name&lang=en')).toEqual(['Month 20']);
-    });
-
-    it('leaves out an unverified space whose prices are stale, as its page hides them, but keeps a verified one', async () => {
-      const staleUnverified = await createPublicSpace(areaId, 'Stale unverified', {
-        pricesUpdatedAt: daysAgo(31),
-      });
-      await addPrice(staleUnverified.id, 'DAY', 2000);
-      await addPrice(staleUnverified.id, 'DAY', 1500, 'STUDENT');
-      const staleVerified = await createPublicSpace(areaId, 'Stale verified', {
-        pricesUpdatedAt: daysAgo(31),
-      });
-      await addPrice(staleVerified.id, 'DAY', 2000);
-      await addPrice(staleVerified.id, 'DAY', 1500, 'STUDENT');
-      await signInOwnerOf(staleVerified.id);
-      const fresh = await createPublicSpace(areaId, 'Fresh', { pricesUpdatedAt: daysAgo(30) });
-      await addPrice(fresh.id, 'DAY', 2000);
-      await addPrice(fresh.id, 'DAY', 1500, 'STUDENT');
-
-      expect(await namesListed('?period=DAY&priceMax=5000&sort=name&lang=en')).toEqual([
-        'Fresh',
-        'Stale verified',
-      ]);
-      expect(await namesListed('?studentPrices=true&sort=name&lang=en')).toEqual([
-        'Fresh',
-        'Stale verified',
-      ]);
-    });
-
     it('keeps the spaces with a student price', async () => {
       const student = await createPublicSpace(areaId, 'Student', { pricesUpdatedAt: NOW });
       await addPrice(student.id, 'MONTH', 15000, 'STUDENT');

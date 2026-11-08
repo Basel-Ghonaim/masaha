@@ -5,7 +5,7 @@ import { requestOf } from './requestOf';
 const DEFAULTS: DirectoryFilters = {
   q: undefined,
   areas: [],
-  period: 'DAY',
+  period: undefined,
   min: undefined,
   max: undefined,
   openNow: false,
@@ -19,9 +19,19 @@ const DEFAULTS: DirectoryFilters = {
 };
 
 describe('requestOf', () => {
-  it('asks in agorot, the period only with a bound, only the true flags, and the language only to order by name', () => {
+  it('asks in agorot, the period alone, only the true flags, and the language only to order by name', () => {
     expect(requestOf(DEFAULTS, 'ar')).toEqual({ limit: 20 });
-    expect(requestOf({ ...DEFAULTS, period: 'MONTH' }, 'ar')).toEqual({ limit: 20 });
+    expect(requestOf({ ...DEFAULTS, period: 'MONTH' }, 'ar')).toEqual({
+      limit: 20,
+      period: 'MONTH',
+    });
+    expect(requestOf({ ...DEFAULTS, period: 'DAY', sort: 'priceAsc' }, 'ar')).toEqual({
+      limit: 20,
+      period: 'DAY',
+      sort: 'priceAsc',
+    });
+    // A bound without its subscription never reaches the request.
+    expect(requestOf({ ...DEFAULTS, min: 10 }, 'ar')).toEqual({ limit: 20 });
     expect(
       requestOf(
         {

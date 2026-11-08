@@ -448,7 +448,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 
 ### Public site (9)
 1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «مفتوحة الآن»
-2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, «الدوام» («مفتوحة الآن», «مفتوحة مساءً», «مفتوحة يوم الجمعة») and «أخرى» («المساحات الموثّقة فقط», «أسعار للطلاب»); sort, including «الأقرب إليّ»
+2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, the price (a subscription, «الكل · ساعة · يوم · أسبوع · شهر», then its range), «الدوام» («مفتوحة الآن», «مفتوحة مساءً», «مفتوحة يوم الجمعة») and «أخرى» («المساحات الموثّقة فقط», «أسعار للطلاب»); sort, including «الأقرب إليّ» and, once a subscription is chosen, by its price («الأرخص شهريًا»)
    - **Near me:** the browser's location, rounded on the device to 3 decimals and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent; [security › Location](../../backend/security.md#location)); distances are straight-line and labelled approximate.
    - A location is **not used** when the permission is denied or unavailable, when it is imprecise (accuracy worse than about 2 km), or when it falls outside the Gaza Strip. The screen then offers choosing an area, or placing a pin by hand on the map.
 3. **Space details** — photos, prices (display only), amenities, hours, contact, announcements, live status (available, full or closed now; verified spaces), "last updated" notes, "Are you the owner? Contact us" (unverified), report wrong info

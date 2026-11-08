@@ -1157,7 +1157,7 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
 
 - **The filters** the list and the map share, each optional, every one applied before a page is cut:
   - `area`: a comma list of area ids, at most 50, each once (`invalid_format`, `too_long`); an id of an area that is not listed narrows to nothing;
-  - `period` (`HOUR`, `DAY`, `WEEK` or `MONTH`), with `priceMin` and `priceMax`, whole agorot from 1 to 10,000,000, inclusive: a general price of that period within the bounds, whatever its shift or label. A bound needs `period` (`required` on `period`), and `priceMin` above `priceMax` is `out_of_range` on `priceMax`;
+  - `period` (`HOUR`, `DAY`, `WEEK` or `MONTH`), alone or with `priceMin` and `priceMax`, whole agorot from 1 to 10,000,000, inclusive: a general price of that period within the bounds, whatever its shift or label. A bound needs `period` (`required` on `period`), and `priceMin` above `priceMax` is `out_of_range` on `priceMax`. With `period`, each card carries `priceAgorot`, the space's lowest such price within the bounds, which the price orders read (2026-11-08, #139);
   - `studentPrices=true`: a student price;
   - both price filters leave out an unverified space whose prices are stale, which its page hides;
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
@@ -1177,6 +1177,7 @@ DirectorySpace = {
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
   distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
+  priceAgorot?: number,                    // with `period` only: the lowest general price of it within the bounds
   cover: string | null,                    // the first photo's card-size URL; null: the web draws the space's mark
   liveStatus: LiveStatus | null,           // now; null: unverified, no opening hours, or open with no capacity
   hoursStatus: HoursStatus | null          // now, by the hours alone, verified or not; null: no opening hours
@@ -1194,6 +1195,8 @@ MapPin = {
 PublicOccupancy = { status: LiveStatus | null, hoursStatus: HoursStatus | null }   // LiveStatus: Occupancy (managed)
 
 HoursStatus = 'OPEN' | 'CLOSED'   // @masaha/shared/occupancy; the rule: data-model › Derived values
+
+PriceRanges = Record<'HOUR' | 'DAY' | 'WEEK' | 'MONTH', { minAgorot: number, maxAgorot: number } | null>
 
 PublicSpace = {
   id, slug, nameEn, nameAr, descriptionAr, descriptionEn,
@@ -1222,7 +1225,7 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 
 #### `GET /spaces` · 🌐
 - **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&openNow=&evening=&verified=&q=&sort=&lang=&page=&limit=`.
-  - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`); `distance`, nearest first, from the `Masaha-Near` header. Every order ends with the id, so ties keep their places across pages.
+  - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`); `distance`, nearest first, from the `Masaha-Near` header; `priceAsc` and `priceDesc`, by the card's `priceAgorot`, cheapest or dearest first, which need `period` (`invalid_choice` on `sort` without it), a hidden price never among them (2026-11-08, #139). Every order ends with the id ascending, so ties keep their places across pages.
   - `sort=distance` without the header is `required` on `near`; the header with any other order is `invalid_choice` on `near`.
 - **200:** `DirectorySpace[]` (`@masaha/shared/directory`), with `meta`.
 - **Errors:** `validation` (422).
@@ -1231,6 +1234,9 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 - **Query:** the filters, and `bounds=south,west,north,east`, the map's viewport (`invalid_format` unless south is below north and west before east). No page, no order.
 - **200:** `{ pins: MapPin[], truncated: boolean }`: every space that passes, unpaged (§4), up to 1,000; past them, the first 1,000 by id, with `truncated: true`, and the map asks again within its viewport.
 - **Errors:** `validation` (422).
+
+#### `GET /price-ranges` · 🌐
+- **200:** `PriceRanges` (`@masaha/shared/directory`): each period's lowest and highest general price, in agorot, over the publicly listed spaces whose prices are shown, whatever the other filters; `null` for a period none of them prices. The web's hints for the budget. Cached as every answer is (30 seconds), 2026-11-08, #139.
 
 #### `GET /spaces/:slug` · 🌐
 - **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown. Its `announcements` are the space's running and upcoming ones, never an ended or a deleted one, read after the space's facts: one posted between the two reads shows on the next; an announcement that starts or ends shows within the answer's 30 seconds (2026-10-24, #112).

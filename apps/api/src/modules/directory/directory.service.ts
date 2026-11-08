@@ -7,12 +7,13 @@ import {
   type MapPin,
   type MapPins,
   type MapPinsQuery,
+  type PriceRanges,
   type PublicSpace,
 } from '@masaha/shared/directory';
 import { gazaClockOf } from '@masaha/shared/core';
 import { FAVORITES_MAX } from '@masaha/shared/favorites';
 import type { HoursStatus, LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
-import type { Location } from '@masaha/shared/spaces';
+import type { Location, Price } from '@masaha/shared/spaces';
 
 import { isVerified } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
@@ -52,6 +53,8 @@ interface States {
 
 const NO_STATES: States = { liveStatus: null, hoursStatus: null };
 
+type PricePeriod = Price['period'];
+
 /** The filters the list and the map share. */
 type Filters = Omit<MapPinsQuery, 'bounds'> & { bounds?: MapPinsQuery['bounds'] };
 
@@ -67,6 +70,11 @@ function orderOf(query: DirectoryQuery): PublicOrder {
       return { by: 'distance', from: query.near };
     case 'updated':
       return { by: 'updated' };
+    case 'priceAsc':
+    case 'priceDesc':
+      // The schema takes a price order only with a period, which the filter's price reads.
+      if (!query.period) throw AppError.validation({ sort: ['invalid_choice'] });
+      return { by: 'price', direction: query.sort === 'priceAsc' ? 'asc' : 'desc' };
   }
 }
 
@@ -84,6 +92,8 @@ function toDirectorySpace(
     isVerified: space.isVerified,
     days: space.days,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
+    // Only a list filtered by a period has a price: the one the filter kept.
+    ...(space.priceAgorot !== null && { priceAgorot: space.priceAgorot }),
     cover: space.cover,
     liveStatus,
     hoursStatus,
@@ -238,6 +248,24 @@ export function createDirectoryService({
             : [];
         },
       );
+    },
+
+    /**
+     * Each period's lowest and highest general price over the publicly listed spaces whose prices
+     * are shown, whatever the other filters: the range's hints. A period none prices is `null`.
+     */
+    async priceRanges(): Promise<PriceRanges> {
+      const [areaIds, verifiedIds] = await Promise.all([
+        lookups.listedAreaIds(),
+        spaceLinks.verifiedSpaceIds(),
+      ]);
+      const rows = await publicListing.priceRanges({ areaIds, verifiedIds });
+      const byPeriod = new Map(rows.map((row) => [row.period, row]));
+      const range = (period: PricePeriod) => {
+        const row = byPeriod.get(period);
+        return row ? { minAgorot: row.min, maxAgorot: row.max } : null;
+      };
+      return { HOUR: range('HOUR'), DAY: range('DAY'), WEEK: range('WEEK'), MONTH: range('MONTH') };
     },
 
     /** The map's pins: every listed space that passes the filters, up to the ceiling. */

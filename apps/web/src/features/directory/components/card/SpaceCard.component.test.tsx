@@ -19,6 +19,7 @@ const CARD: SpaceCardView = {
   verified: 'Verified',
   today: 'Open today 08:00–22:00',
   distance: null,
+  price: null,
 };
 
 function renderCard(action?: ReactNode, card: SpaceCardView = CARD) {
@@ -72,6 +73,15 @@ describe('SpaceCard', () => {
     expect(screen.getByText('Hours not available')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
       'Al-Rimal No live status Hours not available',
+    );
+  });
+
+  it('reads its price last, after today’s hours, while a subscription is chosen', () => {
+    renderCard(undefined, { ...CARD, price: '\u2066₪15\u2069 / day' });
+
+    expect(screen.getByText('\u2066₪15\u2069 / day')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
+      'Al-Rimal Available Verified Open today 08:00–22:00 \u2066₪15\u2069 / day',
     );
   });
 });

@@ -1,25 +1,35 @@
-/** A field's words, its text and its line when refused. */
+/** A field's words, its text, its hint and its line when refused. */
 type BoundView = {
   label: string;
   text: string;
+  /** The lowest or highest price of the subscription, in whole shekels; empty while unknown. */
+  placeholder: string;
   change: (text: string) => void;
   error: string | null;
 };
 
-/** The price filter: a period and a budget in whole shekels, with its help line. */
+/**
+ * The price filter: the subscription, «الكل» first, then, once one is chosen, its budget in whole
+ * shekels; the line under it, which describes the subscription, says how.
+ */
 export type PriceFilterView = {
   label: string;
-  period: {
+  subscription: {
+    /** Read, not shown: the group's heading says «السعر». */
     label: string;
     value: string;
     options: { value: string; label: string }[];
     choose: (value: string) => void;
   };
-  min: BoundView;
-  max: BoundView;
-  /** The amount's unit, at the start of each bound. */
-  currency: string;
-  help: string;
+  /** The budget, while a subscription is chosen. */
+  range: {
+    min: BoundView;
+    max: BoundView;
+    /** The amount's unit, at the start of each bound. */
+    currency: string;
+  } | null;
+  /** The hint under «الكل», or the help line under the budget. */
+  line: string;
 };
 
 /** A labelled group of checkboxes, each one narrowing the list. */

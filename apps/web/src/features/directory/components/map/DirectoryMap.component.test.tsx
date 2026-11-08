@@ -5,7 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -50,6 +50,9 @@ const emptyPage = {
   },
 } satisfies FakeAnswer;
 
+/** No subscription priced yet: the budget's fields have no hint. */
+const NO_RANGES = { HOUR: null, DAY: null, WEEK: null, MONTH: null };
+
 /** The directory's page at `path` and `width`: the view switch, then the directory. */
 function renderDirectory(
   path: string,
@@ -57,7 +60,14 @@ function renderDirectory(
   answer: Parameters<typeof fakeTransport>[0] = () => pins([pin(1), pin(2, null)]),
 ) {
   stubScreenWidth(width);
-  const requests = fakeTransport(answer);
+  // The budget's hints are a read of their own, answered apart; `requests` holds the others, each
+  // handed its index among them.
+  const requests: Parameters<typeof answer>[0][] = [];
+  fakeTransport((request) => {
+    if (request.url === '/price-ranges') return ok(NO_RANGES);
+    const index = requests.push(request) - 1;
+    return answer(request, index);
+  });
   const router = createMemoryRouter(
     [
       {

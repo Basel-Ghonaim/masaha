@@ -157,4 +157,19 @@ describe('the directory repository', () => {
       url: '/spaces/noor%20hub/occupancy',
     });
   });
+
+  it('asks for the subscriptions’ price ranges', async () => {
+    const repository = createDirectoryRepository();
+    const ranges = {
+      HOUR: null,
+      DAY: { minAgorot: 1250, maxAgorot: 9950 },
+      WEEK: null,
+      MONTH: null,
+    };
+    const requests = serve({ status: 200, data: { success: true, data: ranges } });
+
+    await expect(repository.priceRanges()).resolves.toEqual(ranges);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/price-ranges' });
+  });
 });

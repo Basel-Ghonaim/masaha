@@ -1,10 +1,10 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -42,19 +42,29 @@ function answerOf(count: number) {
   };
 }
 
-/** The directory's list at `path` and `width`, the server answering `count` spaces. */
+/** The subscriptions' lowest and highest prices among the spaces. */
+const RANGES = {
+  HOUR: null,
+  DAY: { minAgorot: 1250, maxAgorot: 9950 },
+  WEEK: null,
+  MONTH: { minAgorot: 20000, maxAgorot: 45000 },
+};
+
+/** The directory's list at `path` (or the history `entries`) and `width`, the server answering `count` spaces. */
 function renderDirectory({
   path = '/spaces',
+  entries = [path],
   width,
   count = 2,
 }: {
   path?: string;
+  entries?: string[];
   width: number;
   count?: number;
 }) {
   startPreferences('ar');
   stubScreenWidth(width);
-  fakeTransport(() => answerOf(count));
+  fakeTransport((request) => (request.url === '/price-ranges' ? ok(RANGES) : answerOf(count)));
   const router = createMemoryRouter(
     [
       {
@@ -71,7 +81,7 @@ function renderDirectory({
         ),
       },
     ],
-    { initialEntries: [path] },
+    { initialEntries: entries, initialIndex: entries.length - 1 },
   );
   const Wrapper = queryWrapper();
   render(
@@ -92,7 +102,7 @@ describe('the directory’s filters', () => {
     'below 1024 px open from a button that says whether the sheet is open and how many filters apply (%i px)',
     async (width) => {
       const user = userEvent.setup();
-      renderDirectory({ path: '/spaces?verified=1&students=1&min=10', width });
+      renderDirectory({ path: '/spaces?verified=1&students=1&period=DAY', width });
       await screen.findByRole('link', { name: 'مساحة 1' });
 
       const button = screen.getByRole('button', { name: 'الفلاتر 3 فلاتر مطبّقة' });
@@ -204,11 +214,102 @@ describe('the directory’s filters', () => {
 
   it('counts each box once, the place once whatever its number of areas, and the price once', async () => {
     renderDirectory({
-      path: '/spaces?area=3,7&min=10&open=1&evening=1&friday=1&verified=1&students=1',
+      path: '/spaces?area=3,7&period=DAY&min=10&open=1&evening=1&friday=1&verified=1&students=1',
       width: 390,
     });
     await screen.findByRole('link', { name: 'مساحة 1' });
 
     expect(screen.getByRole('button', { name: 'الفلاتر 7 فلاتر مطبّقة' })).toBeInTheDocument();
+  });
+
+  it('the price: «الكل» chosen with its hint and no budget; a subscription writes its period at once and shows «من» and «إلى» hinted by its prices', async () => {
+    const user = userEvent.setup();
+    const router = renderDirectory({ width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    const price = within(screen.getByRole('group', { name: 'السعر' }));
+
+    const subscription = price.getByRole('radiogroup', { name: 'نوع الاشتراك' });
+    expect(subscription).toHaveAccessibleDescription(
+      'اختر نوع الاشتراك لتحديد نطاق السعر أو الترتيب حسبه.',
+    );
+    expect(price.getByRole('radio', { name: 'الكل' })).toBeChecked();
+    expect(price.queryByRole('textbox', { name: 'من' })).not.toBeInTheDocument();
+
+    await user.click(price.getByRole('radio', { name: 'يوم' }));
+
+    expect(router.state.location.search).toBe('?period=DAY');
+    expect(price.getByRole('radio', { name: 'يوم' })).toBeChecked();
+    expect(subscription).toHaveAccessibleDescription('بالشيكل، على السعر اليومي.');
+    expect(await price.findByRole('textbox', { name: 'من' })).toHaveAttribute('placeholder', '12');
+    expect(price.getByRole('textbox', { name: 'إلى' })).toHaveAttribute('placeholder', '100');
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  it('a refused bound is said on its field, and «إلى» under «من» on «إلى»', async () => {
+    const user = userEvent.setup();
+    renderDirectory({ path: '/spaces?period=MONTH', width: 1440 });
+    const from = await screen.findByRole('textbox', { name: 'من' });
+
+    await user.type(from, '0');
+    expect(from).toHaveAccessibleDescription('اكتب مبلغًا بالشيكل أكبر من صفر');
+    await user.clear(from);
+    await user.type(from, '400');
+    const to = screen.getByRole('textbox', { name: 'إلى' });
+    await user.type(to, '300');
+
+    expect(to).toHaveAccessibleDescription('«إلى» أقل من «من».');
+    expect(from).not.toHaveAccessibleDescription();
+  });
+
+  it('shows the state an address holds, again after a reload, and the one before on Back', async () => {
+    const user = userEvent.setup();
+    const address = '/spaces?period=MONTH&min=100&open=1&students=1';
+    const router = renderDirectory({ entries: ['/spaces?verified=1', address], width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+
+    expect(screen.getByRole('radio', { name: 'شهر' })).toBeChecked();
+    expect(screen.getByRole('textbox', { name: 'من' })).toHaveValue('100');
+    expect(screen.getByRole('checkbox', { name: 'مفتوحة الآن' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'أسعار للطلاب' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'المساحات الموثّقة فقط' })).not.toBeChecked();
+
+    // A change replaces the address: Back still leads to the entry before.
+    await user.click(screen.getByRole('checkbox', { name: 'مفتوحة مساءً' }));
+    expect(router.state.location.search).toBe('?period=MONTH&min=100&open=1&evening=1&students=1');
+    expect(router.state.historyAction).toBe('REPLACE');
+
+    // A reload: a new router at the same address.
+    cleanup();
+    restoreTransport();
+    renderDirectory({
+      path: '/spaces?period=MONTH&min=100&open=1&evening=1&students=1',
+      width: 1440,
+    });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    expect(screen.getByRole('radio', { name: 'شهر' })).toBeChecked();
+    expect(screen.getByRole('textbox', { name: 'من' })).toHaveValue('100');
+    expect(screen.getByRole('checkbox', { name: 'مفتوحة مساءً' })).toBeChecked();
+    cleanup();
+    restoreTransport();
+
+    const again = renderDirectory({ entries: ['/spaces?verified=1', address], width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    await act(async () => {
+      await again.navigate(-1);
+    });
+    expect(again.state.location.search).toBe('?verified=1');
+    expect(screen.getByRole('checkbox', { name: 'المساحات الموثّقة فقط' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'الكل' })).toBeChecked();
+  });
+
+  it('opens an old «?available=1» unfiltered, with no such control', async () => {
+    renderDirectory({ path: '/spaces?available=1', width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    const sidebar = within(screen.getByRole('complementary', { name: 'الفلاتر' }));
+
+    for (const box of sidebar.getAllByRole('checkbox')) expect(box).not.toBeChecked();
+    expect(sidebar.getByRole('radio', { name: 'الكل' })).toBeChecked();
+    expect(sidebar.getByRole('button', { name: 'مسح' })).toBeDisabled();
+    expect(sidebar.queryByText(/متاحة/)).not.toBeInTheDocument();
   });
 });

@@ -22,6 +22,19 @@ export const DIRECTORY = {
       /** Offered, chosen, only while near me sorts the list. */
       distance: 'By distance',
     },
+    /** Offered only while a subscription is chosen, named by its price. */
+    priceAsc: {
+      HOUR: 'Hourly price: low to high',
+      DAY: 'Daily price: low to high',
+      WEEK: 'Weekly price: low to high',
+      MONTH: 'Monthly price: low to high',
+    },
+    priceDesc: {
+      HOUR: 'Hourly price: high to low',
+      DAY: 'Daily price: high to low',
+      WEEK: 'Weekly price: high to low',
+      MONTH: 'Monthly price: high to low',
+    },
   },
   count: {
     /** Nothing narrows the list. Never drawn for none: the empty states say it. */
@@ -71,6 +84,9 @@ export const DIRECTORY = {
     noHours: 'Hours not available',
     /** The straight-line distance from the visitor's point, the number left to right. */
     distance: ({ km }: { km: string }) => `${km} km away`,
+    /** While a subscription is chosen: its price, left to right, per its period. */
+    price: ({ price, period }: { price: string; period: string }) => `${price} / ${period}`,
+    periods: { HOUR: 'hour', DAY: 'day', WEEK: 'week', MONTH: 'month' },
   },
   status: {
     /** A space with no live status nor hours: unverified without hours, or with no capacity yet. */
@@ -105,19 +121,29 @@ export const DIRECTORY = {
     evening: 'Open in the evening',
     verified: 'Verified spaces only',
     price: 'Price',
-    period: 'Period',
+    /** The segmented choice's name, read, not shown. */
+    subscription: 'Subscription',
+    /** No subscription: no price filter. */
+    all: 'All',
+    periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+    /** Under «All». */
+    subscriptionHint: 'Choose a subscription to set a price range or to sort by price.',
     from: 'From',
     to: 'To',
     /** The amount's unit, shown at the start of each bound. */
     currency: '₪',
-    periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
-    /** The chosen period, named in the help line. */
-    rangeHelp: ({ period }: { period: string }) => `From and To apply to the ${period} price`,
-    periodPrices: { HOUR: 'hour', DAY: 'day', WEEK: 'week', MONTH: 'month' },
+    /** Under the range, the chosen subscription's price named. */
+    rangeHelp: ({ price }: { price: string }) => `In shekels, on the ${price}.`,
+    priceNames: {
+      HOUR: 'hourly price',
+      DAY: 'daily price',
+      WEEK: 'weekly price',
+      MONTH: 'monthly price',
+    },
     priceErrors: {
       invalid: 'Enter an amount in shekels, above zero',
       tooHigh: 'Enter an amount up to ₪100,000',
-      belowMin: 'Below the minimum',
+      belowMin: '“To” is below “From”.',
     },
     other: 'Other',
     studentPrices: 'Student prices',
