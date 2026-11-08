@@ -20,18 +20,18 @@ const DEFAULTS: DirectoryFilters = {
 
 describe('requestOf', () => {
   it('asks in agorot, the period alone, only the true flags, and the language only to order by name', () => {
-    expect(requestOf(DEFAULTS, 'ar')).toEqual({ limit: 20 });
+    expect(requestOf(DEFAULTS, 'ar')).toEqual({ limit: 18 });
     expect(requestOf({ ...DEFAULTS, period: 'MONTH' }, 'ar')).toEqual({
-      limit: 20,
+      limit: 18,
       period: 'MONTH',
     });
     expect(requestOf({ ...DEFAULTS, period: 'DAY', sort: 'priceAsc' }, 'ar')).toEqual({
-      limit: 20,
+      limit: 18,
       period: 'DAY',
       sort: 'priceAsc',
     });
     // A bound without its subscription never reaches the request.
-    expect(requestOf({ ...DEFAULTS, min: 10 }, 'ar')).toEqual({ limit: 20 });
+    expect(requestOf({ ...DEFAULTS, min: 10 }, 'ar')).toEqual({ limit: 18 });
     expect(
       requestOf(
         {
@@ -50,7 +50,7 @@ describe('requestOf', () => {
         'en',
       ),
     ).toEqual({
-      limit: 20,
+      limit: 18,
       q: 'Focus',
       area: '3,7',
       period: 'WEEK',
@@ -64,12 +64,12 @@ describe('requestOf', () => {
     });
     expect(
       requestOf({ ...DEFAULTS, studentPrices: true, openFriday: true, sort: 'name' }, 'en'),
-    ).toEqual({ limit: 20, studentPrices: true, openFriday: true, sort: 'name', lang: 'en' });
+    ).toEqual({ limit: 18, studentPrices: true, openFriday: true, sort: 'name', lang: 'en' });
   });
 
   it('orders by distance, with no language, while near me sorts the list', () => {
     expect(requestOf({ ...DEFAULTS, sort: 'name', page: 2 }, 'en', { byDistance: true })).toEqual({
-      limit: 20,
+      limit: 18,
       sort: 'distance',
       page: 2,
     });

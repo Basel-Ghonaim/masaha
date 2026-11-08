@@ -370,6 +370,9 @@ function DirectoryScreen() {
 
   const activeSort = (sort.startsWith('price') && !f.sub) || (sort === 'distance' && !near.coords) ? 'updated' : sort;
   const results = applyFilters(f, activeSort, near.coords);
+  // 18 cards a page (the owner, 2026-11-08): one, two or three columns alike, and lighter on a weak
+  // connection; the pages under the grid, drawn only when there is more than one.
+  const paged = usePaged(results, 18);
   const selected = results.find((r) => r.s.id === selectedId);
   const count = activeCount(f);
   const clear = () => setF(clearedFilters);
@@ -443,14 +446,18 @@ function DirectoryScreen() {
                 <CardContent><FiltersForm f={f} set={set} /></CardContent>
               </Card>
             </aside>
-            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="dir-results grid gap-4 md:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
+            {/* The grid's item is this column, so R8's 4/12 at 1024–1279 (`.dir-results`) sizes it. */}
+            <div className="dir-results flex flex-col gap-6 lg:col-span-9">
+            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {state === 'loading' && [0, 1, 2, 3].map((i) => <SpaceCardSkeleton key={i} />)}
               {ready && (results.length
-                ? results.map((r) => f.sub
+                ? paged.rows.map((r) => f.sub
                   ? <DirectoryPriceCard key={r.s.id} space={r.s} km={r.km} sub={f.sub} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />
                   : <SpaceCard key={r.s.id} space={r.s} km={r.km} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />)
                 : <Card className="md:col-span-2 xl:col-span-3"><NoResults onClear={clear} sub={f.sub} price={!!f.sub} inRange={!!(f.priceMin.trim() || f.priceMax.trim())} /></Card>)}
             </section>
+            {ready && results.length > 18 && paged.nav}
+            </div>
           </div>
         )}
 

@@ -34,7 +34,7 @@ function page(spaces: DirectorySpace[], { current = 1, total = 1, records = spac
       data: spaces,
       meta: {
         currentPage: current,
-        limit: 20,
+        limit: 18,
         totalPages: total,
         totalRecords: records,
         hasNextPage: current < total,
@@ -359,7 +359,7 @@ describe('useDirectoryList', () => {
     await waitFor(() => {
       expect(result.current.list.results.cards[0]?.distance).toBe('على بعد \u20660.7\u2069 كم');
     });
-    expect(requests.at(-1)?.params).toEqual({ limit: 20, sort: 'distance' });
+    expect(requests.at(-1)?.params).toEqual({ limit: 18, sort: 'distance' });
     expect(requests.at(-1)?.headers['Masaha-Near']).toBe('31.501,34.467');
     expect(result.current.list.near.button.on).toBe(true);
     expect(result.current.list.sort.value).toBe('distance');
@@ -444,7 +444,7 @@ describe('useDirectoryList', () => {
       result.current.list.sort.choose('priceAsc');
     });
     await waitFor(() => {
-      expect(requests.at(-1)?.params).toEqual({ limit: 20, period: 'MONTH', sort: 'priceAsc' });
+      expect(requests.at(-1)?.params).toEqual({ limit: 18, period: 'MONTH', sort: 'priceAsc' });
     });
     expect(result.current.search).toBe('?period=MONTH&sort=priceAsc');
     expect(result.current.list.sort.valueText).toBe('الترتيب: الأرخص شهريًا');
@@ -496,6 +496,33 @@ describe('useDirectoryList', () => {
       expect(result.current.list.results.cards[0]?.price).toBe(
         '\u2066\u200f300\u00a0₪\u2069 / شهر',
       );
+    });
+  });
+
+  it('asks 18 spaces a page, page 2 with its number, the pages and the count from the answer', async () => {
+    const { result, requests } = renderList('/spaces', (request) =>
+      page([space(1)], {
+        current: (request.params as { page?: number }).page ?? 1,
+        total: 3,
+        records: 37,
+      }),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(requests[0]?.params).toEqual({ limit: 18 });
+    expect(result.current.list.count).toBe('37 مساحة في قطاع غزة');
+    expect(result.current.list.pagination?.summary).toBe('صفحة 1 من 3');
+
+    act(() => {
+      void result.current.navigate('/spaces?page=2');
+    });
+
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toEqual({ limit: 18, page: 2 });
+    });
+    await waitFor(() => {
+      expect(result.current.list.pagination?.summary).toBe('صفحة 2 من 3');
     });
   });
 });

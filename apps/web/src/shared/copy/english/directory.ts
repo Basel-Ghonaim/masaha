@@ -107,10 +107,10 @@ export const DIRECTORY = {
     /** The sheet's primary button: the spaces the filters leave. */
     show: ({ count }: { count: number }) =>
       englishPlural(count, {
-        one: `Show ${String(count)} space`,
-        other: `Show ${String(count)} spaces`,
+        one: `Show ${String(count)} result`,
+        other: `Show ${String(count)} results`,
       }),
-    showNone: 'No results — change the filters',
+    showNone: 'No results',
     /** While the count is not known yet. */
     showLoading: 'Show results',
     clear: 'Clear',

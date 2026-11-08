@@ -53,7 +53,7 @@ export function DirectoryList(slots: DirectorySlots) {
       </div>
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
         {filters.wide && <FiltersSidebar sidebar={filters.sidebar}>{form}</FiltersSidebar>}
-        <div className="lg:col-span-9">
+        <div className="lg:col-span-8 xl:col-span-9">
           <DirectoryResults
             results={list.results}
             page={list.page}

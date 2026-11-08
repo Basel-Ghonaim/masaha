@@ -40,7 +40,7 @@ function answerFor(params: unknown) {
       ],
       meta: {
         currentPage: current,
-        limit: 20,
+        limit: 18,
         totalPages: 2,
         totalRecords: 4,
         hasNextPage: current < 2,
@@ -252,7 +252,7 @@ describe('DirectoryList', () => {
               data: [],
               meta: {
                 currentPage: 5,
-                limit: 20,
+                limit: 18,
                 totalPages: 2,
                 totalRecords: 4,
                 hasNextPage: false,

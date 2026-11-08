@@ -146,6 +146,29 @@ describe('GET /spaces', () => {
     });
   });
 
+  it('pages 18 at a time under a filter, as the web asks: 37 matching give 18, 18 and 1, none twice', async () => {
+    for (let i = 1; i <= 37; i += 1) {
+      const space = await createPublicSpace(areaId, `Space ${String(i).padStart(2, '0')}`);
+      await signInOwnerOf(space.id);
+    }
+    await createPublicSpace(areaId, 'Unverified');
+
+    const seen: string[] = [];
+    for (const [page, size] of [
+      [1, 18],
+      [2, 18],
+      [3, 1],
+    ] as const) {
+      const response = await list(`?verified=true&limit=18&page=${String(page)}&sort=name&lang=en`);
+      const body = response.body as { data: { nameEn: string }[]; meta: object };
+      expect(body.data).toHaveLength(size);
+      expect(body.meta).toMatchObject({ limit: 18, totalPages: 3, totalRecords: 37 });
+      seen.push(...body.data.map(({ nameEn }) => nameEn));
+    }
+    expect(new Set(seen).size).toBe(37);
+    expect(seen).not.toContain('Unverified');
+  });
+
   it('orders by the latest update of any group, newest first, by default', async () => {
     await createPublicSpace(areaId, 'Old', { profileUpdatedAt: daysAgo(9) });
     await createPublicSpace(areaId, 'Prices today', {

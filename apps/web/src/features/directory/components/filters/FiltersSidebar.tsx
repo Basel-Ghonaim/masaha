@@ -19,7 +19,11 @@ export function FiltersSidebar({
   children: ReactNode;
 }) {
   return (
-    <aside id={FILTERS_SIDEBAR_ID} aria-label={sidebar.title} className="lg:col-span-3">
+    <aside
+      id={FILTERS_SIDEBAR_ID}
+      aria-label={sidebar.title}
+      className="lg:col-span-4 xl:col-span-3"
+    >
       <Card>
         <CardHeader>
           <CardTitle>

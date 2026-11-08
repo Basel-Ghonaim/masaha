@@ -141,7 +141,7 @@ describe('usePriceFilter', () => {
     });
 
     expect(result.current.search).toBe('');
-    expect(result.current.filters.request).toEqual({ limit: 20 });
+    expect(result.current.filters.request).toEqual({ limit: 18 });
     expect(result.current.price.range).toBeNull();
   });
 

@@ -32,7 +32,7 @@ function answerOf(count: number) {
       data: Array.from({ length: Math.min(count, 2) }, (_, index) => space(index + 1)),
       meta: {
         currentPage: 1,
-        limit: 20,
+        limit: 18,
         totalPages: count === 0 ? 0 : 1,
         totalRecords: count,
         hasNextPage: false,
@@ -56,13 +56,15 @@ function renderDirectory({
   entries = [path],
   width,
   count = 2,
+  language = 'ar',
 }: {
   path?: string;
   entries?: string[];
   width: number;
   count?: number;
+  language?: 'ar' | 'en';
 }) {
-  startPreferences('ar');
+  startPreferences(language);
   stubScreenWidth(width);
   fakeTransport((request) => (request.url === '/price-ranges' ? ok(RANGES) : answerOf(count)));
   const router = createMemoryRouter(
@@ -71,7 +73,7 @@ function renderDirectory({
         path: '/spaces',
         element: (
           <main>
-            <h1>مساحات العمل</h1>
+            <h1>{language === 'ar' ? 'مساحات العمل' : 'Workspaces'}</h1>
             <DirectoryList
               spaceLink={(slug) => `/spaces/${slug}`}
               areaName={() => 'الرمال · غزة'}
@@ -122,14 +124,14 @@ describe('the directory’s filters', () => {
     },
   );
 
-  it('its primary button counts the spaces in Arabic agreement and closes the sheet', async () => {
+  it('its primary button counts the results in Arabic agreement and closes the sheet', async () => {
     const user = userEvent.setup();
     renderDirectory({ width: 390, count: 2 });
     await screen.findByRole('link', { name: 'مساحة 1' });
 
     await user.click(screen.getByRole('button', { name: 'الفلاتر' }));
     const sheet = await screen.findByRole('dialog', { name: 'الفلاتر' });
-    await user.click(within(sheet).getByRole('button', { name: 'عرض المساحتين' }));
+    await user.click(within(sheet).getByRole('button', { name: 'عرض نتيجتين' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -137,22 +139,39 @@ describe('the directory’s filters', () => {
   });
 
   it.each([
-    [12, 'عرض 12 مساحة'],
-    [3, 'عرض 3 مساحات'],
-    [1, 'عرض المساحة'],
-    [0, 'لا نتائج — غيّر الفلاتر'],
-  ])('with %i spaces left, its primary button says «%s»', async (count, words) => {
-    const user = userEvent.setup();
-    renderDirectory({ path: '/spaces?verified=1', width: 390, count });
-    await screen.findByRole('region', { name: 'النتائج' });
-    const button = await screen.findByRole('button', { name: 'الفلاتر فلتر واحد مطبّق' });
+    ['ar', 0, 'لا توجد نتائج'],
+    ['ar', 1, 'عرض نتيجة واحدة'],
+    ['ar', 2, 'عرض نتيجتين'],
+    ['ar', 3, 'عرض 3 نتائج'],
+    ['ar', 10, 'عرض 10 نتائج'],
+    ['ar', 11, 'عرض 11 نتيجة'],
+    ['ar', 100, 'عرض 100 نتيجة'],
+    ['en', 0, 'No results'],
+    ['en', 1, 'Show 1 result'],
+    ['en', 12, 'Show 12 results'],
+  ] as const)(
+    'in %s, with %i results left, its primary button says «%s»',
+    async (language, count, words) => {
+      const user = userEvent.setup();
+      renderDirectory({ path: '/spaces?verified=1', width: 390, count, language });
+      await screen.findByRole('region', { name: language === 'ar' ? 'النتائج' : 'Results' });
+      const button = await screen.findByRole('button', {
+        name: language === 'ar' ? 'الفلاتر فلتر واحد مطبّق' : 'Filters 1 filter applied',
+      });
 
-    await user.click(button);
+      await user.click(button);
 
-    const sheet = await screen.findByRole('dialog', { name: 'الفلاتر' });
-    expect(within(sheet).getByRole('button', { name: words })).toBeInTheDocument();
-    expect(within(sheet).getByRole('button', { name: 'مسح الفلاتر' })).toBeEnabled();
-  });
+      const sheet = await screen.findByRole('dialog', {
+        name: language === 'ar' ? 'الفلاتر' : 'Filters',
+      });
+      expect(within(sheet).getByRole('button', { name: words })).toBeInTheDocument();
+      expect(
+        within(sheet).getByRole('button', {
+          name: language === 'ar' ? 'مسح الفلاتر' : 'Clear filters',
+        }),
+      ).toBeEnabled();
+    },
+  );
 
   it('from 1024 px are a sidebar named «الفلاتر», with no Filters button', async () => {
     renderDirectory({ path: '/spaces?friday=1', width: 1440 });

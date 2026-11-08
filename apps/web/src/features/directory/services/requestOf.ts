@@ -1,10 +1,15 @@
-import { DEFAULT_PAGE_SIZE } from '@masaha/shared/core';
 import type { Language } from '@shared/copy';
 import type { MapBounds } from '@shared/map';
 import type { DirectoryFilters } from '../types/DirectoryFilters';
 import type { DirectoryRequest } from '../types/DirectoryRequest';
 import type { PinsRequest } from '../types/PinsRequest';
 import { boundsText } from './boundsText';
+
+/**
+ * The directory's page: 18 cards fill one, two or three columns alike, and weigh less on a weak
+ * connection than the contract's default of 20.
+ */
+const DIRECTORY_PAGE_SIZE = 18;
 
 /** The filters as the list and the map send them alike: what is left out is the server's default. */
 function filtersRequestOf(filters: DirectoryFilters): Omit<PinsRequest, 'bounds'> {
@@ -37,7 +42,7 @@ export function requestOf(
 ): DirectoryRequest {
   const sort = byDistance ? 'distance' : filters.sort;
   return {
-    limit: DEFAULT_PAGE_SIZE,
+    limit: DIRECTORY_PAGE_SIZE,
     ...filtersRequestOf(filters),
     ...(sort !== undefined && { sort }),
     ...(sort === 'name' && { lang: language }),
