@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -22,6 +22,7 @@ const pin = (id: number): MapPin => ({
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 });
 
 /** The map's answer, as the server gives it. */
@@ -31,10 +32,20 @@ const pins = (list: MapPin[], truncated = false) =>
     data: { success: true, data: { pins: list, truncated } },
   }) satisfies FakeAnswer;
 
+/** No subscription priced yet: the budget's fields have no hint. */
+const NO_RANGES = { HOUR: null, DAY: null, WEEK: null, MONTH: null };
+
 /** The map at `path`, the fake server answering each request with `answer`. */
 function renderMap(path: string, answer: Parameters<typeof fakeTransport>[0]) {
+  // The budget's hints are a read of their own, answered apart; `requests` holds the others, each
+  // handed its index among them.
+  const requests: Parameters<typeof answer>[0][] = [];
+  fakeTransport((request) => {
+    if (request.url === '/price-ranges') return ok(NO_RANGES);
+    const index = requests.push(request) - 1;
+    return answer(request, index);
+  });
   stubScreenWidth(1440);
-  const requests = fakeTransport(answer);
   const Query = queryWrapper();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Query>
@@ -103,14 +114,39 @@ describe('useDirectoryMap', () => {
     });
 
     act(() => {
-      result.current.view.filters.spaces.availableNow.toggle(true);
+      result.current.view.filters.hours.items.find(({ key }) => key === 'openNow')?.toggle(true);
     });
     await waitFor(() => {
-      expect(requests.at(-1)?.params).toEqual({ verified: true, q: 'Hub', availableNow: true });
+      expect(requests.at(-1)?.params).toEqual({ verified: true, q: 'Hub', openNow: true });
     });
     expect(result.current.view.map.selectedId).toBeNull();
     expect(result.current.view.selected).toBeNull();
-    expect(result.current.search).toBe('?q=Hub&available=1&verified=1&sort=name&view=map');
+    expect(result.current.search).toBe('?q=Hub&open=1&verified=1&sort=name&view=map');
+  });
+
+  it('names an unverified pin by its state by its hours, its mark the dashed one of no live status; asks with the hours filters', async () => {
+    const unverified = (id: number, hoursStatus: MapPin['hoursStatus']): MapPin => ({
+      ...pin(id),
+      isVerified: false,
+      liveStatus: null,
+      hoursStatus,
+    });
+    const { result, requests } = renderMap('/spaces?view=map&open=1&evening=1', () =>
+      pins([unverified(1, 'OPEN'), unverified(2, 'CLOSED'), unverified(3, null), pin(4)]),
+    );
+    await waitFor(() => {
+      expect(result.current.view.map.markers).toHaveLength(4);
+    });
+
+    expect(requests[0]?.params).toEqual({ openNow: true, evening: true });
+    expect(result.current.view.map.markers.map(({ label }) => label)).toEqual([
+      'مساحة 1 — مفتوحة الآن',
+      'مساحة 2 — مغلقة الآن',
+      'مساحة 3 — لا تتوفر حالة مباشرة',
+      'مساحة 4 — متاح',
+    ]);
+    const [open, , none] = result.current.view.map.markers;
+    expect(open?.mark).toEqual(none?.mark);
   });
 
   it('past 1,000 pins says so and asks again within the box in view, after a pause', async () => {

@@ -1,5 +1,5 @@
 import type { GazaClock } from '@masaha/shared/core';
-import type { LiveStatus } from '@masaha/shared/occupancy';
+import type { HoursStatus, LiveStatus } from '@masaha/shared/occupancy';
 import type { OpeningRange } from '@masaha/shared/spaces';
 
 // The live-status rule (docs/architecture/data-model.md › Live status; ADR 0008): pure, so the
@@ -34,6 +34,21 @@ export interface LiveStatusInput {
 export function openRangeAt(week: Week, at: GazaClock): OpeningRange | null {
   const day = week?.[at.dayOfWeek] ?? null;
   return day && day.opensMinute <= at.minute && at.minute < day.closesMinute ? day : null;
+}
+
+/**
+ * A space's state by its hours alone (data-model › Derived values): none without hours; else closed
+ * under a closure in force, and otherwise open exactly while `openRangeAt` finds today's range. The
+ * directory's «مفتوحة الآن» filter is the same comparison in SQL (`publicListing.repository.ts`).
+ */
+export function hoursStatusOf({
+  week,
+  closureNow,
+  at,
+}: Pick<LiveStatusInput, 'week' | 'closureNow' | 'at'>): HoursStatus | null {
+  if (week === null) return null;
+  if (closureNow) return 'CLOSED';
+  return openRangeAt(week, at) ? 'OPEN' : 'CLOSED';
 }
 
 /** Whether as many are present as the space seats; never without a capacity. */

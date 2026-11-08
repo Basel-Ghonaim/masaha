@@ -84,8 +84,9 @@ describe('GET /map/spaces', () => {
             isVerified: true,
             days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
             cover: photoUrl('cover', 'card'),
-            // Open, but with no capacity: no live state.
+            // Open, but with no capacity: no live state; open by its hours (Tuesday 12:00 in Gaza).
             liveStatus: null,
+            hoursStatus: 'OPEN',
           },
         ],
         truncated: false,

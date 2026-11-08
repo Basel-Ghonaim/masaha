@@ -39,6 +39,7 @@ const pin = (id: number, areaId: number): MapPin => ({
   days: null,
   cover: null,
   liveStatus: null,
+  hoursStatus: null,
 });
 
 /** Three spaces in Khan Younis's area, one in Al-Rimal, none in An-Nasr. */

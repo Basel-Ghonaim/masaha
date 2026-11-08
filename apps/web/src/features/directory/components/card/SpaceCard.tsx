@@ -15,8 +15,9 @@ import { SpaceCover } from './SpaceCover';
 /**
  * A space in the directory: the whole card one link to its page, named by the space's name and
  * described by each detail in turn, so a screen reader that reads a link by its name reads them
- * after it. Its cover or mark, its name, its area, its live status, whether it is verified, today's
- * hours, and how far it is while the list is ordered by distance. No price. An action the page sets
+ * after it. Its cover or mark, its name, its area, its state, whether it is verified, today's
+ * hours (or that they are not available), how far it is while the list is ordered by distance, and,
+ * last, its price while a subscription is chosen. An action the page sets
  * (the heart) stands over the cover's corner, beside the link and never inside it.
  */
 export function SpaceCard({
@@ -37,12 +38,14 @@ export function SpaceCard({
   const verifiedId = `${ids}-verified`;
   const todayId = `${ids}-today`;
   const distanceId = `${ids}-distance`;
+  const priceId = `${ids}-price`;
   const details = [
     areaId,
     statusId,
     ...(card.verified === null ? [] : [verifiedId]),
-    ...(card.today === null ? [] : [todayId]),
+    todayId,
     ...(card.distance === null ? [] : [distanceId]),
+    ...(card.price === null ? [] : [priceId]),
   ];
 
   const link = (
@@ -74,14 +77,17 @@ export function SpaceCard({
               </span>
             )}
           </div>
-          {card.today !== null && (
-            <p id={todayId} className="text-body-sm text-muted-foreground">
-              {card.today}
-            </p>
-          )}
+          <p id={todayId} className="text-body-sm text-muted-foreground">
+            {card.today}
+          </p>
           {card.distance !== null && (
             <p id={distanceId} className="text-body-sm text-muted-foreground">
               {card.distance}
+            </p>
+          )}
+          {card.price !== null && (
+            <p id={priceId} className="text-body-sm text-muted-foreground">
+              {card.price}
             </p>
           )}
         </CardContent>

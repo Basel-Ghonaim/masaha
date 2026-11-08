@@ -55,6 +55,11 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
       return repository.closedAt(spaceIds, at, tx);
     },
 
+    /** Every space an active closure covers at `at`: the directory's «مفتوحة الآن», in one query. */
+    closedSpaceIdsAt(at: Date): Promise<number[]> {
+      return repository.closedSpaceIdsAt(at);
+    },
+
     /**
      * A page of the space's announcements in one state at `at`, not deleted, in the list's order
      * (running and upcoming by start, ended by end, latest first); and how many there are in it.

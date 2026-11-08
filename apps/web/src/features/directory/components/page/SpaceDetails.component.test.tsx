@@ -290,12 +290,15 @@ describe('SpaceDetails', () => {
     expect(await screen.findByText('تعذّر قراءة الحالة الآن')).toBeInTheDocument();
   });
 
-  it('draws the status panel with no hours and no point near me', async () => {
+  it('draws the status panel with no hours and no point near me, saying in it and in the hours that they are not available', async () => {
     renderDetails(390, publicSpace({ hours: null }));
 
     const panel = await screen.findByRole('heading', { level: 2, name: 'الحالة' });
     expect(panel).toBeInTheDocument();
     expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
+    // The status card's line and the hours section's.
+    expect(screen.getAllByText('ساعات العمل غير متوفرة')).toHaveLength(2);
+    expect(screen.queryByText('لم تُضف ساعات العمل بعد')).not.toBeInTheDocument();
   });
 
   it('says «مغلقة مؤقتًا اليوم» for today while a closure runs', async () => {

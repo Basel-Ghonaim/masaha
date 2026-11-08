@@ -125,6 +125,72 @@ describe('directoryQuerySchema', () => {
   });
 });
 
+describe('the price filters', () => {
+  it.each(['HOUR', 'DAY', 'WEEK', 'MONTH'])(
+    'takes the period %s alone, on the list and the map',
+    (period) => {
+      expect(directoryQuerySchema.parse({ period })).toMatchObject({ period });
+      expect(mapPinsQuerySchema.parse({ period })).toEqual({ period });
+    },
+  );
+
+  it('refuses another period, on both', () => {
+    expect(listErrors({ period: 'YEAR' })).toEqual({ period: ['invalid_choice'] });
+    expect(mapErrors({ period: 'month' })).toEqual({ period: ['invalid_choice'] });
+  });
+
+  it('takes either bound alone, or both, with a period; equal bounds pass; a lower above the upper is refused on the upper', () => {
+    expect(listErrors({ period: 'DAY', priceMin: '1000' })).toBeNull();
+    expect(listErrors({ period: 'DAY', priceMax: '1000' })).toBeNull();
+    expect(listErrors({ period: 'DAY', priceMin: '1000', priceMax: '1000' })).toBeNull();
+    expect(listErrors({ period: 'DAY', priceMin: '1001', priceMax: '1000' })).toEqual({
+      priceMax: ['out_of_range'],
+    });
+  });
+
+  it.each<Record<string, string>>([
+    { priceMin: '1000' },
+    { priceMax: '1000' },
+    { priceMin: '1000', priceMax: '2000' },
+  ])('needs a period with the bounds %j', (bounds) => {
+    expect(listErrors(bounds)).toEqual({ period: ['required'] });
+    expect(mapErrors(bounds)).toEqual({ period: ['required'] });
+  });
+
+  it.each([
+    ['0', 'out_of_range'],
+    ['-100', 'out_of_range'],
+    ['10000001', 'out_of_range'],
+    ['12.5', 'invalid_format'],
+    ['abc', 'invalid_format'],
+  ])('refuses the bound %s as %s, on its own field', (amount, code) => {
+    expect(listErrors({ period: 'DAY', priceMin: amount })).toEqual({ priceMin: [code] });
+    expect(listErrors({ period: 'DAY', priceMax: amount })).toEqual({ priceMax: [code] });
+  });
+});
+
+describe('the price orders', () => {
+  it.each(['priceAsc', 'priceDesc'])('%s is taken with a period, with or without q', (sort) => {
+    expect(directoryQuerySchema.parse({ period: 'MONTH', sort })).toMatchObject({ sort });
+    expect(directoryQuerySchema.parse({ period: 'MONTH', sort, q: 'Focus' })).toMatchObject({
+      sort,
+      q: 'Focus',
+    });
+  });
+
+  it.each(['priceAsc', 'priceDesc'])('%s without a period is invalid_choice on sort', (sort) => {
+    expect(listErrors({ sort })).toEqual({ sort: ['invalid_choice'] });
+    expect(listErrors({ sort, q: 'Focus' })).toEqual({ sort: ['invalid_choice'] });
+  });
+
+  it('keeps the default order with a period: by update, or best match with q', () => {
+    expect(directoryQuerySchema.parse({ period: 'DAY' })).toMatchObject({ sort: 'updated' });
+    expect(directoryQuerySchema.parse({ period: 'DAY', q: 'Focus' })).toMatchObject({
+      sort: 'relevance',
+    });
+  });
+});
+
 describe('mapPinsQuerySchema', () => {
   it('takes the list’s filters and the viewport’s bounds', () => {
     expect(
@@ -146,20 +212,34 @@ describe('mapPinsQuerySchema', () => {
   it('needs a period with a price bound, as the list does', () => {
     expect(mapErrors({ priceMax: '5000' })).toEqual({ period: ['required'] });
   });
+
+  it('takes no order: a sort is dropped as any unknown key', () => {
+    expect(mapPinsQuerySchema.parse({ period: 'DAY', sort: 'priceAsc' })).toEqual({
+      period: 'DAY',
+    });
+  });
 });
 
-describe('availableNow', () => {
-  it('availableNow takes true only', () => {
-    expect(directoryQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
-      availableNow: true,
+describe('the hours filters', () => {
+  it.each(['openNow', 'evening'])('%s takes true and false, on the list and the map', (key) => {
+    expect(directoryQuerySchema.parse({ [key]: 'true' })).toMatchObject({ [key]: true });
+    expect(directoryQuerySchema.parse({ [key]: 'false' })).toMatchObject({ [key]: false });
+    expect(mapPinsQuerySchema.parse({ [key]: 'true' })).toEqual({ [key]: true });
+    expect(mapPinsQuerySchema.parse({ [key]: 'false' })).toEqual({ [key]: false });
+  });
+
+  it.each(['openNow', 'evening'])('%s refuses a word it cannot read, on both', (key) => {
+    expect(listErrors({ [key]: 'maybe' })).toEqual({ [key]: ['invalid_choice'] });
+    expect(mapErrors({ [key]: '' })).toEqual({ [key]: ['invalid_choice'] });
+  });
+
+  it('drops the retired availableNow, as any unknown key: an old client is answered unfiltered', () => {
+    expect(directoryQuerySchema.parse({ availableNow: 'true' })).toEqual({
+      page: 1,
+      limit: 20,
+      lang: 'ar',
+      sort: 'updated',
     });
-    expect(directoryQuerySchema.parse({ availableNow: 'false' })).toMatchObject({
-      availableNow: false,
-    });
-    expect(mapPinsQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
-      availableNow: true,
-    });
-    expect(listErrors({ availableNow: 'maybe' })).toEqual({ availableNow: ['invalid_choice'] });
-    expect(mapErrors({ availableNow: '' })).toEqual({ availableNow: ['invalid_choice'] });
+    expect(mapPinsQuerySchema.parse({ availableNow: 'true' })).toEqual({});
   });
 });

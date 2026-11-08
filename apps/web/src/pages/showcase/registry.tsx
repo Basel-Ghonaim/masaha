@@ -26,6 +26,7 @@ import { DatePickerSection } from './sections/fields/DatePickerSection';
 import { FieldSection } from './sections/fields/FieldSection';
 import { InputSection } from './sections/fields/InputSection';
 import { RadioGroupSection } from './sections/fields/RadioGroupSection';
+import { SegmentedControlSection } from './sections/fields/SegmentedControlSection';
 import { SelectSection } from './sections/fields/SelectSection';
 import { SwitchSection } from './sections/fields/SwitchSection';
 import { TextareaSection } from './sections/fields/TextareaSection';
@@ -144,6 +145,9 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   entry('navigation', 'Sidebar', 'sidebar', (samples) => <SidebarSection samples={samples} />),
   entry('fields', 'ToggleGroup', 'toggleGroup', (samples) => (
     <ToggleGroupSection samples={samples} />
+  )),
+  entry('fields', 'SegmentedControl', 'segmentedControl', (samples) => (
+    <SegmentedControlSection samples={samples} />
   )),
   entry('overlays', 'Popover', 'popover', (samples) => <PopoverSection samples={samples} />),
   entry('fields', 'Combobox', 'combobox', (samples) => <ComboboxSection samples={samples} />),

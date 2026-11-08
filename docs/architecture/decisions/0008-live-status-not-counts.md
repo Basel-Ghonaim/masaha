@@ -3,6 +3,7 @@
 > **Status:** Accepted · **Date:** 2026-09-28
 > **Revised:** 2026-09-29 — the owner or reception can set the state manually for a set time (30 min, 1 h, 2 h or until closing), and open visits and open subscription check-ins both count as present. The rule stays in [data-model.md](../data-model.md#derived-values-computed-not-stored).
 > **Revised:** 2026-09-29 — capacity is private from the **public** only: the space's staff (owner and reception) see present / capacity in the dashboard, and a check-in warns when the space is full. The admin still does not see it.
+> **Revised:** 2026-11-08 — the directory filters by the hours, «مفتوحة الآن» (open now by the week, under no closure, and not closed by hand), in place of selecting `AVAILABLE`, so a full space stays listed with its badge; and the public reads carry each space's state by its hours, open or closed, apart from the live status (`GET /spaces/:slug/occupancy` returns `{ status, hoursStatus }`), which an unverified space shows on a neutral badge, never in the live status's colours. The rules stay in [data-model.md](../data-model.md#derived-values-computed-not-stored).
 
 ## Context
 The plan was to show the public "available seats" — capacity minus open check-ins — for verified spaces. The owner's survey of real spaces (2026-09-28) showed that space owners do not publish their seat count: it is commercially sensitive, and a small number reads badly. A count shown only for some spaces would also invite comparison between them. Users still need the answer to one question: *can I go there now?*

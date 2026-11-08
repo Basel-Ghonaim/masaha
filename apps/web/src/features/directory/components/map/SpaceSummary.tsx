@@ -15,7 +15,7 @@ export function SpaceSummary({ card, distance }: { card: SpaceCardView; distance
           </span>
         )}
       </div>
-      {card.today !== null && <p className="text-body-sm text-muted-foreground">{card.today}</p>}
+      <p className="text-body-sm text-muted-foreground">{card.today}</p>
       {distance !== null && <p className="text-body-sm text-muted-foreground">{distance}</p>}
     </div>
   );

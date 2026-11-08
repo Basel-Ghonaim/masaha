@@ -19,6 +19,7 @@ const LISTED: DirectorySpace = {
   days: null,
   cover: null,
   liveStatus: null,
+  hoursStatus: null,
 };
 
 const FAVORITES: FavoriteSpace[] = [

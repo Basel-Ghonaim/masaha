@@ -16,6 +16,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [23. No per-address ceiling for signed-in requests](23-no-per-address-ceiling-for-signed-in-requests.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
+- [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 
 ## Accepted
 
@@ -159,3 +160,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [204. A CSV built in the browser keeps a value that reads as a formula](204-a-csv-built-in-the-browser-keeps-a-value-that-reads-as-a-formula.md)
 - [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
 - [213. A cron every 5 minutes keeps Neon's free database awake all month](213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)
+- [214. The Home test's wait finds Home's own search box](214-the-home-tests-wait-finds-homes-own-search-box.md)

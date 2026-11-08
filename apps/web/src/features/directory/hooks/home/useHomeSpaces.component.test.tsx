@@ -17,6 +17,7 @@ const space = (id: number): DirectorySpace => ({
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 });
 
 /** A page of the list, as the server answers it. */
@@ -55,23 +56,23 @@ afterEach(() => {
 });
 
 describe('useHomeSpaces', () => {
-  it('shows the spaces available now, six at most, and «عرض الكل» to the available list', async () => {
+  it('shows the spaces open now, six at most, titled «مفتوحة الآن», and «عرض الكل» to the open list', async () => {
     const { result, requests } = renderHome([1, 2, 3].map(space));
 
     expect(result.current.state).toBe('loading');
     await waitFor(() => {
       expect(result.current.state).toBe('ready');
     });
-    expect(result.current.title).toBe('متاحة الآن');
+    expect(result.current.title).toBe('مفتوحة الآن');
     expect(result.current.cards.map((card) => card.slug)).toEqual([
       'space-1',
       'space-2',
       'space-3',
     ]);
     expect(requests).toHaveLength(1);
-    expect(requests[0]?.params).toEqual({ limit: 6, availableNow: true });
+    expect(requests[0]?.params).toEqual({ limit: 6, openNow: true });
     expect(requests[0]?.headers['Masaha-Near']).toBeUndefined();
-    expect(result.current.viewAll).toEqual({ label: 'عرض الكل', to: 'available' });
+    expect(result.current.viewAll).toEqual({ label: 'عرض الكل', to: 'open' });
   });
 
   it('with a point, the nearest six through the header, titled «المساحات الأقرب إليك», «عرض الكل» keeping the order', async () => {
@@ -112,22 +113,22 @@ describe('useHomeSpaces', () => {
       expect(requests).toHaveLength(2);
     });
 
-    expect(result.current.title).toBe('متاحة الآن');
+    expect(result.current.title).toBe('مفتوحة الآن');
     answer(undefined);
     await waitFor(() => {
       expect(result.current.title).toBe('المساحات الأقرب إليك');
     });
   });
 
-  it('with none available now, says so and offers browsing all the spaces', async () => {
+  it('with none open now, says so and offers browsing all the spaces', async () => {
     const { result } = renderHome([]);
 
     await waitFor(() => {
       expect(result.current.state).toBe('empty');
     });
     expect(result.current.empty).toEqual({
-      title: 'لا توجد مساحات متاحة الآن',
-      text: 'قد تكون المساحات ممتلئة أو مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.',
+      title: 'لا توجد مساحات مفتوحة الآن',
+      text: 'قد تكون المساحات مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.',
       action: 'تصفّح كل المساحات',
     });
   });

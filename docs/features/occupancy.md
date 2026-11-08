@@ -1,6 +1,6 @@
 # Occupancy
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity, and the desk shows the state now, the override and the people present.
 > **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`: the capacity's hooks, and the desk's state now, override and people present (not dashboard-only: the directory will read the live status).
 
@@ -16,7 +16,7 @@
 
 - **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override; on the dashboard, sets the capacity in the settings page's attendance card ([space-settings › Behaviour and flows](space-settings.md#behaviour-and-flows)).
 - **The space's reception,** through the API: reads the state now, the capacity in it, but not the capacity's own route; sets and clears the override.
-- **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
+- **The directory,** for the public: each listed space's live status and its state by its hours, set-based, and the verified spaces closed by hand, for «مفتوحة الآن» ([directory](directory.md)); never a count or a capacity.
 - **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours; whether a customer is present, before it archives one; who is present, for a customer's file. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The owner's settings page reads and sets the capacity.
 - **The desk on the web** (`pages/dashboard/space/desk/`, the owner and reception): «الحاضرون الآن» and the live status's control, each this capability's component; the page sets the desk's check-out in each row (2026-10-24, #116).
 - **The owner's overview** (`overview`), which reads the space's state at a glance: how many are present, its capacity and its live status, never a name (2026-10-29, #131).
@@ -45,7 +45,7 @@
 
 **The check-in's warnings.** In the desk's transaction, under the space's lock: the capacity, *present* (`presentIn`), and the week; `SPACE_FULL` when *present* reaches the capacity (never without one), then `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them now, then `CLOSURE_IN_FORCE` while a closure the space announced runs (the live status's `closedAt`, in the same transaction). They never refuse the check-in.
 
-**The directory's read.** `liveStatusFor` decides many spaces at once: one query each for their rows, their open visits and open check-ins (`presentCountsIn`), their closures, and the weeks the directory did not pass; `availableAmong` keeps the verified spaces `AVAILABLE` now, for the directory's filter.
+**The directory's read.** `publicStatesFor` decides many spaces at once, at the instant the directory gives: one query each for their rows, their open visits and open check-ins (`presentCountsIn`), their closures, and the weeks the directory did not pass; each space's live status and its state by its hours (`hoursStatusOf`, beside the live status's rule: none without hours, closed under a closure, else open exactly while `openRangeAt` finds today's range). `closedByOverrideAmong` lists the verified spaces with an override to `CLOSED` in force, which the directory's «مفتوحة الآن» leaves out (2026-11-08, #139).
 
 **The capacity's read.** One query reads the space's row; a space without one has no capacity.
 
@@ -92,7 +92,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 ## Code map
 
 - **API:** `apps/api/src/modules/occupancy/`, entry `index.ts`: the service, the repository, the manage router, the live-status rule (`liveStatus.ts`), the override's end (`overrideUntil.ts`) and *present* (`present.ts`). The reads it composes: `modules/visits/`, `modules/subscriptions/`, `modules/customers/`, `modules/announcements/`, and `spaces.weekOf`.
-- **Shared:** `packages/shared/src/occupancy/`: the request, with the capacity's bound, and the override's (`setStatusOverrideSchema`, `OVERRIDE_DURATIONS`); the responses (`SpaceOccupancyNow`, `PresentPerson`, `LiveStatus`).
+- **Shared:** `packages/shared/src/occupancy/`: the request, with the capacity's bound, and the override's (`setStatusOverrideSchema`, `OVERRIDE_DURATIONS`); the responses (`SpaceOccupancyNow`, `PresentPerson`, `LiveStatus`, `HoursStatus`, `PublicOccupancy`).
 - **Web:** `apps/web/src/features/occupancy/`, entry `index.ts` (`useCapacityQuery`, `useSetCapacity`, read by `pages/dashboard/space/settings/`; `PresentList`, `PresentMatches`, `LiveStatusControl`, `matchesPerson`, by `pages/dashboard/space/desk/`): the repository in `repository/`, the keys and the capacity's hooks in `hooks/`, the state now's query and the list's hook in `hooks/now/`, the search's group's hook in `hooks/present/`, the control's hook and the override's writes in `hooks/status/`, the stay's and the override's time (`stayDuration`, `overrideLeft`) and the search's match (`matchesPerson`) in `services/`, the components in `components/`; a 404 on a managed route, read or write, fetches the user's own spaces again (`shared/api`'s `useLinkEnded`). Words: the catalogue's `occupancy` section.
 
 ## Open findings
@@ -106,6 +106,7 @@ None.
 - #92 — a space's capacity, read and set by its owner on the API; the module's first slice.
 - #94 — the staff's read of the state now: who is present, the count, the capacity and the live status; the manual override, set and cleared by the staff; the live status of many spaces at once, for the directory.
 - #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk; each visit present with its charge so far.
+- 2026-11-08, #139 — the state by the hours beside the live status (`hoursStatusOf`, `publicStatesFor` at the directory's one instant), and the verified spaces closed by hand, for «مفتوحة الآن»; `availableAmong` went with `availableNow`.
 - #109 — *present* written once (`present.ts`), for every reader; whether a customer is present, for the desk.
 - #112 — the closure warning at check-in, `CLOSURE_IN_FORCE`.
 

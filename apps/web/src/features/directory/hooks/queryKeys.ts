@@ -14,6 +14,8 @@ export const directoryKeys = {
   /** A space's page, by its slug. */
   space: (slug: string) => ['public', 'directory', 'space', slug] as const,
   status: (slug: string) => ['public', 'directory', 'status', slug] as const,
+  /** Each subscription's lowest and highest price, the budget's hints. */
+  priceRanges: ['public', 'directory', 'price-ranges'] as const,
   /**
    * The signed-in user's favourites, under the session's scope: `{}` newest saved first (the hearts'
    * ids), `{ near }` nearest first. A favourite saved or removed reads the whole scope again (S13).

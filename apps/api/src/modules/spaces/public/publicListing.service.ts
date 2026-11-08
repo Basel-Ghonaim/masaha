@@ -10,6 +10,7 @@ import { createPhotosRepository } from '../photos/photos.repository.ts';
 import { staleCutoffs } from '../staleness.ts';
 import {
   createPublicListingRepository,
+  type PriceRangeRecord,
   type PublicFilter,
   type PublicOrder,
   type PublicSpaceRecord,
@@ -30,12 +31,14 @@ export interface ListedPublicSpace {
   distanceMeters: number | null;
   /** Its first photo's card-size URL, or `null` without a photo. */
   cover: string | null;
+  /** In agorot, only with a price filter: its lowest general price of the period within the bounds. */
+  priceAgorot: number | null;
 }
 
 /** `PublicFilter` without the price cut-off, which `spaces` measures with its own staleness rule. */
 export type PublicListingFilter = Omit<PublicFilter, 'pricesStaleBefore'>;
 
-export type { PublicOrder };
+export type { PriceRangeRecord, PublicOrder };
 
 interface Dependencies {
   platformSettings: PlatformSettingsService;
@@ -79,6 +82,7 @@ export function createPublicListingService({ platformSettings, now, storage }: D
       days: weeks.get(record.id) ?? null,
       distanceMeters: record.distance === null ? null : Math.round(record.distance / 100) * 100,
       cover: coverUrl(covers.get(record.id)),
+      priceAgorot: record.price,
     }));
   }
 
@@ -88,6 +92,17 @@ export function createPublicListingService({ platformSettings, now, storage }: D
   }
 
   return {
+    /**
+     * Each period's lowest and highest general price over the listed spaces whose prices are shown:
+     * the range's hints on the web.
+     */
+    async priceRanges(
+      filter: Pick<PublicListingFilter, 'areaIds' | 'verifiedIds'>,
+    ): Promise<PriceRangeRecord[]> {
+      const cutoffs = staleCutoffs(await platformSettings.stalenessThresholds(), now());
+      return repository.priceRanges({ ...filter, pricesStaleBefore: cutoffs.prices });
+    },
+
     /** One page of the listed spaces that pass the filter, in the order, and how many pass it. */
     async page(
       filter: PublicListingFilter,

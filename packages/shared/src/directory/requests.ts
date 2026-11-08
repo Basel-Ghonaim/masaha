@@ -27,9 +27,17 @@ export const NEAR_DECIMALS = 3;
 
 /**
  * The list's orders: the latest update first; by name in the interface's language; nearest first,
- * from `near`; and best match first, the default when `q` is given.
+ * from `near`; best match first, the default when `q` is given; and by the price of `period`, the
+ * cheapest or the dearest first, which needs the period.
  */
-export const DIRECTORY_SORTS = ['updated', 'name', 'distance', 'relevance'] as const;
+export const DIRECTORY_SORTS = [
+  'updated',
+  'name',
+  'distance',
+  'relevance',
+  'priceAsc',
+  'priceDesc',
+] as const;
 
 export type DirectorySort = (typeof DIRECTORY_SORTS)[number];
 
@@ -87,8 +95,10 @@ const filters = {
   studentPrices: z.stringbool().optional(),
   openFriday: z.stringbool().optional(),
   verified: z.stringbool().optional(),
-  /** Only the spaces whose live status is `AVAILABLE` now. */
-  availableNow: z.stringbool().optional(),
+  /** Only the spaces open now by their hours, on Gaza's clock, under no closure in force. */
+  openNow: z.stringbool().optional(),
+  /** Only the spaces that close at 20:00 or later on one of their open days. */
+  evening: z.stringbool().optional(),
   q: searchText.optional(),
 };
 
@@ -125,7 +135,7 @@ function checkPrice({ period, priceMin, priceMax }: FilterValues, ctx: z.Refinem
  * The directory's list: the filters, the order, the interface's language (for the order by name)
  * and the page; `near` is the `Masaha-Near` header's point, read with the query. `sort` defaults to
  * `relevance` with `q` and to `updated` without; `distance` needs `near`, and `near` is taken only
- * with it.
+ * with it; a price order needs `period`.
  */
 export const directoryQuerySchema = paginationQuerySchema
   .extend({
@@ -137,6 +147,10 @@ export const directoryQuerySchema = paginationQuerySchema
   .superRefine((query, ctx) => {
     checkPrice(query, ctx);
     if (query.sort === 'relevance' && query.q === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['sort'], params: { code: 'invalid_choice' } });
+    }
+    // A price order is by the price of a period, so it needs one.
+    if ((query.sort === 'priceAsc' || query.sort === 'priceDesc') && query.period === undefined) {
       ctx.addIssue({ code: 'custom', path: ['sort'], params: { code: 'invalid_choice' } });
     }
     checkNear(query, ctx);

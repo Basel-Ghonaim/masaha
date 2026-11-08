@@ -24,11 +24,11 @@ function searchKey(search: string) {
  * pages sit under the list, and the reader stays with it.
  */
 export function ListPagination({ pagination }: { pagination: PaginationView }) {
-  const here0 = useLocation().search;
-  // A list of one page (or none) has no pages to move between: no bar (QUICK_FIXES_1).
+  const search = useLocation().search;
+  // A list of one page (or none) has nothing to move between, so it draws no bar.
   if (pagination.previous.search === null && pagination.next.search === null) return null;
   const { previous, next } = pagination;
-  const here = searchKey(here0);
+  const here = searchKey(search);
   const asked = pagination.items.find(
     (item) => item.kind === 'page' && searchKey(item.search) === here,
   );

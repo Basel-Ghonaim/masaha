@@ -6,9 +6,9 @@ import type { DirectoryController } from './directory.controller.ts';
 import { validateListQuery } from './listQuery.ts';
 
 /**
- * The public directory, at /spaces, /spaces/:slug, /spaces/:slug/occupancy and /map/spaces
- * (docs/api/api-contract.md §5, Directory (public)): no guard. The map's pins live under /map, since a space's slug could be
- * `pins`.
+ * The public directory, at /spaces, /spaces/:slug, /spaces/:slug/occupancy, /map/spaces and
+ * /price-ranges (docs/api/api-contract.md §5, Directory (public)): no guard. The map's pins live
+ * under /map, since a space's slug could be `pins`.
  */
 export function createDirectoryPublicRouter(directory: DirectoryController): Router {
   const router = Router();
@@ -16,5 +16,6 @@ export function createDirectoryPublicRouter(directory: DirectoryController): Rou
   router.get('/spaces/:slug', directory.page);
   router.get('/spaces/:slug/occupancy', directory.occupancy);
   router.get('/map/spaces', validate(mapPinsQuerySchema, 'query'), directory.pins);
+  router.get('/price-ranges', directory.priceRanges);
   return router;
 }

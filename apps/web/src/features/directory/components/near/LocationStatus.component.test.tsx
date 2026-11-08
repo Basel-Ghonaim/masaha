@@ -24,6 +24,7 @@ const space = (id: number): DirectorySpace => ({
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 });
 
 /** The directory's list at `width`, the place filter a button the page's slot would draw. */

@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-29
+> **Last Updated:** 2026-11-08
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -73,7 +73,7 @@ apps/web/src/shared/design-system/
 | Category | Role | Components |
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
-| `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · Switch · ToggleGroup · Calendar · DatePicker |
+| `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker |
 | `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
@@ -384,6 +384,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range; a range starts afresh on each click once it is empty or whole, so its first click leaves `to` empty · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
+| SegmentedControl | hand-built (Radix radio group) | One choice among a few short ones, as joined segments on a track: the directory's subscription «الكل · ساعة · يوم · أسبوع · شهر» · a radiogroup with one tab stop, entering on the chosen segment; the arrow keys choose the next or previous, following the direction, and loop; Home and End choose the first and the last (Radix only moves the focus there) · the track `muted` with `radius-control`; a segment `muted-foreground` at the `label` size, `foreground` on hover; the chosen one on `card` with the card's edge and the raised shadow, so in dark, which has no shadow, its edge still shows it · 32px segments, the control height on touch · inside a Field, named by its label and described by its helper · no disabled or invalid styling: no caller needs one |
 
 ### `display`
 
@@ -446,8 +447,8 @@ Every screen: phone and desktop, light and dark. Key screens also in LTR (Englis
 The final designs are archived in [docs/design/](../../design/README.md): [SCREENS.md](../../design/SCREENS.md) maps each screen below to its prototype page and screenshots.
 
 ### Public site (9)
-1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «متاحة الآن»
-2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, an "Other" group («أسعار للطلاب», «مفتوحة يوم الجمعة»), verified only, available now; sort, including «الأقرب إليّ»
+1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «مفتوحة الآن»
+2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, the price (a subscription, «الكل · ساعة · يوم · أسبوع · شهر», then its range), «الدوام» («مفتوحة الآن», «مفتوحة مساءً», «مفتوحة يوم الجمعة») and «أخرى» («المساحات الموثّقة فقط», «أسعار للطلاب»); sort, including «الأقرب إليّ» and, once a subscription is chosen, by its price («الأرخص شهريًا»)
    - **Near me:** the browser's location, rounded on the device to 3 decimals and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent; [security › Location](../../backend/security.md#location)); distances are straight-line and labelled approximate.
    - A location is **not used** when the permission is denied or unavailable, when it is imprecise (accuracy worse than about 2 km), or when it falls outside the Gaza Strip. The screen then offers choosing an area, or placing a pin by hand on the map.
 3. **Space details** — photos, prices (display only), amenities, hours, contact, announcements, live status (available, full or closed now; verified spaces), "last updated" notes, "Are you the owner? Contact us" (unverified), report wrong info

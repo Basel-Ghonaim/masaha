@@ -31,14 +31,14 @@ describe('useDirectoryFilters', () => {
     act(() => {
       void result.current.navigate('/spaces?verified=1&page=3');
     });
-    expect(result.current.filters.request).toEqual({ limit: 20, verified: true, page: 3 });
+    expect(result.current.filters.request).toEqual({ limit: 18, verified: true, page: 3 });
 
     act(() => {
       result.current.filters.apply({ sort: 'name' });
     });
     expect(result.current.location.search).toBe('?verified=1&sort=name');
     expect(result.current.filters.request).toEqual({
-      limit: 20,
+      limit: 18,
       verified: true,
       sort: 'name',
       lang: 'ar',
@@ -88,7 +88,7 @@ describe('useDirectoryFilters', () => {
     });
     expect(result.current.location.search).toBe('');
     expect(result.current.filters.search.text).toBe('َِ');
-    expect(result.current.filters.request).toEqual({ limit: 20 });
+    expect(result.current.filters.request).toEqual({ limit: 18 });
   });
 
   it('clears the search alone, best match with it, and words each page’s address with the filters kept', () => {

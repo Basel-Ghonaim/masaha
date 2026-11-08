@@ -7,11 +7,13 @@ import {
   type MapPin,
   type MapPins,
   type MapPinsQuery,
+  type PriceRanges,
   type PublicSpace,
 } from '@masaha/shared/directory';
+import { gazaClockOf } from '@masaha/shared/core';
 import { FAVORITES_MAX } from '@masaha/shared/favorites';
-import type { LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
-import type { Location } from '@masaha/shared/spaces';
+import type { HoursStatus, LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
+import type { Location, Price } from '@masaha/shared/spaces';
 
 import { isVerified } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
@@ -39,7 +41,19 @@ interface Dependencies {
   publicListing: PublicListingService;
   publicSpace: PublicSpaceService;
   occupancy: OccupancyService;
+  /** The one clock (conventions §11): read once per answer, so its filter and its states agree. */
+  now: () => Date;
 }
+
+/** A space's states as its card and its pin carry them. */
+interface States {
+  liveStatus: LiveStatus | null;
+  hoursStatus: HoursStatus | null;
+}
+
+const NO_STATES: States = { liveStatus: null, hoursStatus: null };
+
+type PricePeriod = Price['period'];
 
 /** The filters the list and the map share. */
 type Filters = Omit<MapPinsQuery, 'bounds'> & { bounds?: MapPinsQuery['bounds'] };
@@ -56,13 +70,18 @@ function orderOf(query: DirectoryQuery): PublicOrder {
       return { by: 'distance', from: query.near };
     case 'updated':
       return { by: 'updated' };
+    case 'priceAsc':
+    case 'priceDesc':
+      // The schema takes a price order only with a period, which the filter's price reads.
+      if (!query.period) throw AppError.validation({ sort: ['invalid_choice'] });
+      return { by: 'price', direction: query.sort === 'priceAsc' ? 'asc' : 'desc' };
   }
 }
 
 function toDirectorySpace(
   space: ListedPublicSpace,
   area: AreaName,
-  liveStatus: LiveStatus | null,
+  { liveStatus, hoursStatus }: States,
 ): DirectorySpace {
   return {
     id: space.id,
@@ -73,12 +92,15 @@ function toDirectorySpace(
     isVerified: space.isVerified,
     days: space.days,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
+    // Only a list filtered by a period has a price: the one the filter kept.
+    ...(space.priceAgorot !== null && { priceAgorot: space.priceAgorot }),
     cover: space.cover,
     liveStatus,
+    hoursStatus,
   };
 }
 
-function toMapPin(space: ListedPublicSpace, liveStatus: LiveStatus | null): MapPin {
+function toMapPin(space: ListedPublicSpace, { liveStatus, hoursStatus }: States): MapPin {
   return {
     id: space.id,
     slug: space.slug,
@@ -90,6 +112,7 @@ function toMapPin(space: ListedPublicSpace, liveStatus: LiveStatus | null): MapP
     days: space.days,
     cover: space.cover,
     liveStatus,
+    hoursStatus,
   };
 }
 
@@ -97,9 +120,10 @@ function toMapPin(space: ListedPublicSpace, liveStatus: LiveStatus | null): MapP
  * The public directory (conventions §9, Composed reads): what anyone reads without signing in,
  * over the publicly listed spaces. Each filter on another module's value is resolved to ids first,
  * by its owner, in one query: the listed areas and the search's areas by `lookups`, the verified
- * spaces by `space-links`, and the spaces available now by `occupancy`; `spaces` then filters,
+ * spaces by `space-links`, and, for «مفتوحة الآن», the spaces under a closure in force by
+ * `announcements` and those closed by hand by `occupancy`; `spaces` then filters by the hours,
  * searches, orders and pages (§5). The areas' and the amenities' names follow, one query each, and
- * the live status of the spaces answered, set-based, from `occupancy`.
+ * the states of the spaces answered, set-based, from `occupancy`. Each answer reads the clock once.
  */
 export function createDirectoryService({
   announcements,
@@ -110,8 +134,19 @@ export function createDirectoryService({
   publicListing,
   publicSpace,
   occupancy,
+  now: clock,
 }: Dependencies) {
-  async function filterOf(query: Filters): Promise<PublicListingFilter> {
+  /** «مفتوحة الآن» at `at`: Gaza's time, and the spaces closed now whatever their hours say. */
+  async function openAtOf(verifiedIds: readonly number[], at: Date) {
+    const [closures, closedByHand] = await Promise.all([
+      announcements.closedSpaceIdsAt(at),
+      occupancy.closedByOverrideAmong(verifiedIds, at),
+    ]);
+    const { dayOfWeek, minute } = gazaClockOf(at);
+    return { dayOfWeek, minute, exceptIds: [...new Set([...closures, ...closedByHand])] };
+  }
+
+  async function filterOf(query: Filters, at: Date): Promise<PublicListingFilter> {
     const [listedAreaIds, verifiedIds, areaMatches] = await Promise.all([
       lookups.listedAreaIds(),
       spaceLinks.verifiedSpaceIds(),
@@ -121,48 +156,50 @@ export function createDirectoryService({
     return {
       areaIds: area ? listedAreaIds.filter((id) => area.includes(id)) : listedAreaIds,
       verifiedIds,
-      // Only a verified space has a live state, so only those can be available.
-      onlyIds: query.availableNow ? await occupancy.availableAmong(verifiedIds) : undefined,
       verifiedOnly: query.verified,
       price: query.period && { period: query.period, min: query.priceMin, max: query.priceMax },
       studentPrices: query.studentPrices,
       openFriday: query.openFriday,
+      openAt: query.openNow ? await openAtOf(verifiedIds, at) : undefined,
+      evening: query.evening,
       search: query.q === undefined ? undefined : { q: query.q, areaMatches },
       bounds: query.bounds,
     };
   }
 
-  /** The live status of each listed space, from the week it was listed with. */
-  function liveStatusesOf(rows: readonly ListedPublicSpace[]) {
-    return occupancy.liveStatusFor(
+  /** The states of each listed space at `at`, from the week it was listed with. */
+  function statesOf(rows: readonly ListedPublicSpace[], at: Date) {
+    return occupancy.publicStatesFor(
       rows.map(({ id, isVerified, days }) => ({ id, verified: isVerified, week: days })),
+      at,
     );
   }
 
-  /** The listed spaces as the directory's cards: their areas' names and live statuses, set-based. */
-  async function cardsOf(rows: readonly ListedPublicSpace[]): Promise<DirectorySpace[]> {
+  /** The listed spaces as the directory's cards: their areas' names and states, set-based. */
+  async function cardsOf(rows: readonly ListedPublicSpace[], at: Date): Promise<DirectorySpace[]> {
     if (rows.length === 0) return [];
     const [areas, statuses] = await Promise.all([
       lookups.areaNamesFor([...new Set(rows.map(({ areaId }) => areaId))]),
-      liveStatusesOf(rows),
+      statesOf(rows, at),
     ]);
     const areaById = new Map(areas.map((area) => [area.id, area]));
     // Its area always exists (a foreign key).
     return rows.flatMap((space) => {
       const area = areaById.get(space.areaId);
-      return area ? [toDirectorySpace(space, area, statuses.get(space.id) ?? null)] : [];
+      return area ? [toDirectorySpace(space, area, statuses.get(space.id) ?? NO_STATES)] : [];
     });
   }
 
   return {
     /** One page of the directory's list, and how many spaces pass its filters. */
     async list(query: DirectoryQuery): Promise<{ rows: DirectorySpace[]; total: number }> {
+      const at = clock();
       const { rows, total } = await publicListing.page(
-        await filterOf(query),
+        await filterOf(query, at),
         orderOf(query),
         query,
       );
-      return { rows: await cardsOf(rows), total };
+      return { rows: await cardsOf(rows, at), total };
     },
 
     /**
@@ -184,7 +221,7 @@ export function createDirectoryService({
         near ? { by: 'distance', from: near } : { by: 'updated' },
         { page: 1, limit: FAVORITES_MAX },
       );
-      const cards = await cardsOf(rows);
+      const cards = await cardsOf(rows, clock());
       const cardById = new Map(cards.map((card) => [card.id, card]));
       const left = ids.filter((id) => !cardById.has(id));
       const names = left.length === 0 ? [] : await spaces.namesWithDeleted(left);
@@ -213,19 +250,42 @@ export function createDirectoryService({
       );
     },
 
+    /**
+     * Each period's lowest and highest general price over the publicly listed spaces whose prices
+     * are shown, whatever the other filters: the range's hints. A period none prices is `null`.
+     */
+    async priceRanges(): Promise<PriceRanges> {
+      const [areaIds, verifiedIds] = await Promise.all([
+        lookups.listedAreaIds(),
+        spaceLinks.verifiedSpaceIds(),
+      ]);
+      const rows = await publicListing.priceRanges({ areaIds, verifiedIds });
+      const byPeriod = new Map(rows.map((row) => [row.period, row]));
+      const range = (period: PricePeriod) => {
+        const row = byPeriod.get(period);
+        return row ? { minAgorot: row.min, maxAgorot: row.max } : null;
+      };
+      return { HOUR: range('HOUR'), DAY: range('DAY'), WEEK: range('WEEK'), MONTH: range('MONTH') };
+    },
+
     /** The map's pins: every listed space that passes the filters, up to the ceiling. */
     async pins(query: MapPinsQuery): Promise<MapPins> {
-      const { rows, truncated } = await publicListing.upTo(await filterOf(query), MAP_PINS_CEILING);
-      const statuses = await liveStatusesOf(rows);
+      const at = clock();
+      const { rows, truncated } = await publicListing.upTo(
+        await filterOf(query, at),
+        MAP_PINS_CEILING,
+      );
+      const statuses = await statesOf(rows, at);
       return {
-        pins: rows.map((space) => toMapPin(space, statuses.get(space.id) ?? null)),
+        pins: rows.map((space) => toMapPin(space, statuses.get(space.id) ?? NO_STATES)),
         truncated,
       };
     },
 
     /**
-     * A publicly listed space's live status, and nothing else: never a count or a capacity
-     * (ADR 0008). Anything not listed, an unknown slug included, is `not_found`, as its page.
+     * A publicly listed space's live status and its state by its hours, and nothing else: never a
+     * count or a capacity (ADR 0008). Anything not listed, an unknown slug included, is
+     * `not_found`, as its page.
      */
     async occupancy(slug: string): Promise<PublicOccupancy> {
       const shown = await publicSpace.findShown(slug);
@@ -233,8 +293,10 @@ export function createDirectoryService({
         throw AppError.notFound(undefined, 'Space not found');
       }
       const verified = isVerified({ links: await spaceLinks.linksAt(shown.id) });
-      const statuses = await occupancy.liveStatusFor([{ id: shown.id, verified }]);
-      return { status: statuses.get(shown.id) ?? null };
+      const states = (await occupancy.publicStatesFor([{ id: shown.id, verified }], clock())).get(
+        shown.id,
+      );
+      return { status: states?.liveStatus ?? null, hoursStatus: states?.hoursStatus ?? null };
     },
 
     /**

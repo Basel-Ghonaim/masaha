@@ -23,6 +23,7 @@ const LISTED: DirectorySpace = {
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 };
 
 const gone = (id: number, nameEn: string): FavoriteSpace => ({

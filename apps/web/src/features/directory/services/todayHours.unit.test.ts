@@ -6,6 +6,7 @@ const WORDS = {
   today: ({ range }: { range: string }) => `Today ${range}`,
   closedToday: 'Closed today',
   openAllDay: 'Open around the clock today',
+  noHours: 'Hours not available',
 };
 
 const LRI = '⁦';
@@ -40,7 +41,7 @@ describe('todayHours', () => {
     );
   });
 
-  it('draws nothing for hours never saved', () => {
-    expect(todayHours(null, new Date('2026-10-21T12:00:00Z'), WORDS)).toBeNull();
+  it('says the hours are not available when they were never saved, assuming none', () => {
+    expect(todayHours(null, new Date('2026-10-21T12:00:00Z'), WORDS)).toBe('Hours not available');
   });
 });

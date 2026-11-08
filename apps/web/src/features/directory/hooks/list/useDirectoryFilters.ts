@@ -47,15 +47,16 @@ export function useDirectoryFilters() {
     },
   });
 
-  // The filters in force, each counted once: the place, the price, «متاحة الآن», «موثّقة», student
-  // prices and Friday (design issue 14).
+  // The filters in force, each counted once: the place, whatever its number of areas, the
+  // subscription, with or without its budget, and each of the five boxes (design issue 14).
   const applied = [
     filters.areas.length > 0,
-    filters.min !== undefined || filters.max !== undefined,
-    filters.availableNow,
+    filters.period !== undefined,
+    filters.openNow,
+    filters.evening,
+    filters.openFriday,
     filters.verified,
     filters.studentPrices,
-    filters.openFriday,
   ].filter(Boolean).length;
 
   return {
@@ -81,7 +82,10 @@ export function useDirectoryFilters() {
         page: 1,
       });
     },
-    /** Takes off the filters, keeping the search, the order and the view. */
+    /**
+     * Takes off the filters, keeping the search, the order and the view; a price order goes with its
+     * subscription, back to the default.
+     */
     clearFilters: () => {
       const current = filtersOf(latest.current);
       write({

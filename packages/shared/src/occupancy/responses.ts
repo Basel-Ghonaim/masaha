@@ -11,6 +11,13 @@ export interface SpaceCapacity {
 export const LIVE_STATUSES = ['AVAILABLE', 'FULL', 'CLOSED'] as const;
 export type LiveStatus = (typeof LIVE_STATUSES)[number];
 
+/**
+ * A space's state by its hours alone, apart from the live status: open now by its week on Gaza's
+ * clock and under no closure in force, else closed (docs/architecture/data-model.md › Derived
+ * values). It needs no owner, so an unverified space has one too; a space without hours has none.
+ */
+export type HoursStatus = 'OPEN' | 'CLOSED';
+
 /** Someone present at the space: an open visit, or an open subscription check-in. */
 export type PresentPerson =
   | {
@@ -29,10 +36,12 @@ export type PresentPerson =
     }
   | { kind: 'CHECK_IN'; id: number; customerId: number; name: string; since: string };
 
-/** A space's state now, as the public sees it: its live status, never a count (ADR 0008). */
+/** A space's state now, as the public sees it: its live status and its state by its hours, never a count (ADR 0008). */
 export interface PublicOccupancy {
   /** `null` when the space has none (unverified, no hours, or no capacity). */
   status: LiveStatus | null;
+  /** Its state by its hours; `null` without hours. */
+  hoursStatus: HoursStatus | null;
 }
 
 /** A space's state now, as its staff see it: whole, the people present included. */

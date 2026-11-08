@@ -40,7 +40,8 @@ export type SpacePageView = {
   /** The status card: today's hours and, while a point is held, the distance. */
   panel: {
     title: string;
-    today: string | null;
+    /** Today's hours, a closure's line, or that the hours are not available. */
+    today: string;
     distance: string | null;
     live:
       | { kind: 'loading'; label: string }

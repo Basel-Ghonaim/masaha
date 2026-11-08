@@ -23,6 +23,7 @@ function space(id: number, nameEn: string): DirectorySpace {
     days: null,
     cover: null,
     liveStatus: 'AVAILABLE',
+    hoursStatus: null,
   };
 }
 

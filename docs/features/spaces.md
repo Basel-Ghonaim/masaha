@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -176,6 +176,8 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - **Each change is audited with the gallery's ids before and after, never a key or a URL** (D10). *Why:* the gallery is recorded whole, as every group is. 2026-10-13, #77.
 - **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
+- **The listing's price is one lateral `min()`: the lowest general price of the period within the bounds, for a space whose prices are shown** (the owner's decisions 3–6, OD4). It is the filter's test, the card's `priceAgorot` and the key of the price orders, each ending by the id, so the three never disagree and a hidden price is never filtered, priced or ordered; the period alone filters. The ranges' hints (`priceRanges`) read the same listed spaces and the same rule, grouped by period. *Why:* a card showing ₪10 under a ₪20–30 range would read as a mistake. 2026-11-08, #139.
+- **The listing filters by the hours too: «مفتوحة الآن» on the Gaza time it is given, less the ids another module closes, and «مفتوحة مساءً» on the week** ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)). *Why:* the hours are this capability's tables; the rule's other reader, the state by the hours, is `occupancy`'s and a test binds the two. 2026-11-08, #139.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
 - **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15, #82.
 - **The managed photo writes ask `can()` at the route, through `requireCan`, before the upload is counted or its body read;** the service's own `can()`, under the space's lock, still decides (the owner's D4). *Why:* reception's refused upload was read into memory first, and the managed reads' two copies of the `space.read` check needed one home: the boundary, which is that check. 2026-10-17, #86.
@@ -295,6 +297,7 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - #83 — the owner/reception managed-space API, reusing the admin services and response shapes; reception reads, owners write, and managed photos share the admin upload path.
 - #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
 - #132 — the daily reclamation of the photos' files no row holds (finding 63); the space's reads name the retired amenities it holds (finding 99's API half).
+- 2026-11-08, #139 — the public listing's hours filters (open now, open in the evening), its price per period (the lateral lowest price, the card's price and the price orders) and the price ranges.
 
 ### Web history
 

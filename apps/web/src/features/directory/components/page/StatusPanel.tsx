@@ -31,12 +31,10 @@ export function StatusPanel({
             </>
           )}
         </div>
-        {(panel.today !== null || panel.distance !== null) && (
-          <div className="flex flex-col gap-1 text-body-sm">
-            {panel.today !== null && <p>{panel.today}</p>}
-            {panel.distance !== null && <p className="text-muted-foreground">{panel.distance}</p>}
-          </div>
-        )}
+        <div className="flex flex-col gap-1 text-body-sm">
+          <p>{panel.today}</p>
+          {panel.distance !== null && <p className="text-muted-foreground">{panel.distance}</p>}
+        </div>
         {children}
       </CardContent>
     </Card>
