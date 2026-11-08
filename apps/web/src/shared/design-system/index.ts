@@ -130,6 +130,12 @@ export {
   type RadioGroupProps,
 } from './components/fields/RadioGroup';
 export {
+  SegmentedControl,
+  SegmentedControlItem,
+  type SegmentedControlItemProps,
+  type SegmentedControlProps,
+} from './components/fields/SegmentedControl';
+export {
   Select,
   SelectContent,
   SelectGroup,

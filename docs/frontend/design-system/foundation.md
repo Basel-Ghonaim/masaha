@@ -73,7 +73,7 @@ apps/web/src/shared/design-system/
 | Category | Role | Components |
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
-| `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · Switch · ToggleGroup · Calendar · DatePicker |
+| `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker |
 | `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
@@ -384,6 +384,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range; a range starts afresh on each click once it is empty or whole, so its first click leaves `to` empty · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
+| SegmentedControl | hand-built (Radix radio group) | One choice among a few short ones, as joined segments on a track: the directory's subscription «الكل · ساعة · يوم · أسبوع · شهر» · a radiogroup with one tab stop, entering on the chosen segment; the arrow keys choose the next or previous, following the direction, and loop; Home and End choose the first and the last (Radix only moves the focus there) · the track `muted` with `radius-control`; a segment `muted-foreground` at the `label` size, `foreground` on hover; the chosen one on `card` with the card's edge and the raised shadow, so in dark, which has no shadow, its edge still shows it · 32px segments, the control height on touch · inside a Field, named by its label and described by its helper · no disabled or invalid styling: no caller needs one |
 
 ### `display`
 

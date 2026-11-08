@@ -525,6 +525,13 @@
         "trigger": "فتح تنقل لوحة التحكم",
         "page": "صفحة مشتركي المساحة"
       },
+      "segmentedControl": {
+        "title": "التحكم المقسّم",
+        "caption": "اختيار واحد من شرائح متجاورة؛ تنتقل الأسهم بينها وتختار",
+        "label": "طريقة عرض التقويم",
+        "helper": "يغيّر عدد الأيام التي يعرضها التقويم",
+        "options": ["عرض يوم واحد", "عرض أسبوع كامل", "عرض شهر كامل", "عرض سنة كاملة"]
+      },
       "toggleGroup": {
         "title": "شرائح الفلترة",
         "caption": "عدة شرائح مفعّلة معاً، لكل منها علامة؛ وشريحة معطّلة",
@@ -1374,6 +1381,18 @@
         "signOut": "Leave the dashboard",
         "trigger": "Open the dashboard navigation",
         "page": "Space members page"
+      },
+      "segmentedControl": {
+        "title": "Segmented control",
+        "caption": "One choice among joined segments; the arrow keys move and choose",
+        "label": "Calendar display mode",
+        "helper": "Changes how many days the calendar displays",
+        "options": [
+          "One day at a time",
+          "A whole week at once",
+          "A whole month at once",
+          "A whole year at once"
+        ]
       },
       "toggleGroup": {
         "title": "Filter chips",
