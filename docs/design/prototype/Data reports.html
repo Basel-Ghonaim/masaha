@@ -27,7 +27,7 @@
 <script type="text/babel" src="masaha/desk-sheet.jsx"></script>
 <script type="text/babel">
 const { DirectionProvider, Button, Badge, DataTable, EmptyState, ToggleGroup, ToggleGroupItem, Field, Textarea, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, TriangleAlertIcon, ArrowEndIcon, toast } = window.MasahaDesignSystem;
-const FIELDS = () => ({ prices: [tr('الأسعار', 'Prices'), 'Packages.html#prices'], hours: [tr('ساعات العمل', 'Opening hours'), 'Owner space profile.html#hours'], contacts: [tr('التواصل', 'Contacts'), 'Owner space profile.html#contacts'], location: [tr('الموقع', 'Location'), 'Owner space profile.html#location'], amenities: [tr('المرافق', 'Amenities'), 'Owner space profile.html#amenities'], other: [tr('أخرى', 'Other'), 'Owner space profile.html'] });
+const FIELDS = () => ({ prices: [tr('الأسعار', 'Prices'), 'Owner space profile.html#prices'], hours: [tr('ساعات العمل', 'Opening hours'), 'Owner space profile.html#hours'], contacts: [tr('التواصل', 'Contacts'), 'Owner space profile.html#contacts'], location: [tr('الموقع', 'Location'), 'Owner space profile.html#location'], amenities: [tr('المرافق', 'Amenities'), 'Owner space profile.html#amenities'], other: [tr('أخرى', 'Other'), 'Owner space profile.html#about'] });
 const CURRENT = () => ({
   prices: tr('ساعة 3 ₪ · يوم 15 ₪ · أسبوع 90 ₪ · شهر 300 ₪ · شهر طلاب 250 ₪', 'Hour ₪3 · Day ₪15 · Week ₪90 · Month ₪300 · Student month ₪250'),
   hours: tr('السبت – الخميس 08:00–18:00 · الجمعة مغلق', 'Sat – Thu 08:00–18:00 · Fri closed'),
@@ -57,7 +57,7 @@ function ReportSheet({ r, onClose, onDecide }) {
               <div className="flex flex-col gap-1 rounded-lg border border-border p-3"><span className="text-caption text-muted-foreground">{tr('البلاغ', 'The report')}</span><p className="text-body">{r.msg}</p></div>
               <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('القيمة الحالية في صفحة المساحة', 'Current value on the space page')}</span><p className="text-body">{CURRENT()[r.field]}</p></div>
             </div>
-            <Button variant="outline" className="self-start" asChild><a href={(r.field === 'prices' ? 'Packages.html' : 'Owner space profile.html') + '?report=' + r.id + '#report'}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>
+            <Button variant="outline" className="self-start" asChild><a href={'Owner space profile.html?report=' + r.id + '#report'}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>
             <Field label={tr('ردّ إدارة المساحة', 'Reply from the space')} helper={tr('يظهر لصاحب البلاغ. مطلوب لـ«لم يُعتمد»، واختياري لـ«تم التصحيح».', 'Shown to the person who reported it. Required to mark «Not accepted», optional for «Corrected».')} error={replyErr}><Textarea rows={3} value={reply} onChange={(e) => { setReply(e.target.value); setReplyErr(null); }} /></Field>
           </SheetBody>
           <SheetFooter className="flex flex-row gap-2">

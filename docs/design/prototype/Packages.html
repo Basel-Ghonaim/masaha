@@ -30,11 +30,12 @@
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Switch, Field, Input, ToggleGroup, ToggleGroupItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertDescription, EmptyState, InfoIcon, toast } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 const space = M.spaces.find((s) => s.id === 'focus');
-// The space's saved shifts, which the price table and the package sheet offer; on the profile
-// the hours section publishes them, and it is not on this page.
-// ?demo=noshifts: a space with no shifts saved, so the sheet says why it offers none.
-const SHIFTS_NOW = () => (O.demo('noshifts') ? [] : SAMPLE_SHIFTS());
+// The space's saved shifts, which the price table and the package sheet offer: the profile's own
+// (owner-data.js), so both pages agree — none by default, two with ?demo=shifts (Refactor 2, F5).
+const SHIFTS_NOW = () => O.profile.shifts;
 publish('shifts', SHIFTS_NOW());
+// The published prices, as the profile holds them (owner-data.js); read-only here (R1).
+const PUBLISHED = O.profile.prices.filter((r) => r.shift === 'none' || SHIFTS_NOW().some((x) => x.id === r.shift)).map((r, i) => Object.assign({ id: 'r' + i }, r));
 const n = (v) => (v === '' || v == null ? null : Number(v));
 // O8 (OW-009): a package as the model holds it — the validity always, the limits only when set,
 // one billing choice (FIXED · PER_HOUR · PER_DAY) and one amount, above zero (the owner, 2026-10-13).
@@ -43,7 +44,7 @@ const INIT = [
   { id: 'p1', name: tr('10 أيام', '10 days'), validity: '45', totalDays: '10', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', amount: '130', audience: 'all', shift: '', active: true },
   { id: 'p2', name: tr('20 ساعة', '20 hours'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '20', billing: 'fixed', amount: '50', audience: 'all', shift: '', active: true },
   { id: 'p3', name: tr('شهر يوم بعد يوم', 'Month, every other day'), validity: '30', totalDays: '', daysPerWeek: '3', hoursPerDay: '', totalHours: '', billing: 'fixed', amount: '180', audience: 'all', shift: '', active: true },
-  { id: 'p4', name: tr('صباحي للطلاب', 'Student mornings'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '5', totalHours: '', billing: 'day', amount: '10', audience: 'students', shift: 'am', active: false }
+  { id: 'p4', name: tr('صباحي للطلاب', 'Student mornings'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '5', totalHours: '', billing: 'day', amount: '10', audience: 'students', shift: O.demo('shifts') ? 'am' : '', active: false }
 ];
 const $ = DESK.money;
 const priceText = (p) => (p.billing === 'fixed' ? $(p.amount) : p.billing === 'hour' ? tr(`${$(p.amount)} للساعة`, `${$(p.amount)} an hour`) : tr(`${$(p.amount)} لليوم`, `${$(p.amount)} a day`));
@@ -120,7 +121,7 @@ function PackageSheet({ pkg, list, onClose, onSave }) {
                 <ToggleGroupItem value="students">{tr('الطلاب', 'Students')}</ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <Field label={tr('الوردية', 'Shift')} labelEnd={<Optional />}>{shifts.length ? <ToggleGroup type="single" value={v.shift} onValueChange={(s) => set({ shift: s || '' })}>{shifts.map((x) => <ToggleGroupItem key={x.id} value={x.id}>{tr(x.ar, x.en || x.ar)}</ToggleGroupItem>)}</ToggleGroup> : <p className="text-caption text-muted-foreground">{tr('لا ورديات محفوظة بعد. ', 'No shifts are saved yet. ')}<a href="Owner space profile.html#hours">{tr('أضف ورديات في ساعات العمل أولًا', 'Add shifts in the opening hours first')}</a></p>}</Field>
+            <Field label={tr('الوردية', 'Shift')} labelEnd={<Optional />}>{shifts.length ? <ToggleGroup type="single" value={v.shift} onValueChange={(s) => set({ shift: s || '' })}>{shifts.map((x) => <ToggleGroupItem key={x.id} value={x.id}>{tr(x.ar, x.en || x.ar)}</ToggleGroupItem>)}</ToggleGroup> : <p className="text-caption text-muted-foreground">{tr('لا ورديات محفوظة بعد. ', 'No shifts are saved yet. ')}<a href="Owner space profile.html?sheet=shifts#shifts">{tr('أضف وردية في ملف المساحة أولًا', 'Add a shift in the space profile first')}</a></p>}</Field>
             <div className="flex flex-col gap-1 rounded-lg bg-muted p-4" aria-live="polite">
               <span className="text-caption text-muted-foreground">{tr('الملخّص', 'Summary')}</span>
               <span className="text-label">{v.name.trim() || tr('باقة بدون اسم', 'Unnamed package')}</span>
@@ -143,8 +144,21 @@ function PackagesInner({ theme, setTheme }) {
   return (
     <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أسعار الأسبوع والشهر تُختار أيضًا في المكتب عند إنشاء اشتراك.', 'Week and month prices are also chosen at the desk when creating a subscription.')}</p>
-      <OwnerReportNotice at="prices" />
-      <PricesSection space={space} title={tr('الأسعار المعلنة', 'Published prices')} description={tr('تظهر في صفحة المساحة · للعرض فقط · الدفع في المساحة', 'Shown on the space page · Display only · Pay at the space')} meta={{ updated: ago(O.groups.prices), stale: O.groups.prices > O.LIMIT.prices }} hoursHref="Owner space profile.html#hours" />
+      {/* R1 (Refactor 2): the published prices are edited in the space profile only; here they are
+          read, beside the private packages, with the way to their one editor. */}
+      <Card id="prices" className="section-anchor">
+        <CardHeader>
+          <CardTitle><h2>{tr('الأسعار المعلنة', 'Published prices')}</h2></CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{tr('تظهر في صفحة المساحة · للعرض فقط · الدفع في المساحة · آخر تحديث ', 'Shown on the space page · display only · paid at the space · updated ')}{ago(O.groups.prices)}</span>
+            {O.groups.prices > O.LIMIT.prices && <Badge variant="warning">{tr('قد تكون قديمة', 'May be out of date')}</Badge>}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {PUBLISHED.length ? <PfPricesView rows={PUBLISHED} shifts={SHIFTS_NOW()} /> : <p className="text-body-sm text-muted-foreground">{tr('لم تُضف أسعار بعد.', 'No prices yet.')}</p>}
+          <div><Button variant="outline" asChild><a href="Owner space profile.html?sheet=prices#prices">{tr('تعديل الأسعار في ملف المساحة', 'Edit the prices in the space profile')}</a></Button></div>
+        </CardContent>
+      </Card>
       <section className="flex flex-col gap-3" aria-labelledby="priv">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
