@@ -88,5 +88,24 @@ window.OWNER = (function () {
   // P6: enough lines to page — one desk day after another, deterministic.
   const FILL = [[SA, 'payment_recorded', T('زيارة', 'Visit'), T('15 ₪ · نقدًا', '₪15 · cash')], [AH, 'payment_recorded', T('اشتراك شهري', 'Monthly subscription'), T('300 ₪ · تحويل', '₪300 · transfer')], [null, 'auto_checkout', T('زيارة', 'Visit'), T('خروج تلقائي عند الإغلاق', 'Checked out at closing')], [SA, 'customer_created', T('زبون جديد', 'A new customer'), '']];
   for (let i = 0; audit.length < 64; i++) { const d = new Date('2026-09-29T12:00:00'); d.setDate(d.getDate() - 2 - Math.floor(i / 3)); const [a, act, t, x] = FILL[i % FILL.length]; audit.push([d.toISOString().slice(0, 10), String(9 + (i % 8)).padStart(2, '0') + ':' + String((i * 17) % 60).padStart(2, '0'), a, act, t, x]); }
-  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing, announcements, reports, audit };
+  // Refactor 2: the space profile's own sample, beyond the public page's Focus Hub. ?demo= adds
+  // shifts (two, with their prices; the package «صباحي للطلاب» uses the morning one), custom (hours
+  // that differ by day), nohours, photos10, nophotos, empty (all but the name and the location),
+  // outside («موقعي الحالي» past the Strip). A retired amenity, «طابعة», is still held.
+  const week = (a, b, fri) => ({ sat: [a, b], sun: [a, b], mon: [a, b], tue: [a, b], wed: [a, b], thu: [a, b], fri: fri || null });
+  const price = (period, audience, amount, shift) => ({ period, audience, shift: shift || 'none', amount: String(amount) });
+  const profile = {
+    photos: demo('photos10') ? 10 : demo('nophotos') || demo('empty') ? 0 : 6,
+    descAr: 'مساحة عمل هادئة في قلب حي النصر، فيها إنترنت سريع وكهرباء مستقرة طول اليوم، ومكاتب مريحة للطلاب والعاملين عن بعد. عندنا قاعة اجتماعات صغيرة وزاوية للمكالمات ومشروبات ساخنة، ونستقبل الزوار بالساعة واليوم والأسبوع والشهر. أجواء مناسبة للتركيز والدراسة، وفريق موجود دائمًا للمساعدة.',
+    descEn: '',
+    prices: [price('hour', 'all', 3), price('day', 'all', 15), price('month', 'all', 300), price('month', 'students', 250)].concat(demo('shifts') ? [price('day', 'all', 10, 'am'), price('day', 'all', 9, 'pm'), price('month', 'students', 150, 'am')] : []),
+    hours: demo('nohours') || demo('empty') ? null : demo('custom') ? Object.assign(week('08:00', '18:00', ['13:00', '18:00']), { thu: ['08:00', '14:00'] }) : week('08:00', '18:00'),
+    shifts: demo('shifts') ? [{ id: 'am', ar: 'الصباحية', en: 'Morning', from: '08:00', to: '13:00' }, { id: 'pm', ar: 'المسائية', en: 'Evening', from: '13:00', to: '18:00' }] : [],
+    pkgShifts: ['am'],
+    retired: [{ id: 'printer', name: T('طابعة', 'Printer'), icon: 'presentation' }],
+    amenities: ['internet', 'power', 'solar', 'drinks', 'meeting', 'printer'],
+    own: [{ ar: 'زاوية مكالمات', en: 'Call corner' }],
+    other: { type: 'other', label: T('ديسكورد', 'Discord'), value: 'discord.gg/focushub' }
+  };
+  return { profile, capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing, announcements, reports, audit };
 })();

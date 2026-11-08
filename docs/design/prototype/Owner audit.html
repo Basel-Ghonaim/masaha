@@ -40,7 +40,7 @@ function targetHref(r) {
   if (r.action === 'announcement_published') return 'Announcements.html';
   if (r.action === 'subscriptions_extended') return 'Announcements.html?tab=ended';
   if (r.action === 'package_paused') return 'Packages.html';
-  if (r.action === 'group_saved' || r.action === 'group_confirmed') return r.target === tr('الأسعار', 'Prices') ? 'Packages.html#prices' : 'Owner space profile.html';
+  if (r.action === 'group_saved' || r.action === 'group_confirmed') return r.target === tr('الأسعار', 'Prices') ? 'Owner space profile.html#prices' : 'Owner space profile.html';
   if (r.action === 'report_dismissed') return 'Data reports.html?status=rejected';
   if (r.action === 'settings_changed') return 'Owner settings.html';
   if (r.action === 'photo_removed') return 'Owner space profile.html#photos';

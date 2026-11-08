@@ -27,7 +27,8 @@
 <script type="text/babel">
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, StatCard, CircleCheckIcon } = window.MasahaDesignSystem;
 const GROUP_NAME = () => ({ profile: tr('المساحة', 'The space'), hours: tr('ساعات العمل', 'Opening hours'), prices: tr('الأسعار', 'Prices'), amenities: tr('المرافق', 'Amenities'), contacts: tr('التواصل', 'Contacts') });
-const groupHref = (g) => (g === 'prices' ? 'Packages.html#prices' : 'Owner space profile.html#' + g);
+// Refactor 2: every group is edited in the space profile (R1); the profile group's first section is «عن المساحة».
+const groupHref = (g) => 'Owner space profile.html#' + (g === 'profile' ? 'about' : g);
 // O3 (amended 2026-10-12): what needs the owner, as counts and links — no amounts, since the overview
 // is often open at the desk in view of customers and staff. Confirm lives beside what it confirms.
 function queueRows() {

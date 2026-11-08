@@ -25,50 +25,32 @@
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel" src="masaha/profile-a.jsx"></script>
 <script type="text/babel" src="masaha/profile-b.jsx"></script>
+<script type="text/babel" src="masaha/profile-c.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, Alert, AlertDescription, Card, CardHeader, CardTitle, CardDescription, CardAction, ArrowEndIcon } = window.MasahaDesignSystem;
+const { DirectionProvider } = window.MasahaDesignSystem;
 const M = window.MASAHA;
-const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')]];
-// A1: each group's date from the sample; a group never saved is `missing` (A2).
-const groupMeta = (g) => (O.missing.includes(g) ? { missing: true } : { updated: ago(O.groups[g]), stale: O.groups[g] > (g === 'prices' ? O.LIMIT.prices : O.LIMIT.other) });
+// Refactor 2: the owner's space profile — read first, each section edited in its own Sheet, the
+// photos in place (G1, P2). The sample is Focus Hub; `?demo=` (owner-data.js) varies it.
+const space = M.spaces.find((s) => s.id === 'focus');
+const P = O.profile;
+const empty = O.demo('empty');
+const groups = Object.assign({}, O.groups);
+O.missing.forEach((g) => { groups[g] = null; });
+if (empty) ['prices', 'amenities', 'contacts'].forEach((g) => { groups[g] = null; });
+const initial = pfSample({
+  space, groups, limit: O.LIMIT,
+  extra: { photos: P.photos, prices: P.prices.map((r, i) => Object.assign({ id: 'r' + i }, r)), hours: P.hours, shifts: P.shifts, amenities: P.amenities, own: P.own, descAr: empty ? '' : P.descAr, descEn: P.descEn, contacts: space.contacts.concat([P.other]) }
+});
+// G3: a visitor's open report shows inside its section (O12, A8), from «تعديل الحقل».
+const AT = { hours: 'hours', prices: 'prices', amenities: 'amenities', contacts: 'contacts', location: 'location', other: 'about' };
+const report = O.reports.find((x) => x.id === pageParams.get('report') && x.status === 'new');
+const notice = (id) => (report && AT[report.field] === id ? <OwnerReportNotice at={reportSection(report)} /> : null);
 
 function ProfileScreen() {
   const [theme, setTheme] = useTheme();
-  const space = M.spaces.find((s) => s.id === 'focus');
-  const [dirty, setDirty] = React.useState(0);
-  React.useEffect(() => { const h = () => setDirty(dirtySet.size); window.addEventListener('masaha-dirty', h); return () => window.removeEventListener('masaha-dirty', h); }, []);
   return (
     <OwnerShell current="profile" title={tr('ملف المساحة', 'Space profile')} state="open" theme={theme} setTheme={setTheme}>
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
-        <SectionNav sections={SECTIONS()} />
-        <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
-          <p className="text-body-sm text-muted-foreground">{tr('كل قسم يُحفظ وحده، ويظهر للزوار فور الحفظ.', 'Each section saves on its own and shows to visitors as soon as it’s saved.')} <a href="Space details.html?id=focus" target="_blank" rel="noopener">{tr('عرض الصفحة العامة', 'View public page')}</a></p>
-          {dirty > 0 && <Alert variant="warning"><AlertDescription><>{tr('لديك تغييرات غير محفوظة في ', 'You have unsaved changes in ')}<Counted n={dirty} ar={F_SECTIONS_IN.ar} en={F_SECTIONS_IN.en} />{tr('. ستُفقد إذا غادرت الصفحة.', '. They’ll be lost if you leave the page.')}</>}</AlertDescription></Alert>}
-          <MissingChecklist names={Object.fromEntries(SECTIONS())} missing={O.missing} />
-          <OwnerReportNotice at="profile" />
-          <SpaceSection space={space} meta={groupMeta('profile')} />
-          <OwnerReportNotice at="hours" />
-          <HoursSection meta={groupMeta('hours')} />
-          {/* O1/O6: the prices group lives on Packages & prices, where its table is saved and confirmed;
-              here it is one row, with its date, so the profile still lists all five groups. */}
-          <Card id="prices" className="section-anchor">
-            <CardHeader>
-              <SectionTitle>{tr('الأسعار', 'Prices')}</SectionTitle>
-              <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span>{tr('تُعدَّل وتُؤكَّد في الباقات والأسعار ·', 'Edited and confirmed in Packages & prices ·')}</span>
-                {groupMeta('prices').missing ? <span>{tr('لم تُضف بعد', 'Not added yet')}</span> : <span>{tr('آخر تحديث', 'Updated')} {groupMeta('prices').updated}</span>}
-                {groupMeta('prices').stale && <Badge variant="warning">{tr('قديمة', 'Out of date')}</Badge>}
-              </CardDescription>
-              <CardAction><Button variant="outline" size="sm" asChild><a href="Packages.html#prices">{tr('الباقات والأسعار', 'Packages & prices')}<ArrowEndIcon /></a></Button></CardAction>
-            </CardHeader>
-          </Card>
-          <OwnerReportNotice at="amenities" />
-          <AmenitiesSection space={space} meta={groupMeta('amenities')} />
-          <OwnerReportNotice at="contacts" />
-          <ContactsSection space={space} meta={groupMeta('contacts')} />
-          <PhotosSection />
-        </div>
-      </div>
+      <SpaceProfile initial={initial} publicHref="Space details.html?id=focus" closureHref="Announcements.html?sheet=new&type=closure" notice={notice} retired={P.retired} pkgShifts={P.pkgShifts} />
     </OwnerShell>
   );
 }

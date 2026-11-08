@@ -56,11 +56,9 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
    between 768 and 1023, where the rail leaves about 640 px. The bundle has no `lg:table-cell`
    (below 768 DataTable draws cards, so the original never needed it). */
 @media(min-width:1024px){.lg-col{display:table-cell}}
-/* A1/AD-011: the editor's sections land below the bars; below lg the chips row is a second bar.
-   It is sticky under the top bar, whose height the page sets on it (61 px on a phone). */
+/* A1/AD-011: a section lands below the sticky top bar (61 px on a phone). Refactor 2 removed the
+   editor's chips row, the second bar below 1024, so one offset serves every width. */
 .section-anchor{scroll-margin-top:5rem}
-@media(max-width:1023px){.section-anchor{scroll-margin-top:8.5rem}}
-.section-chips{position:sticky;top:3.5rem;z-index:5;background:var(--background);padding-block:.5rem;scrollbar-width:thin}
 /* AD-007: a day's name and its switch keep one width beside the times from 768 (`md:w-44` is not in the bundle). */
 @media(min-width:768px){.day-name{flex:0 0 11rem}}
 /* AD-008: a price row's controls line up at their tops when one carries an error or a second line. */
@@ -116,3 +114,70 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 /* Refactor 1: between lg and xl the directory's filter column is 4 of 12, so the price's five
    subscriptions fit on one line; from xl it is 3 again. */
 @media(min-width:1024px) and (max-width:1279px){.dir-filters{grid-column:span 4/span 4}.dir-results{grid-column:span 8/span 8}}
+/* Refactor 2 — the space profile (2026-11-08). The header (H2, M2): on a phone a 64 px cover beside
+   the name, then the two buttons and the completeness bar across the card's full width; from 768
+   the cover spans the rows beside them; from 1280 the buttons sit on the name's row. */
+.pf-hdr{display:grid;grid-template-columns:4rem minmax(0,1fr);grid-template-areas:"cover name" "acts acts" "bar bar";gap:1rem;padding-block:var(--card-padding)}
+.pf-hdr-cover{grid-area:cover;height:4rem}.pf-hdr-name{grid-area:name;align-self:center}.pf-hdr-acts{grid-area:acts}.pf-hdr-bar{grid-area:bar}
+.pf-hdr-add{line-height:1.2}
+@media(min-width:768px){.pf-hdr{grid-template-columns:11rem minmax(0,1fr);grid-template-areas:"cover name" "cover acts" "bar bar";column-gap:1.5rem}.pf-hdr-cover{height:auto;min-height:7.5rem}.pf-hdr-name{align-self:start}}
+@media(min-width:1280px){.pf-hdr{grid-template-columns:12rem minmax(0,1fr) auto;grid-template-areas:"cover name acts" "cover bar bar"}}
+.pf-meter>span{background:var(--success)}
+/* An empty section's frame (G3): a dashed edge, which the bundle has no class for. */
+.pf-empty{border:1px dashed var(--border)}
+/* The photos (P1, M1): «+N» over the last tile; the phone's count on the cover; one row of 96×72
+   thumbnails scrolling sideways; the edit state's drop zone, tiles and their delete button. */
+.pf-grid2{grid-template-rows:repeat(2,minmax(0,1fr))}
+.pf-more{position:absolute;inset:0;background:color-mix(in oklch,var(--foreground) 55%,transparent);color:var(--background)}
+.pf-count{position:absolute;bottom:.5rem;inset-inline-end:.5rem}
+.pf-strip{scroll-snap-type:x mandatory;padding-bottom:2px}
+.pf-thumb{position:relative;flex:0 0 6rem;height:4.5rem;scroll-snap-align:start}
+.pf-drop{border:1px dashed var(--input)}
+.pf-tile{cursor:grab;border:1px solid var(--border)}
+.pf-tile:focus-visible,.pf-handle:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.pf-del{position:absolute;top:.5rem;inset-inline-end:.5rem}
+/* Reordering (P4, C2): the item dragged over, and the one lifted from the keyboard. */
+[data-sortable][data-over]{box-shadow:0 0 0 2px var(--primary)}
+[data-sortable][data-lifted]{box-shadow:0 0 0 3px var(--primary);transform:scale(1.02)}
+@media(prefers-reduced-motion:reduce){[data-sortable][data-lifted]{transform:none}}
+.pf-handle{width:2.25rem;height:var(--control-height);cursor:grab;align-self:end;background:transparent;border:0}
+/* A long description shows four lines, then «عرض المزيد» (B1); the bundle stops at three. */
+.pf-clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.pf-map-lg{height:18rem}@media(min-width:768px){.pf-map-lg{height:24rem}}
+.pf-indent{padding-inline-start:2.25rem}
+.pf-check:hover{background:var(--muted)}
+.pf-tile-link{color:var(--foreground)}.pf-tile-link:hover{background:var(--accent);opacity:1}
+/* The Sheets' rows (R6, W5, S3, A2, C2): stacked blocks on a phone; one line from 768, under one
+   header line for the prices. The remove button sits level with the fields. */
+.pf-price-row{display:grid;gap:.75rem;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.pf-row-block{padding:.75rem;border:1px solid var(--border);border-radius:var(--radius-lg)}
+.pf-price-row .pf-cell-shift{grid-column:1/-1}
+.pf-price-row .pf-remove{grid-column:2;grid-row:auto}
+.pf-shift-row,.pf-own-row{display:grid;gap:.75rem;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.pf-shift-row>:first-child,.pf-own-row>:first-child,.pf-own-row>:nth-child(2){grid-column:1/-1}
+.pf-shift-row>.pf-remove,.pf-own-row>.pf-remove,.pf-row-note{grid-column:1/-1}
+@media(min-width:768px){
+  .pf-price-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 2.5rem;gap:.5rem}
+  .pf-price-row.pf-with-shift{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) 2.5rem}
+  .pf-row-block{padding:0;border:0}
+  .pf-price-row .pf-cell-shift,.pf-price-row .pf-remove{grid-column:auto}
+  .pf-price-row .pf-remove{align-self:start;padding-top:.375rem}
+  .pf-shift-row{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 2.5rem}
+  .pf-shift-row>:first-child{grid-column:auto}.pf-shift-row>.pf-remove{grid-column:auto;padding-top:1.75rem}
+  .pf-own-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 2.5rem}
+  .pf-own-row>:first-child,.pf-own-row>:nth-child(2){grid-column:auto}.pf-own-row>.pf-remove{grid-column:auto;padding-top:1.75rem}
+}
+.pf-dot{display:inline-block}
+.pf-day-row{display:flex;flex-direction:column;gap:.75rem;margin:0;min-width:0}
+.pf-price-head{align-items:end}
+.pf-contact-row{display:grid;gap:.75rem;grid-template-columns:2.25rem minmax(0,1fr) 2.5rem;align-items:end}
+.pf-contact-row .pf-handle{grid-area:1/1}.pf-contact-row .pf-cell-type{grid-area:1/2}.pf-contact-row>.pf-remove{grid-area:1/3}
+.pf-contact-row .pf-cell-label{grid-area:2/1/3/4}.pf-contact-row .pf-cell-value{grid-area:3/1/4/4}
+.pf-contact-row:not(.pf-other) .pf-cell-value{grid-area:2/1/3/4}
+@media(min-width:768px){
+  .pf-contact-row{grid-template-columns:2.25rem 11rem minmax(0,1fr) 2.5rem;align-items:start}
+  .pf-contact-row.pf-other{grid-template-columns:2.25rem 11rem 9rem minmax(0,1fr) 2.5rem}
+  .pf-contact-row .pf-handle,.pf-contact-row>.pf-remove{margin-top:1.75rem}
+  .pf-contact-row:not(.pf-other) .pf-cell-value{grid-area:1/3}.pf-contact-row:not(.pf-other)>.pf-remove{grid-area:1/4}
+  .pf-other .pf-cell-label{grid-area:1/3}.pf-other .pf-cell-value{grid-area:1/4}.pf-other>.pf-remove{grid-area:1/5}
+}

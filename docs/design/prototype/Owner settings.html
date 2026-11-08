@@ -84,7 +84,7 @@ function OSInner({ theme, setTheme }) {
             <Input inputMode="numeric" dir="ltr" className="w-20" value={att.v.maxStay} onChange={(e) => att.set({ maxStay: e.target.value.replace(/[^\d]/g, '') })} />
           </Field>
         </SettingsCard>
-        <SettingsCard title={tr('تسعير الزيارات', 'Visit pricing')} description={<>{tr('سعر الساعة', 'Hour price')} <Money n={DESK.PRICES.hour || 0} /> · {tr('سعر اليوم', 'day price')} <Money n={DESK.PRICES.day || 0} /> — <a href="Packages.html#prices">{tr('الباقات والأسعار', 'Packages & prices')}</a></>} card={pr} onSave={savePr} actionKey="save-pricing">
+        <SettingsCard title={tr('تسعير الزيارات', 'Visit pricing')} description={<>{tr('سعر الساعة', 'Hour price')} <Money n={DESK.PRICES.hour || 0} /> · {tr('سعر اليوم', 'day price')} <Money n={DESK.PRICES.day || 0} /> — <a href="Owner space profile.html?sheet=prices#prices">{tr('الأسعار المعلنة', 'Published prices')}</a></>} card={pr} onSave={savePr} actionKey="save-pricing">
           <Field label={tr('التقريب', 'Rounding')} error={prErr}>
             <RadioGroup value={pr.v.rounding} onValueChange={(r) => { pr.set({ rounding: r }); setPrErr(); }}>
               <div className="flex flex-col gap-1">

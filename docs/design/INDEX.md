@@ -16,11 +16,10 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?state=loading` | every list page | the list's skeleton rows |
 | `?state=ratelimit` | the settings pages | the «محاولات كثيرة» warning, which any endpoint may answer |
 | `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save`, `add` on `Admin space add.html` (its failure above the submit), and `upload` on the editor's photos (the first upload fails as a lost connection, with «إعادة المحاولة» on its tile) |
-| `Admin space edit.html?id=new` | the admin's editor | the space «إضافة مساحة» has just created, its profile as typed there (a sample one when opened directly), its four other groups missing under «ما زال ناقصًا» |
-| `Admin space edit.html?id=white` · `?id=palm` | the same | a space with one group never saved (the hours, the prices): «ما زال ناقصًا» and «لم تُضف بعد» |
-| `Admin space edit.html?demo=shifterror` | the admin's editor | an evening shift past every open day's close: its error on the shift |
-| `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
-| `Admin space edit.html?demo=ownlimit` | the same | 20 own amenities («مرافق إضافية»), the contract's limit: «إضافة مرفق إضافي» disabled with its reason |
+| `Admin space edit.html?id=new` | the admin's editor | the space «إضافة مساحة» has just created, its profile as typed there (a sample one when opened directly), its four other groups missing: their sections empty, each with its action, and listed in the header's completeness line (Refactor 2) |
+| `Admin space edit.html?id=white` · `?id=palm` | the same | a space with one group never saved (the hours, the prices): its section empty, «لم تُضف بعد» in the header (Refactor 2) |
+| `Admin space edit.html?demo=pricelimit&sheet=prices` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
+| `Admin space edit.html?demo=ownlimit&sheet=amenities` | the same | 20 own amenities («مرافق أخرى»), the contract's limit: «إضافة مرفق آخر» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 | `Admin spaces.html?status=verified` · `unverified` · `hidden` · `deleted` | the admin's spaces list | the state filter set: verified and unverified leave hidden spaces out; `deleted` lists the soft-deleted spaces, muted, each with «استرجاع» (A3) |
 | `Admin spaces.html?unlink=<space>&owner=<id>` | the admin's spaces list | the unlink confirmation for that owner of that space, the space's first owner when none is named (A4) |
@@ -76,18 +75,18 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Parameter | Where | What it shows |
 |---|---|---|
 | `?drawer=open` | the owner's and reception's pages, on a phone | the drawer, open, with the account at its head (DI-10) |
-| `?demo=missing` | `Owner space profile.html`, `Owner overview.html` | the amenities never saved: A2's checklist on the profile, «لم تُضف بعد» in the overview's queue |
-| `Packages.html#prices` | Packages & prices | the published prices' table, where every «الأسعار» link lands (O6) |
+| `?demo=missing` | `Owner space profile.html`, `Owner overview.html` | the amenities never saved: their empty section and the header's line on the profile (Refactor 2), «لم تُضف بعد» in the overview's queue |
+| `Packages.html#prices` | Packages & prices | the published prices, read-only, with «تعديل الأسعار في ملف المساحة» (Refactor 2, R1; every «الأسعار» link now lands on `Owner space profile.html#prices`) |
 | `Owner settings.html#attendance` | Settings | «الحضور والحالة المباشرة»: capacity and the check-out rules (O2) |
 | `?fail=save-attendance` · `save-pricing` · `save-message` | `Owner settings.html` | one card's save failing, in that card only |
-| `Packages.html?demo=noshifts` | the package sheet | no shift saved: the reason and the link to the hours |
+| `Packages.html` · `?demo=shifts` | the package sheet | the profile's shifts (Refactor 2): none by default — the reason and the link to the profile's «الورديات» — and two with `?demo=shifts`, the package «صباحي للطلاب» on the morning one. `?demo=noshifts` reads as the default |
 | `?fail=save` | the package sheet | the save failing inside the sheet |
 | `Announcements.html?delete=a1` | announcements | deleting a scheduled announcement: the confirmation |
 | `?fail=end` | announcements | «إنهاء الآن» failing: the toast with «إعادة المحاولة» |
 | `Announcements.html?tab=ended&extend=a6` | announcements (owner) | the closure extension's confirmation for a closure that has ended (O11) |
 | `?fail=extend` | the same | the extension failing |
 | `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
-| `Owner space profile.html?report=d1#report` · `Packages.html?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, above its section, with «تم التصحيح» (O12, A8) |
+| `Owner space profile.html?report=d1#report` · `?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, inside its section, with «تم التصحيح» (O12, A8, Refactor 2's G3) |
 | `Finance.html?month=2026-08` | Finance | the month chosen (OW-015) |
 | `Owner overview.html?demo=nocapacity` · `?demo=clear` | the overview | no capacity set (the queue's row, «بلا حالة مباشرة»), or nothing to do («كل شيء على ما يرام») |
 | `Owner audit.html` | the owner's audit log | the space's log (O13); `?state=loading` its skeleton |
@@ -109,6 +108,18 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Customers.html?edit=<id>` · `Customer file.html?edit=1` | the customer | «تعديل البيانات»; `&taken=1` its PHONE_TAKEN on the mobile |
 | `Customer file.html?void=1` · `Payments.html?void=1` | owner | the void's `AlertDialog` for the newest payment not voided (the void is in the row's «⋯») |
 | `Payments.html?month=2026-08` | Payments | one month, as Finance's «عرض الكل» opens it (DI-36) |
+
+### Refactor 2 — the space profile
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?sheet=prices` · `hours` · `shifts` · `amenities` · `about` · `location` · `contacts` | `Owner space profile.html`, `Admin space edit.html` | that section's edit Sheet, open |
+| `?photos=edit` | the same | «الصور» in its edit state (no Sheet, P2) |
+| `?demo=shifts` · `custom` · `nohours` | `Owner space profile.html` | two shifts with their prices (the morning one used by a package, so it cannot be removed); hours that differ by day (the hours Sheet opens customised); no hours |
+| `?demo=photos10` · `nophotos` | the same | ten photos (the limit line); none (the header's letter tile, «لم تُضف صور بعد») |
+| `?demo=empty` · `clear` | the same | every section empty but the name and the location; every group fresh («الملف مكتمل ومحدّث» with `photos10` or the default photos) |
+| `?demo=outside` | the location Sheet | «استخدم موقعي الحالي» lands past the Strip: «الموقع خارج قطاع غزة» |
+| `Admin space edit.html?id=golden` · `palm` · `new` · `focus` | the admin's editor | unverified and stale; hidden with the prices never saved; a new space; verified, the same view read-only |
 
 ## 01 · Flow
 
@@ -621,8 +632,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Packages & prices — phone 390 | `Packages.html` | 390×844 | [34-packages-prices-owner/02-packages-prices-phone-390.webp](screens/34-packages-prices-owner/02-packages-prices-phone-390.webp) |
 | New package sheet · live summary — desktop 1440 | `Packages.html?sheet=new` | 1440×1000 | [34-packages-prices-owner/03-new-package-sheet-live-summary-desktop-1440.webp](screens/34-packages-prices-owner/03-new-package-sheet-live-summary-desktop-1440.webp) |
 | New package sheet · live summary — phone 390 | `Packages.html?sheet=new` | 390×844 | [34-packages-prices-owner/04-new-package-sheet-live-summary-phone-390.webp](screens/34-packages-prices-owner/04-new-package-sheet-live-summary-phone-390.webp) |
-| Edit usage-based package — desktop 1440 | `Packages.html?edit=p4` | 1440×1000 | [34-packages-prices-owner/05-edit-usage-based-package-desktop-1440.webp](screens/34-packages-prices-owner/05-edit-usage-based-package-desktop-1440.webp) |
-| Edit usage-based package — phone 390 | `Packages.html?edit=p4` | 390×844 | [34-packages-prices-owner/06-edit-usage-based-package-phone-390.webp](screens/34-packages-prices-owner/06-edit-usage-based-package-phone-390.webp) |
+| Edit usage-based package — desktop 1440 | `Packages.html?edit=p4&demo=shifts` | 1440×1000 | [34-packages-prices-owner/05-edit-usage-based-package-desktop-1440.webp](screens/34-packages-prices-owner/05-edit-usage-based-package-desktop-1440.webp) |
+| Edit usage-based package — phone 390 | `Packages.html?edit=p4&demo=shifts` | 390×844 | [34-packages-prices-owner/06-edit-usage-based-package-phone-390.webp](screens/34-packages-prices-owner/06-edit-usage-based-package-phone-390.webp) |
 | Space profile · link to prices — desktop 1440 | `Owner space profile.html#prices` | 1440×1000 | [34-packages-prices-owner/07-space-profile-link-to-prices-desktop-1440.webp](screens/34-packages-prices-owner/07-space-profile-link-to-prices-desktop-1440.webp) |
 | Space profile · link to prices — phone 390 | `Owner space profile.html#prices` | 390×844 | [34-packages-prices-owner/08-space-profile-link-to-prices-phone-390.webp](screens/34-packages-prices-owner/08-space-profile-link-to-prices-phone-390.webp) |
 
@@ -982,3 +993,36 @@ Added by the directory's filters round (`CHANGES.md` › *Refactor 1*). No scree
 | «أخرى» · verified, student prices, filters sheet — phone 390 | `Directory.html?loc=none&other=students,verified&sheet=filters` | 390×844 | — |
 | A space without hours · its card (ZM Hub) — desktop 1440 | `Directory.html?loc=none&q=ZM` | 1440×1000 | — |
 | A space without hours · its page — phone 390 | `Space details.html?id=zm&loc=none` | 390×844 | — |
+
+## 58 · Refactor 2 — the space profile
+
+Added by the space profile round (`CHANGES.md` › *Refactor 2*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Space profile · view first, two groups stale — desktop 1440 | `Owner space profile.html` | 1440×1000 | — |
+| Space profile · view first — phone 390 | `Owner space profile.html` | 390×844 | — |
+| Photos · the edit state, drag and keyboard — phone 390 | `Owner space profile.html?photos=edit` | 390×844 | — |
+| Photos · ten, the limit line — phone 390 | `Owner space profile.html?photos=edit&demo=photos10` | 390×844 | — |
+| Header · no photos, the letter tile; empty sections — phone 390 | `Owner space profile.html?demo=empty` | 390×844 | — |
+| Hours Sheet · saved by day, opens customised — phone 390 | `Owner space profile.html?sheet=hours&demo=custom` | 390×844 | — |
+| Prices Sheet · rows with shifts — desktop 1440 | `Owner space profile.html?sheet=prices&demo=shifts` | 1440×1000 | — |
+| Prices Sheet · no shifts, «أضف وردية» — phone 390 | `Owner space profile.html?sheet=prices` | 390×844 | — |
+| Hours Sheet · the simple view — phone 390 | `Owner space profile.html?sheet=hours` | 390×844 | — |
+| Shifts Sheet · a shift in use — phone 390 | `Owner space profile.html?sheet=shifts&demo=shifts` | 390×844 | — |
+| Amenities Sheet · a retired amenity held — phone 390 | `Owner space profile.html?sheet=amenities` | 390×844 | — |
+| Contacts Sheet · «وسيلة أخرى», the handles — phone 390 | `Owner space profile.html?sheet=contacts` | 390×844 | — |
+| Photos · the edit state — desktop 1440 | `Owner space profile.html?photos=edit` | 1440×1000 | — |
+| About Sheet · the counters, «مطلوب» — phone 390 | `Owner space profile.html?sheet=about` | 390×844 | — |
+| Location Sheet · the area list, «موقعي الحالي» — phone 390 | `Owner space profile.html?sheet=location` | 390×844 | — |
+| Hours · none; shifts · two — phone 390 | `Owner space profile.html?demo=nohours,shifts` | 390×844 | — |
+| A report inside its section — phone 390 | `Owner space profile.html?report=d1#report` | 390×844 | — |
+| Packages & prices · prices read-only — phone 390 | `Packages.html` | 390×844 | — |
+| Space profile · complete and fresh — desktop 1440 | `Owner space profile.html?demo=clear` | 1440×1000 | — |
+| Admin · unverified, the same design — phone 390 | `Admin space edit.html?id=golden` | 390×844 | — |
+| Admin · hidden, prices never saved — phone 390 | `Admin space edit.html?id=palm` | 390×844 | — |
+| Admin · a new space, four groups empty — phone 390 | `Admin space edit.html?id=new` | 390×844 | — |
+| Admin · verified, read-only — phone 390 | `Admin space edit.html?id=focus` | 390×844 | — |
+| Admin · hide and delete in the top bar — tablet 768 | `Admin space edit.html?id=golden` | 768×1024 | — |
+| Admin · unverified — desktop 1440 | `Admin space edit.html?id=golden` | 1440×1000 | — |
+| Packages & prices · prices read-only — desktop 1440 | `Packages.html` | 1440×1000 | — |
