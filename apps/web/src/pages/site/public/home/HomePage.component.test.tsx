@@ -9,6 +9,7 @@ import { fakeGeolocation } from '../../../../test/fakeGeolocation';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { setSessionHint } from '../../../../test/sessionHint';
 import { startPreferences } from '../../../../test/startPreferences';
+import { warm } from '../../../../test/warmLazy';
 import { siteRoutes } from '../../routes';
 
 /** An empty page of the list, as the server gives it. */
@@ -53,13 +54,15 @@ async function renderHome() {
 }
 
 // The shell and the pages load lazily; their first transform is the file's start-up, not a test's.
-beforeAll(async () => {
-  await Promise.all([
-    import('../../shell/SiteLayout'),
-    import('./HomePage'),
-    import('../directory/DirectoryPage'),
-  ]);
-});
+beforeAll(
+  () =>
+    warm(
+      () => import('../../shell/SiteLayout'),
+      () => import('./HomePage'),
+      () => import('../directory/DirectoryPage'),
+    ),
+  60_000,
+);
 
 beforeEach(async () => {
   startPreferences('en');
@@ -95,10 +98,13 @@ describe('Home’s near me', () => {
         '/spaces?view=map',
       );
     });
-    // The map's view, picking: its search shown, near me's button hidden until the point is set.
+    // The address moves before React draws the Directory in Home's place, and Home's hero has a
+    // search of the same name: wait for what only the Directory draws, then expect its one search.
     expect(
-      await screen.findByRole('searchbox', { name: 'Search for a space' }),
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search for a space' })).toBeInTheDocument();
+    // The map's view, picking: near me's button hidden until the point is set.
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Nearest to me' })).not.toBeInTheDocument();
     });

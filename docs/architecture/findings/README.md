@@ -159,3 +159,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [204. A CSV built in the browser keeps a value that reads as a formula](204-a-csv-built-in-the-browser-keeps-a-value-that-reads-as-a-formula.md)
 - [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
 - [213. A cron every 5 minutes keeps Neon's free database awake all month](213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)
+- [214. The Home test's wait finds Home's own search box](214-the-home-tests-wait-finds-homes-own-search-box.md)
