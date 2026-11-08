@@ -23,6 +23,17 @@ const STATE_WHERE = {
   ENDED: (now: Date) => ({ endsAt: { lte: now } }),
 } satisfies Record<AnnouncementState, (now: Date) => Prisma.AnnouncementWhereInput>;
 
+/**
+ * A closure in force at `now`: a `CLOSURE` not deleted, started, and not yet ended
+ * (docs/architecture/data-model.md › Live status). The one rule both closure reads apply.
+ */
+const closureInForce = (now: Date) =>
+  ({
+    type: 'CLOSURE',
+    deletedAt: null,
+    ...STATE_WHERE.RUNNING(now),
+  }) satisfies Prisma.AnnouncementWhereInput;
+
 /** An announcement as its space's staff see it; `deletedAt` set once deleted. */
 export interface AnnouncementRow {
   id: number;
@@ -56,17 +67,22 @@ export function createAnnouncementsRepository() {
     async closedAt(spaceIds: readonly number[], now: Date, tx?: Tx): Promise<Set<number>> {
       if (spaceIds.length === 0) return new Set();
       const rows = await (tx ?? prisma).announcement.findMany({
-        where: {
-          spaceId: { in: [...spaceIds] },
-          type: 'CLOSURE',
-          deletedAt: null,
-          startsAt: { lte: now },
-          OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-        },
+        where: { spaceId: { in: [...spaceIds] }, ...closureInForce(now) },
         select: { spaceId: true },
         distinct: ['spaceId'],
       });
       return new Set(rows.map(({ spaceId }) => spaceId));
+    },
+
+    /** Every space an active closure covers at `now`, by the same rule as `closedAt`. */
+    async closedSpaceIdsAt(now: Date): Promise<number[]> {
+      const rows = await prisma.announcement.findMany({
+        where: closureInForce(now),
+        select: { spaceId: true },
+        distinct: ['spaceId'],
+        orderBy: { spaceId: 'asc' },
+      });
+      return rows.map(({ spaceId }) => spaceId);
     },
 
     /** The space's announcement posted with this idempotency key, deleted or not, or `null`. */

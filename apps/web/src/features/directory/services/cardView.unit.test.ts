@@ -13,6 +13,7 @@ const SPACE: DirectorySpace = {
   days: null,
   cover: '/api/v1/files/spaces/x/card.webp',
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 };
 
 const NOW = new Date('2026-10-21T12:00:00Z');
@@ -35,6 +36,34 @@ describe('cardViewOf', () => {
     expect(none.noStatus).toBe('لا تتوفر حالة مباشرة');
   });
 
+  it('shows an unverified space’s state by its hours, always neutral, never its live status’s colours', () => {
+    const unverified = { ...SPACE, isVerified: false, liveStatus: null };
+    expect(card({ ...unverified, hoursStatus: 'OPEN' }).status).toEqual({
+      label: 'مفتوحة الآن',
+      variant: 'neutral',
+    });
+    expect(card({ ...unverified, hoursStatus: 'CLOSED' }).status).toEqual({
+      label: 'مغلقة الآن',
+      variant: 'neutral',
+    });
+    expect(
+      cardViewOf(
+        { ...unverified, hoursStatus: 'OPEN' },
+        { english: true, now: NOW, copy: CATALOGUES.en, byDistance: false },
+      ).status,
+    ).toEqual({ label: 'Open now', variant: 'neutral' });
+    // Without hours: none, in words.
+    expect(card({ ...unverified, hoursStatus: null }).status).toBeNull();
+  });
+
+  it('keeps a verified space’s live status, whatever its state by its hours says', () => {
+    expect(card({ ...SPACE, liveStatus: 'FULL', hoursStatus: 'OPEN' }).status).toEqual({
+      label: 'ممتلئ',
+      variant: 'warning',
+    });
+    expect(card({ ...SPACE, liveStatus: null, hoursStatus: 'OPEN' }).status).toBeNull();
+  });
+
   it('names the space in the interface’s language, its mark the shown name’s first letter, and says whether it is verified', () => {
     expect(card(SPACE)).toMatchObject({
       key: 7,
@@ -44,7 +73,7 @@ describe('cardViewOf', () => {
       areaId: 2,
       cover: '/api/v1/files/spaces/x/card.webp',
       verified: 'موثّقة',
-      today: null,
+      today: 'ساعات العمل غير متوفرة',
       distance: null,
     });
     expect(card({ ...SPACE, distanceMeters: 700 }).distance).toBeNull();

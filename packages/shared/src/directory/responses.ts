@@ -1,6 +1,6 @@
 import type { AnnouncementType } from '../announcements/index.ts';
 import type { AmenityIconKey } from '../lookups/index.ts';
-import type { LiveStatus } from '../occupancy/index.ts';
+import type { HoursStatus, LiveStatus } from '../occupancy/index.ts';
 import type {
   Contact,
   FactGroup,
@@ -13,7 +13,7 @@ import type {
 
 // The public directory's answers (docs/api/api-contract.md §5, Directory (public)). Nothing here
 // carries a capacity or a count (ADR 0008), nor a price but on a space's page; the card and the pin
-// carry the live status.
+// carry the live status and the state by the hours.
 
 /** A space's area, named in both languages; its governorate is the public catalogue's. */
 export interface DirectoryArea {
@@ -39,6 +39,8 @@ export interface DirectorySpace {
   cover: string | null;
   /** The live status now; `null` when the space has none (data-model › Live status). */
   liveStatus: LiveStatus | null;
+  /** Its state by its hours now, verified or not; `null` without hours (data-model › Derived values). */
+  hoursStatus: HoursStatus | null;
 }
 
 /**
@@ -68,6 +70,8 @@ export interface MapPin {
   cover: string | null;
   /** The live status now; `null` when the space has none. */
   liveStatus: LiveStatus | null;
+  /** Its state by its hours now; `null` without hours. */
+  hoursStatus: HoursStatus | null;
 }
 
 /** The map's pins: the whole filtered set, or its first `MAP_PINS_CEILING` by id, `truncated`. */

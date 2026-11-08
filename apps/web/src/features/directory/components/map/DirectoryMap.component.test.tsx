@@ -24,6 +24,7 @@ const pin = (id: number, liveStatus: MapPin['liveStatus'] = 'AVAILABLE'): MapPin
   days: null,
   cover: null,
   liveStatus,
+  hoursStatus: null,
 });
 
 const pins = (list: MapPin[], truncated = false) =>

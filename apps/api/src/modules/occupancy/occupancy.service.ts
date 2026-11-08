@@ -1,5 +1,6 @@
 import { gazaClockOf, gazaInstant, type DomainErrorCode } from '@masaha/shared/core';
 import type {
+  HoursStatus,
   LiveStatus,
   PresentPerson,
   SetCapacityRequest,
@@ -18,6 +19,7 @@ import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import {
+  hoursStatusOf,
   isFull,
   liveStatus,
   openRangeAt,
@@ -47,6 +49,12 @@ export interface Glance {
   capacity: number | null;
   status: LiveStatus | null;
   present: { visits: number; members: number; total: number };
+}
+
+/** A space's states as the public reads them: the live status, and the state by its hours. */
+export interface PublicStates {
+  liveStatus: LiveStatus | null;
+  hoursStatus: HoursStatus | null;
 }
 
 /** The kinds of stay in the order a tie on the check-in time lists them. */
@@ -138,15 +146,16 @@ export function createOccupancyService({
 
   const service = {
     /**
-     * The live status of each of these spaces now, set-based: one query each for their rows, their
-     * open visits and their open check-ins (*present*), their closures, and the weeks not given. For
-     * the directory, with no N+1.
+     * The public's states of each of these spaces at `now`, set-based: the live status and the state
+     * by the hours, from one query each for their rows, their open visits and their open check-ins
+     * (*present*), their closures, and the weeks not given. For the directory, with no N+1; the
+     * caller gives the instant, so one answer reads one clock.
      */
-    async liveStatusFor(
+    async publicStatesFor(
       targets: readonly { id: number; verified: boolean; week?: Week }[],
-    ): Promise<Map<number, LiveStatus | null>> {
+      now: Date,
+    ): Promise<Map<number, PublicStates>> {
       if (targets.length === 0) return new Map();
-      const now = clock();
       const ids = targets.map(({ id }) => id);
       const withoutWeek = targets.filter(({ week }) => week === undefined).map(({ id }) => id);
       const [states, presentCounts, closed, weeks] = await Promise.all([
@@ -157,31 +166,38 @@ export function createOccupancyService({
       ]);
       const at = gazaClockOf(now);
       return new Map(
-        targets.map(({ id, verified, week }) => {
+        targets.map(({ id, verified, week: given }) => {
           const state = states.get(id);
+          const week = given === undefined ? (weeks.get(id) ?? null) : given;
+          const closureNow = closed.has(id);
           return [
             id,
-            liveStatus({
-              verified,
-              closureNow: closed.has(id),
-              week: week === undefined ? (weeks.get(id) ?? null) : week,
-              at,
-              now,
-              override: state?.override ?? null,
-              capacity: state?.capacity ?? null,
-              present: presentCounts.get(id) ?? 0,
-            }),
+            {
+              liveStatus: liveStatus({
+                verified,
+                closureNow,
+                week,
+                at,
+                now,
+                override: state?.override ?? null,
+                capacity: state?.capacity ?? null,
+                present: presentCounts.get(id) ?? 0,
+              }),
+              hoursStatus: hoursStatusOf({ week, closureNow, at }),
+            },
           ];
         }),
       );
     },
 
-    /** Which of these verified spaces are `AVAILABLE` now: the directory's filter, resolved to ids. */
-    async availableAmong(verifiedIds: readonly number[]): Promise<number[]> {
-      const statuses = await service.liveStatusFor(
-        verifiedIds.map((id) => ({ id, verified: true })),
-      );
-      return verifiedIds.filter((id) => statuses.get(id) === 'AVAILABLE');
+    /**
+     * Which of these verified spaces their staff closed by hand, by an override to `CLOSED` in force
+     * at `now`: the directory's «مفتوحة الآن» leaves them out, resolved to ids. The rule uses such an
+     * override only while the space is open by its hours under no closure, which that filter
+     * requires already.
+     */
+    closedByOverrideAmong(verifiedIds: readonly number[], now: Date): Promise<number[]> {
+      return occupancy.closedOverridesAmong(verifiedIds, now);
     },
 
     /**

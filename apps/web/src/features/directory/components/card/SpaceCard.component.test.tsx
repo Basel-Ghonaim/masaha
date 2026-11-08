@@ -21,10 +21,10 @@ const CARD: SpaceCardView = {
   distance: null,
 };
 
-function renderCard(action?: ReactNode) {
+function renderCard(action?: ReactNode, card: SpaceCardView = CARD) {
   return render(
     <MemoryRouter>
-      <SpaceCard card={CARD} href="/spaces/masaha-hub" areaName="Al-Rimal" action={action} />
+      <SpaceCard card={card} href="/spaces/masaha-hub" areaName="Al-Rimal" action={action} />
     </MemoryRouter>,
   );
 }
@@ -50,5 +50,28 @@ describe('SpaceCard', () => {
 
     expect(screen.getByRole('link', { name: 'Masaha Hub' })).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('reads its details after its name: its area, its state, verified, and today’s hours', () => {
+    renderCard();
+
+    expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
+      'Al-Rimal Available Verified Open today 08:00–22:00',
+    );
+  });
+
+  it('says it has no live status and that its hours are not available, and reads both', () => {
+    renderCard(undefined, {
+      ...CARD,
+      status: null,
+      verified: null,
+      today: 'Hours not available',
+    });
+
+    expect(screen.getByText('No live status')).toBeInTheDocument();
+    expect(screen.getByText('Hours not available')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
+      'Al-Rimal No live status Hours not available',
+    );
   });
 });

@@ -5,11 +5,14 @@ import type { DirectoryFilters } from '../../types/DirectoryFilters';
 import type { FiltersView } from '../../types/FiltersView';
 import { usePriceFilter } from './usePriceFilter';
 
+/** The filters' flags, each a checkbox. */
+type Flag = 'openNow' | 'evening' | 'openFriday' | 'verified' | 'studentPrices';
+
 /** From here up the filters are a sidebar; below it, a bottom sheet (design-system › breakpoints). */
 const WIDE = '(min-width: 1024px)';
 
 /**
- * The directory's filters: the place, the price, the two switches and «أخرى», each applied at once;
+ * The directory's filters: the place, the price, «الدوام» and «أخرى», each applied at once;
  * drawn once, as a sidebar from 1024 px or a bottom sheet below it, whose button counts the filters
  * in force and whose primary button counts the spaces they leave (`total`, unknown until a real
  * answer). On the map they are the sheet at every width (`sheetOnly`).
@@ -37,6 +40,15 @@ export function useFiltersPanel({
   // the way back below it.
   if (wide && open) setOpen(false);
   const price = usePriceFilter({ filters, apply });
+  /** A checkbox of one of the filters' flags, applied at once. */
+  const box = (key: Flag, label: string) => ({
+    key,
+    label,
+    checked: filters[key],
+    toggle: (checked: boolean) => {
+      apply({ [key]: checked });
+    },
+  });
   // Clearing also resets the price's own fields, which hold what the address does not.
   const clearAction = {
     disabled: applied === 0,
@@ -55,40 +67,17 @@ export function useFiltersPanel({
       },
     },
     price: price.view,
-    spaces: {
-      label: words.spaces,
-      availableNow: {
-        label: words.availableNow,
-        checked: filters.availableNow,
-        toggle: (checked) => {
-          apply({ availableNow: checked });
-        },
-      },
-      verified: {
-        label: words.verified,
-        checked: filters.verified,
-        toggle: (checked) => {
-          apply({ verified: checked });
-        },
-      },
-      note: words.availableNote,
+    hours: {
+      label: words.schedule,
+      items: [
+        box('openNow', words.openNow),
+        box('evening', words.evening),
+        box('openFriday', words.openFriday),
+      ],
     },
     others: {
       label: words.other,
-      value: [
-        ...(filters.studentPrices ? ['students'] : []),
-        ...(filters.openFriday ? ['friday'] : []),
-      ],
-      options: [
-        { value: 'students', label: words.studentPrices },
-        { value: 'friday', label: words.openFriday },
-      ],
-      change: (values) => {
-        apply({
-          studentPrices: values.includes('students'),
-          openFriday: values.includes('friday'),
-        });
-      },
+      items: [box('verified', words.verified), box('studentPrices', words.studentPrices)],
     },
     sheet: {
       open,

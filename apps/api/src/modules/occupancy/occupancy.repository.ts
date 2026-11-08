@@ -57,6 +57,21 @@ export function createOccupancyRepository() {
       return new Map(spaceIds.map((id) => [id, toState(bySpace.get(id) ?? null)]));
     },
 
+    /** Which of these spaces hold an override to `CLOSED` still in force at `now`, in one query. */
+    async closedOverridesAmong(spaceIds: readonly number[], now: Date): Promise<number[]> {
+      if (spaceIds.length === 0) return [];
+      const rows = await prisma.spaceOccupancy.findMany({
+        where: {
+          spaceId: { in: [...spaceIds] },
+          stateOverride: 'CLOSED',
+          stateOverrideUntil: { gt: now },
+        },
+        select: { spaceId: true },
+        orderBy: { spaceId: 'asc' },
+      });
+      return rows.map(({ spaceId }) => spaceId);
+    },
+
     /** The space's capacity; `null` when none is set, a space without a row included. */
     async capacityOf(spaceId: number, tx: Tx = prisma): Promise<number | null> {
       const row = await tx.spaceOccupancy.findUnique({

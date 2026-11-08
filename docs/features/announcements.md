@@ -1,6 +1,6 @@
 # Announcements
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the dashboard, the owner's and reception's «الإعلانات».
 > **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`; the web feature `features/announcements`, any page group: screen 18, and the public pieces a space's page sets: its running closure's notice and its other announcements.
 
@@ -12,14 +12,14 @@
 - Answers each announcement with its state now: upcoming, running or ended.
 - Pages one state's announcements and counts them by state, for the managed list and its summary, which [`subscriptions`](subscriptions.md) composes with each closure's extension.
 - Answers a space's running and upcoming announcements, not deleted, by start then id, up to the count the caller gives, for its public page.
-- Tells the live status which spaces a running closure covers ([occupancy](occupancy.md)).
+- Tells the live status which spaces a running closure covers ([occupancy](occupancy.md)), and the directory every space one covers now, by the same rule, for «مفتوحة الآن» (`closedSpaceIdsAt`, 2026-11-08, #139).
 
 ## Who uses it
 
 - **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. On the dashboard, both read «الإعلانات» (`/dashboard/spaces/:spaceId/announcements`, 2026-10-28, #129).
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
 - **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
-- **[`directory`](directory.md),** whose space page reads its running and upcoming announcements. On the site, the space's page shows them: a running closure's notice at its top, the others after its status (2026-10-28, #129).
+- **[`directory`](directory.md),** whose space page reads its running and upcoming announcements, and whose «مفتوحة الآن» leaves out the spaces under a closure in force (2026-11-08, #139). On the site, the space's page shows them: a running closure's notice at its top, the others after its status (2026-10-28, #129).
 - **The owner's overview** (`overview`), which reads the running announcements' types, beside the summary's running count (2026-10-29, #131).
 
 ## Responsibility boundary
@@ -119,6 +119,7 @@
 
 - 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff; the pages and counts the managed list composes; the running and upcoming ones a space's public page reads.
 - 2026-10-26, #123 — an extended closure guarded by the database (`CLOSURE_EXTENDED`).
+- 2026-11-08, #139 — every space a closure covers now, for the directory's «مفتوحة الآن», by the one rule `closedAt` reads.
 
 ### Web history
 

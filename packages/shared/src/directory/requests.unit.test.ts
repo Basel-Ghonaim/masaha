@@ -148,18 +148,26 @@ describe('mapPinsQuerySchema', () => {
   });
 });
 
-describe('availableNow', () => {
-  it('availableNow takes true only', () => {
-    expect(directoryQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
-      availableNow: true,
+describe('the hours filters', () => {
+  it.each(['openNow', 'evening'])('%s takes true and false, on the list and the map', (key) => {
+    expect(directoryQuerySchema.parse({ [key]: 'true' })).toMatchObject({ [key]: true });
+    expect(directoryQuerySchema.parse({ [key]: 'false' })).toMatchObject({ [key]: false });
+    expect(mapPinsQuerySchema.parse({ [key]: 'true' })).toEqual({ [key]: true });
+    expect(mapPinsQuerySchema.parse({ [key]: 'false' })).toEqual({ [key]: false });
+  });
+
+  it.each(['openNow', 'evening'])('%s refuses a word it cannot read, on both', (key) => {
+    expect(listErrors({ [key]: 'maybe' })).toEqual({ [key]: ['invalid_choice'] });
+    expect(mapErrors({ [key]: '' })).toEqual({ [key]: ['invalid_choice'] });
+  });
+
+  it('drops the retired availableNow, as any unknown key: an old client is answered unfiltered', () => {
+    expect(directoryQuerySchema.parse({ availableNow: 'true' })).toEqual({
+      page: 1,
+      limit: 20,
+      lang: 'ar',
+      sort: 'updated',
     });
-    expect(directoryQuerySchema.parse({ availableNow: 'false' })).toMatchObject({
-      availableNow: false,
-    });
-    expect(mapPinsQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
-      availableNow: true,
-    });
-    expect(listErrors({ availableNow: 'maybe' })).toEqual({ availableNow: ['invalid_choice'] });
-    expect(mapErrors({ availableNow: '' })).toEqual({ availableNow: ['invalid_choice'] });
+    expect(mapPinsQuerySchema.parse({ availableNow: 'true' })).toEqual({});
   });
 });

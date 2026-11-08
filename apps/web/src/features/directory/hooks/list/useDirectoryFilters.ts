@@ -47,15 +47,16 @@ export function useDirectoryFilters() {
     },
   });
 
-  // The filters in force, each counted once: the place, the price, «متاحة الآن», «موثّقة», student
-  // prices and Friday (design issue 14).
+  // The filters in force, each counted once: the place, whatever its number of areas, the price, and
+  // each of the five boxes (design issue 14).
   const applied = [
     filters.areas.length > 0,
     filters.min !== undefined || filters.max !== undefined,
-    filters.availableNow,
+    filters.openNow,
+    filters.evening,
+    filters.openFriday,
     filters.verified,
     filters.studentPrices,
-    filters.openFriday,
   ].filter(Boolean).length;
 
   return {

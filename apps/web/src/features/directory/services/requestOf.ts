@@ -18,7 +18,8 @@ function filtersRequestOf(filters: DirectoryFilters): Omit<PinsRequest, 'bounds'
     ...(filters.studentPrices && { studentPrices: true }),
     ...(filters.openFriday && { openFriday: true }),
     ...(filters.verified && { verified: true }),
-    ...(filters.availableNow && { availableNow: true }),
+    ...(filters.openNow && { openNow: true }),
+    ...(filters.evening && { evening: true }),
   };
 }
 

@@ -16,7 +16,10 @@ export type DirectoryFilters = {
   period: (typeof PRICE_PERIODS)[number];
   min: number | undefined;
   max: number | undefined;
-  availableNow: boolean;
+  /** «مفتوحة الآن»: open now by the hours. */
+  openNow: boolean;
+  /** «مفتوحة مساءً»: closes at 20:00 or later on one of its days. */
+  evening: boolean;
   verified: boolean;
   studentPrices: boolean;
   openFriday: boolean;

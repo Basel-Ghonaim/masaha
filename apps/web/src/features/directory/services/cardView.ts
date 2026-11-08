@@ -1,5 +1,5 @@
 import type { DirectorySpace, MapPin } from '@masaha/shared/directory';
-import type { LiveStatus } from '@masaha/shared/occupancy';
+import type { HoursStatus, LiveStatus } from '@masaha/shared/occupancy';
 import type { Catalogue } from '@shared/copy';
 import { isolated } from '@shared/forms';
 import { spaceNameOf } from '@shared/lib';
@@ -28,8 +28,21 @@ export function statusViewOf(
 }
 
 /**
- * A space's card, worded in the interface's language: its name, its mark, its live status by word
- * and role (or that it has none), whether it is verified, today's hours, and how far it is while
+ * A space's state as its card shows it: a verified space's live status by word and role; an
+ * unverified one's state by its hours, always neutral, never the live status's colours; or none.
+ */
+function cardStatusOf(
+  space: { isVerified: boolean; liveStatus: LiveStatus | null; hoursStatus: HoursStatus | null },
+  copy: Catalogue,
+): SpaceCardView['status'] {
+  if (space.isVerified) return statusViewOf(space.liveStatus, copy);
+  if (space.hoursStatus === null) return null;
+  return { label: copy.directory.status.byHours[space.hoursStatus], variant: 'neutral' };
+}
+
+/**
+ * A space's card, worded in the interface's language: its name, its mark, its state (`cardStatusOf`),
+ * whether it is verified, today's hours (or that they are not available), and how far it is while
  * the list is ordered by distance (`byDistance`): an answer asked by distance and still shown once
  * the order stops says no distance. A map's pin makes the same card, its area by its id. No price.
  */
@@ -51,7 +64,7 @@ export function cardViewOf(
     mark: Array.from(name.text)[0] ?? '',
     areaId: 'areaId' in space ? space.areaId : space.area.id,
     cover: space.cover,
-    status: statusViewOf(space.liveStatus, copy),
+    status: cardStatusOf(space, copy),
     noStatus: words.status.none,
     verified: space.isVerified ? words.card.verified : null,
     today: todayHours(space.days, now, words.card),

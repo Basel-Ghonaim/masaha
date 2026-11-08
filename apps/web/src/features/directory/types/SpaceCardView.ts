@@ -9,11 +9,15 @@ export type SpaceCardView = {
   mark: string;
   areaId: number;
   cover: string | null;
-  /** The live status by its word and its role; none → `noStatus`. */
+  /**
+   * A verified space's live status by its word and its role, or an unverified one's state by its
+   * hours, always neutral; none → `noStatus`.
+   */
   status: { label: string; variant: 'success' | 'warning' | 'neutral' } | null;
   noStatus: string;
   verified: string | null;
-  today: string | null;
+  /** Today's hours, or that the hours are not available. */
+  today: string;
   /** How far, in a straight line, while the list is ordered by distance. */
   distance: string | null;
 };

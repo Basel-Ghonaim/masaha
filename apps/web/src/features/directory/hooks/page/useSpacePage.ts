@@ -112,12 +112,21 @@ export function useSpacePage(slug: string): SpacePageView {
   const age = liveQuery.errorUpdatedAt - liveQuery.dataUpdatedAt;
   const stale = liveQuery.isError && liveQuery.data !== undefined && age > STALE_STATUS_MS;
   const status = statusViewOf(liveQuery.data?.status ?? null, copy);
+  const hoursStatus = liveQuery.data?.hoursStatus ?? null;
   const live = liveQuery.isPending
     ? ({ kind: 'loading', label: words.liveStatus.live } as const)
     : liveQuery.data === undefined
       ? ({ kind: 'line', line: words.liveStatus.failed } as const)
       : space?.isVerified === false
-        ? ({ kind: 'line', line: words.liveStatus.unverified } as const)
+        ? // An unverified space: its state by its hours, neutral, as on its card; without hours, none.
+          hoursStatus === null
+          ? ({ kind: 'line', line: words.liveStatus.unverified } as const)
+          : {
+              kind: 'badge' as const,
+              live: words.liveStatus.byHours,
+              label: copy.directory.status.byHours[hoursStatus],
+              variant: 'neutral' as const,
+            }
         : status === null
           ? ({ kind: 'line', line: words.liveStatus.unset } as const)
           : {

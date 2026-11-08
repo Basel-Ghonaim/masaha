@@ -9,8 +9,8 @@ export type HomeSpacesView = {
     button: { label: string; on: boolean; locating: boolean; press: () => void };
     status: LocationStatusView;
   };
-  /** Where «عرض الكل» leads: the Directory's list, or its spaces available now. */
-  viewAll: { label: string; to: 'list' | 'available' };
+  /** Where «عرض الكل» leads: the Directory's list, or its spaces open now. */
+  viewAll: { label: string; to: 'list' | 'open' };
   /** A fetch is in flight over the cards shown. */
   busy: boolean;
   state: 'loading' | 'failed' | 'empty' | 'ready';

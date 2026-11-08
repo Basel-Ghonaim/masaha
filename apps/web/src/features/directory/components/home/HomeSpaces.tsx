@@ -13,7 +13,7 @@ import { NearMeButton } from '../near/NearMeButton';
 const SKELETONS = [1, 2, 3, 4, 5, 6];
 
 /**
- * Home's spaces: a section named by its heading, «متاحة الآن» or «المساحات الأقرب إليك», with
+ * Home's spaces: a section named by its heading, «مفتوحة الآن» or «المساحات الأقرب إليك», with
  * «الأقرب إليّ» and «عرض الكل» at the row's end and near me's state line under it; then six cards
  * at most, their skeletons while they load, the failure with its retry, or, with none, the empty
  * state and «تصفّح كل المساحات». The page sets the links to the spaces, the areas' names, the
@@ -28,8 +28,8 @@ export function HomeSpaces({
 }: {
   spaceLink: (slug: string) => string;
   areaName: (areaId: number) => ReactNode;
-  /** The Directory's list, its spaces available now, and its map. */
-  links: { list: string; available: string; map: string };
+  /** The Directory's list, its spaces open now, and its map. */
+  links: { list: string; open: string; map: string };
   chooseArea: () => void;
   cardAction?: DirectorySlots['cardAction'];
 }) {
@@ -54,7 +54,7 @@ export function HomeSpaces({
           <div className="flex flex-wrap items-center gap-2">
             <NearMeButton ref={nearButton} button={home.near.button} />
             <Button asChild variant="link" size="sm">
-              <Link to={home.viewAll.to === 'list' ? links.list : links.available}>
+              <Link to={home.viewAll.to === 'list' ? links.list : links.open}>
                 {home.viewAll.label}
               </Link>
             </Button>

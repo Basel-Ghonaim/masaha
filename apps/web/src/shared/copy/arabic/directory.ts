@@ -64,10 +64,12 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `اليوم ${range}`,
     closedToday: 'مغلقة اليوم',
     openAllDay: 'مفتوحة اليوم على مدار الساعة',
+    noHours: 'ساعات العمل غير متوفرة',
     distance: ({ km }: { km: string }) => `على بعد ${km} كم`,
   },
   status: {
     none: 'لا تتوفر حالة مباشرة',
+    byHours: { OPEN: 'مفتوحة الآن', CLOSED: 'مغلقة الآن' },
   },
   filters: {
     title: 'الفلاتر',
@@ -94,10 +96,10 @@ export const DIRECTORY = {
     showLoading: 'عرض النتائج',
     clear: 'مسح',
     close: 'إغلاق',
-    spaces: 'المساحات',
-    availableNow: 'متاحة الآن فقط',
+    schedule: 'الدوام',
+    openNow: 'مفتوحة الآن',
+    evening: 'مفتوحة مساءً',
     verified: 'المساحات الموثّقة فقط',
-    availableNote: 'تشمل «متاحة الآن» المساحات الموثّقة فقط.',
     price: 'السعر',
     period: 'الفترة',
     from: 'من',
@@ -168,12 +170,12 @@ export const DIRECTORY = {
       `تظهر أول ${count} مساحة؛ قرّب الخريطة لترى ما بقي.`,
   },
   home: {
-    available: 'متاحة الآن',
+    openNow: 'مفتوحة الآن',
     nearest: 'المساحات الأقرب إليك',
     viewAll: 'عرض الكل',
     empty: {
-      title: 'لا توجد مساحات متاحة الآن',
-      text: 'قد تكون المساحات ممتلئة أو مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.',
+      title: 'لا توجد مساحات مفتوحة الآن',
+      text: 'قد تكون المساحات مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.',
       action: 'تصفّح كل المساحات',
     },
   },
@@ -212,6 +214,7 @@ export const DIRECTORY = {
     liveStatus: {
       live: 'الحالة مباشرة الآن',
       unverified: 'الحالة المباشرة تظهر للمساحات الموثّقة فقط',
+      byHours: 'حسب ساعات العمل؛ الحالة المباشرة تظهر للمساحات الموثّقة فقط',
       unset: 'لم تكتمل معلومات الحالة المباشرة لهذه المساحة بعد.',
       failed: 'تعذّر قراءة الحالة الآن',
       updated: ({ minutes }: { minutes: number }) =>
@@ -273,7 +276,7 @@ export const DIRECTORY = {
       pair: ({ first, second }: { first: string; second: string }) => `${first}، ${second}`,
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       shifts: ({ list }: { list: string }) => `الورديات: ${list}`,
-      none: 'لم تُضف ساعات العمل بعد',
+      none: 'ساعات العمل غير متوفرة',
     },
     location: {
       directions: 'الاتجاهات',

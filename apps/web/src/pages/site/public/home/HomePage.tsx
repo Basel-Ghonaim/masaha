@@ -13,15 +13,15 @@ import { OwnersCard } from './OwnersCard';
 // The lookups' area name set in the spaces' slot, made once so it is the same between renders.
 const areaName = (areaId: number) => <AreaName areaId={areaId} source="public" />;
 
-/** The Directory's addresses Home's spaces lead to: all of it, its spaces available now, its map. */
+/** The Directory's addresses Home's spaces lead to: all of it, its spaces open now, its map. */
 const LINKS = {
   list: SITE_PATHS.spaces,
-  available: `${SITE_PATHS.spaces}?available=1`,
+  open: `${SITE_PATHS.spaces}?open=1`,
   map: `${SITE_PATHS.spaces}?view=map`,
 } as const;
 
 /**
- * The home page (screen 1): the hero with its search; the spaces available now, or the nearest;
+ * The home page (screen 1): the hero with its search; the spaces open now, or the nearest;
  * «تصفّح حسب المنطقة», which near me's «اختر منطقتك» scrolls to and focuses; and the owners' card.
  * Each space's card carries favorites' heart; a guest's press of it asks them to sign in.
  */

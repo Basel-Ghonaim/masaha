@@ -22,6 +22,7 @@ const space = (id: number, overrides: Partial<DirectorySpace> = {}): DirectorySp
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
   ...overrides,
 });
 
@@ -112,7 +113,7 @@ describe('DirectoryList', () => {
         '/spaces/space-2',
       ]);
       expect(within(results).getByRole('link', { name: 'مساحة 1' })).toHaveAccessibleDescription(
-        'الرمال · غزة متاح موثّقة',
+        'الرمال · غزة متاح موثّقة ساعات العمل غير متوفرة',
       );
       expect(within(results).getByRole('link', { name: 'Space 2' })).toBeInTheDocument();
       expect(within(results).getByText('Space 2', { selector: 'h3 > span' })).toHaveAttribute(

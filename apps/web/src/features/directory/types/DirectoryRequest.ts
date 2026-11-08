@@ -14,7 +14,8 @@ export type DirectoryRequest = {
   studentPrices?: true;
   openFriday?: true;
   verified?: true;
-  availableNow?: true;
+  openNow?: true;
+  evening?: true;
   /** `distance` only with the point in `Masaha-Near`. */
   sort?: DirectorySort;
   lang?: Language;

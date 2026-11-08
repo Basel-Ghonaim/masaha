@@ -3,8 +3,8 @@ import { PRICE_PERIODS } from '@masaha/shared/spaces';
 import type { DirectoryFilters, DirectoryOrder } from '../types/DirectoryFilters';
 import { MAX_SHEKELS } from './priceBounds';
 
-// The address's keys (S5): q, area, period, min, max, available, verified, students, friday, sort,
-// page, view. The budget is in whole shekels, named min and max; the request sends agorot.
+// The address's keys (S5): q, area, period, min, max, open, evening, verified, students, friday,
+// sort, page, view. The retired `available` is read as nothing. The budget is in whole shekels, named min and max; the request sends agorot.
 
 const ORDERS: readonly DirectoryOrder[] = ['updated', 'name', 'relevance'];
 /** The period the budget applies to when the address names none. */
@@ -56,7 +56,8 @@ export function filtersOf(params: URLSearchParams): DirectoryFilters {
     min,
     // A maximum under the minimum is refused by the server; it is left out, the minimum kept.
     max: min !== undefined && max !== undefined && max < min ? undefined : max,
-    availableNow: flag('available'),
+    openNow: flag('open'),
+    evening: flag('evening'),
     verified: flag('verified'),
     studentPrices: flag('students'),
     openFriday: flag('friday'),
@@ -79,7 +80,8 @@ export function paramsOf(filters: DirectoryFilters): URLSearchParams {
   if (filters.min !== undefined || filters.max !== undefined) params.set('period', filters.period);
   if (filters.min !== undefined) params.set('min', String(filters.min));
   if (filters.max !== undefined) params.set('max', String(filters.max));
-  if (filters.availableNow) params.set('available', '1');
+  if (filters.openNow) params.set('open', '1');
+  if (filters.evening) params.set('evening', '1');
   if (filters.verified) params.set('verified', '1');
   if (filters.studentPrices) params.set('students', '1');
   if (filters.openFriday) params.set('friday', '1');

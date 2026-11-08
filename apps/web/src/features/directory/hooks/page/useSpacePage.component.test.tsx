@@ -109,7 +109,7 @@ describe('useSpacePage', () => {
     });
     expect(none.result.current.prices.state).toBe('none');
     expect(none.result.current.prices.none).toBe('لم تُضف أسعار بعد');
-    expect(none.result.current.hours.none).toBe('لم تُضف ساعات العمل بعد');
+    expect(none.result.current.hours.none).toBe('ساعات العمل غير متوفرة');
 
     const stale = renderPage(() => ok(publicSpace({ staleGroups: ['prices'] })));
     await waitFor(() => {
@@ -159,5 +159,53 @@ describe('useSpacePage', () => {
     // 0.02° of latitude: 2,224 m, said as 2.2 km.
     expect(result.current.panel.distance).toBe('نحو 2.2 كم');
     expect(result.current.panel.today).toBe('اليوم ⁦08:00–22:00⁩');
+  });
+
+  it('an unverified space’s panel shows its state by its hours, neutral, with why; without hours the unverified line and «ساعات العمل غير متوفرة»', async () => {
+    const answer =
+      (hoursStatus: 'OPEN' | 'CLOSED' | null, hours?: null) => (request: { url?: string }) =>
+        request.url?.endsWith('/occupancy')
+          ? ok({ status: null, hoursStatus })
+          : ok(publicSpace({ isVerified: false, ...(hours === null && { hours }) }));
+
+    for (const [hoursStatus, label] of [
+      ['OPEN', 'مفتوحة الآن'],
+      ['CLOSED', 'مغلقة الآن'],
+    ] as const) {
+      const page = renderPage(answer(hoursStatus));
+      await waitFor(() => {
+        expect(page.result.current.panel.live.kind).toBe('badge');
+      });
+      expect(page.result.current.panel.live).toEqual({
+        kind: 'badge',
+        label,
+        variant: 'neutral',
+        live: 'حسب ساعات العمل؛ الحالة المباشرة تظهر للمساحات الموثّقة فقط',
+      });
+      page.unmount();
+    }
+
+    const none = renderPage(answer(null, null));
+    await waitFor(() => {
+      expect(none.result.current.panel.live.kind).toBe('line');
+    });
+    expect(none.result.current.panel.live).toEqual({
+      kind: 'line',
+      line: 'الحالة المباشرة تظهر للمساحات الموثّقة فقط',
+    });
+    expect(none.result.current.panel.today).toBe('ساعات العمل غير متوفرة');
+    expect(none.result.current.hours.none).toBe('ساعات العمل غير متوفرة');
+  });
+
+  it('a verified space’s panel keeps its live status, whatever its state by its hours', async () => {
+    const page = renderPage((request) =>
+      request.url?.endsWith('/occupancy')
+        ? ok({ status: 'FULL', hoursStatus: 'OPEN' })
+        : ok(publicSpace()),
+    );
+    await waitFor(() => {
+      expect(page.result.current.panel.live.kind).toBe('badge');
+    });
+    expect(page.result.current.panel.live).toMatchObject({ label: 'ممتلئ', variant: 'warning' });
   });
 });

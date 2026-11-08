@@ -22,6 +22,7 @@ const space = (id: number): DirectorySpace => ({
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 });
 
 /** A page of the list, as the server answers it. */
@@ -393,7 +394,7 @@ describe('useDirectoryList', () => {
       device.succeed(31.5, 34.46, 30);
     });
     act(() => {
-      result.current.list.filters.spaces.verified.toggle(true);
+      result.current.list.filters.others.items.find(({ key }) => key === 'verified')?.toggle(true);
     });
     await waitFor(() => {
       expect(result.current.list.results.busy).toBe(false);

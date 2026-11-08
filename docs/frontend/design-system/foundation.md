@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-29
+> **Last Updated:** 2026-11-08
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -447,8 +447,8 @@ Every screen: phone and desktop, light and dark. Key screens also in LTR (Englis
 The final designs are archived in [docs/design/](../../design/README.md): [SCREENS.md](../../design/SCREENS.md) maps each screen below to its prototype page and screenshots.
 
 ### Public site (9)
-1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «متاحة الآن»
-2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, an "Other" group («أسعار للطلاب», «مفتوحة يوم الجمعة»), verified only, available now; sort, including «الأقرب إليّ»
+1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «مفتوحة الآن»
+2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, «الدوام» («مفتوحة الآن», «مفتوحة مساءً», «مفتوحة يوم الجمعة») and «أخرى» («المساحات الموثّقة فقط», «أسعار للطلاب»); sort, including «الأقرب إليّ»
    - **Near me:** the browser's location, rounded on the device to 3 decimals and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent; [security › Location](../../backend/security.md#location)); distances are straight-line and labelled approximate.
    - A location is **not used** when the permission is denied or unavailable, when it is imprecise (accuracy worse than about 2 km), or when it falls outside the Gaza Strip. The screen then offers choosing an area, or placing a pin by hand on the map.
 3. **Space details** — photos, prices (display only), amenities, hours, contact, announcements, live status (available, full or closed now; verified spaces), "last updated" notes, "Are you the owner? Contact us" (unverified), report wrong info

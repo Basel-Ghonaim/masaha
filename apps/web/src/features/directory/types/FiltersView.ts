@@ -22,27 +22,27 @@ export type PriceFilterView = {
   help: string;
 };
 
-/** A switch that narrows the list. */
-type SwitchView = { label: string; checked: boolean; toggle: (checked: boolean) => void };
+/** A labelled group of checkboxes, each one narrowing the list. */
+export type CheckGroupView = {
+  label: string;
+  items: { key: string; label: string; checked: boolean; toggle: (checked: boolean) => void }[];
+};
 
 /** An action of the filters: its words, whether it may run, and what it does. */
 type ActionView = { label: string; disabled: boolean; run: () => void };
 
 /**
- * The directory's filters, ready to render: the place, the price, the two switches and «أخرى», drawn
- * once, as a sidebar from 1024 px (`wide`) or a bottom sheet below it.
+ * The directory's filters, ready to render: the place, the price, «الدوام» and «أخرى», drawn once,
+ * as a sidebar from 1024 px (`wide`) or a bottom sheet below it.
  */
 export type FiltersView = {
   wide: boolean;
   place: { value: number[]; change: (ids: number[]) => void };
   price: PriceFilterView;
-  spaces: { label: string; availableNow: SwitchView; verified: SwitchView; note: string };
-  others: {
-    label: string;
-    value: string[];
-    options: { value: string; label: string }[];
-    change: (values: string[]) => void;
-  };
+  /** «الدوام»: open now, in the evening, on Friday. */
+  hours: CheckGroupView;
+  /** «أخرى»: verified only, student prices. */
+  others: CheckGroupView;
   sheet: {
     open: boolean;
     setOpen: (open: boolean) => void;

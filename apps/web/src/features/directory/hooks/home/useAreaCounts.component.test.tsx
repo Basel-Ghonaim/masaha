@@ -16,6 +16,7 @@ const pin = (id: number, areaId: number): MapPin => ({
   days: null,
   cover: null,
   liveStatus: null,
+  hoursStatus: null,
 });
 
 afterEach(() => {

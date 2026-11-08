@@ -497,6 +497,7 @@ export function createApi({
     publicListing,
     publicSpace,
     occupancy,
+    now: clock,
   });
   const dataReports = createDataReportsService({
     runInTransaction,

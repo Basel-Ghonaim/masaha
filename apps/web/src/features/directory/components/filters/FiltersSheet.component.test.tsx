@@ -20,6 +20,7 @@ const space = (id: number): DirectorySpace => ({
   days: null,
   cover: null,
   liveStatus: 'AVAILABLE',
+  hoursStatus: null,
 });
 
 /** A page holding `count` spaces, at most two drawn. */
@@ -105,7 +106,7 @@ describe('the directory’s filters', () => {
       expect(button).toHaveAttribute('aria-expanded', 'true');
       expect(button).toHaveAttribute('aria-controls', sheet.id);
       expect(within(sheet).getByText('المنطقة')).toBeInTheDocument();
-      expect(within(sheet).getByRole('switch', { name: 'المساحات الموثّقة فقط' })).toBeChecked();
+      expect(within(sheet).getByRole('checkbox', { name: 'المساحات الموثّقة فقط' })).toBeChecked();
       expect(within(sheet).getByRole('group', { name: 'السعر' })).toBeInTheDocument();
       expect(await axe(document.body)).toHaveNoViolations();
     },
@@ -149,11 +150,65 @@ describe('the directory’s filters', () => {
 
     const sidebar = screen.getByRole('complementary', { name: 'الفلاتر' });
     expect(within(sidebar).getByText('المنطقة')).toBeInTheDocument();
-    expect(
-      within(sidebar).getByRole('button', { name: 'مفتوحة يوم الجمعة', pressed: true }),
-    ).toBeInTheDocument();
+    expect(within(sidebar).getByRole('checkbox', { name: 'مفتوحة يوم الجمعة' })).toBeChecked();
     expect(within(sidebar).getByRole('button', { name: 'مسح' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: /^الفلاتر/ })).not.toBeInTheDocument();
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  it('reads top to bottom «المنطقة», «السعر», «الدوام» and «أخرى», each box in its group, with no switch', async () => {
+    renderDirectory({ width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    const sidebar = within(screen.getByRole('complementary', { name: 'الفلاتر' }));
+
+    const inOrder = [
+      sidebar.getByText('المنطقة'),
+      ...['السعر', 'الدوام', 'أخرى'].map((name) => sidebar.getByRole('group', { name })),
+    ];
+    for (const [index, element] of inOrder.slice(1).entries()) {
+      expect(
+        (inOrder[index] as HTMLElement).compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    const boxes = (group: string, names: string[]) => {
+      const inGroup = within(sidebar.getByRole('group', { name: group }));
+      expect(inGroup.getAllByRole('checkbox')).toEqual(
+        names.map((name) => inGroup.getByRole('checkbox', { name })),
+      );
+    };
+    boxes('الدوام', ['مفتوحة الآن', 'مفتوحة مساءً', 'مفتوحة يوم الجمعة']);
+    boxes('أخرى', ['المساحات الموثّقة فقط', 'أسعار للطلاب']);
+    expect(sidebar.queryByRole('switch')).not.toBeInTheDocument();
+    expect(sidebar.queryByText('المساحات')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['open=1', 'مفتوحة الآن', 'open=1'],
+    ['evening=1', 'مفتوحة مساءً', 'evening=1'],
+    ['friday=1', 'مفتوحة يوم الجمعة', 'friday=1'],
+    ['verified=1', 'المساحات الموثّقة فقط', 'verified=1'],
+    ['students=1', 'أسعار للطلاب', 'students=1'],
+  ])('the box of %s shows the address and writes it', async (_, name, key) => {
+    const user = userEvent.setup();
+    const router = renderDirectory({ width: 1440 });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    const box = screen.getByRole('checkbox', { name });
+    expect(box).not.toBeChecked();
+
+    await user.click(box);
+
+    expect(router.state.location.search).toBe(`?${key}`);
+    expect(screen.getByRole('checkbox', { name })).toBeChecked();
+  });
+
+  it('counts each box once, the place once whatever its number of areas, and the price once', async () => {
+    renderDirectory({
+      path: '/spaces?area=3,7&min=10&open=1&evening=1&friday=1&verified=1&students=1',
+      width: 390,
+    });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+
+    expect(screen.getByRole('button', { name: 'الفلاتر 7 فلاتر مطبّقة' })).toBeInTheDocument();
   });
 });

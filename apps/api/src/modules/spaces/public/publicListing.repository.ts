@@ -15,6 +15,9 @@ const SEARCH_THRESHOLD = 0.3;
 /** Friday, as `space_hours` numbers the days (0 = Sunday). */
 const FRIDAY = 5;
 
+/** «مفتوحة مساءً»: a day that closes at 20:00 or later, in minutes from midnight. */
+const EVENING_FROM_MINUTE = 20 * 60;
+
 const EARTH_RADIUS_METRES = 6_371_000;
 
 /** What the public may filter the listed spaces by. */
@@ -23,13 +26,21 @@ export interface PublicFilter {
   areaIds: readonly number[];
   /** Every verified space's id, from `space-links`. */
   verifiedIds: readonly number[];
-  /** Only these spaces: another module's filter, resolved to ids (the live status's, `occupancy`). */
+  /** Only these spaces: the favourites, resolved to ids. */
   onlyIds?: readonly number[] | undefined;
   verifiedOnly?: boolean | undefined;
   /** A general price of this period, within the bounds, inclusive. */
   price?: { period: Price['period']; min?: number | undefined; max?: number | undefined };
   studentPrices?: boolean | undefined;
   openFriday?: boolean | undefined;
+  /**
+   * Open now by its hours, at this time on Gaza's clock (`openRangeAt`'s comparisons), leaving out
+   * the spaces another module closes now: a closure in force, a verified space's override to
+   * `CLOSED`.
+   */
+  openAt?: { dayOfWeek: number; minute: number; exceptIds: readonly number[] } | undefined;
+  /** Closes at `EVENING_FROM_MINUTE` or later on at least one open day of its week. */
+  evening?: boolean | undefined;
   /** The search, with how well it matches each listed area's names. */
   search?: { q: string; areaMatches: readonly { id: number; score: number }[] } | undefined;
   /** The map's viewport. */
@@ -99,6 +110,19 @@ function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
     conditions.push(sql`EXISTS (
       SELECT 1 FROM space_hours h
       WHERE h.space_id = s.id AND h.day_of_week = ${FRIDAY} AND NOT h.is_closed)`);
+  }
+  if (filter.openAt) {
+    const { dayOfWeek, minute, exceptIds } = filter.openAt;
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM space_hours h
+      WHERE h.space_id = s.id AND h.day_of_week = ${dayOfWeek} AND NOT h.is_closed
+        AND h.opens_minute <= ${minute} AND ${minute} < h.closes_minute)
+      AND NOT (s.id = ANY(${[...exceptIds]}::int[]))`);
+  }
+  if (filter.evening) {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM space_hours h
+      WHERE h.space_id = s.id AND NOT h.is_closed AND h.closes_minute >= ${EVENING_FROM_MINUTE})`);
   }
   if (filter.bounds) {
     const { south, west, north, east } = filter.bounds;

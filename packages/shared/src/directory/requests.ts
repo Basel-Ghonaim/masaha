@@ -87,8 +87,10 @@ const filters = {
   studentPrices: z.stringbool().optional(),
   openFriday: z.stringbool().optional(),
   verified: z.stringbool().optional(),
-  /** Only the spaces whose live status is `AVAILABLE` now. */
-  availableNow: z.stringbool().optional(),
+  /** Only the spaces open now by their hours, on Gaza's clock, under no closure in force. */
+  openNow: z.stringbool().optional(),
+  /** Only the spaces that close at 20:00 or later on one of their open days. */
+  evening: z.stringbool().optional(),
   q: searchText.optional(),
 };
 

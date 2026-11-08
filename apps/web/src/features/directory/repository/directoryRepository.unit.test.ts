@@ -15,6 +15,7 @@ const SPACE: DirectorySpace = {
   days: null,
   cover: null,
   liveStatus: null,
+  hoursStatus: null,
 };
 
 const META = {
@@ -112,6 +113,7 @@ describe('the directory repository', () => {
       days: null,
       cover: null,
       liveStatus: 'AVAILABLE',
+      hoursStatus: null,
     };
     const requests = serve({
       status: 200,

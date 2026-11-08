@@ -111,6 +111,7 @@ describe('the live status in the directory', () => {
         'area',
         'cover',
         'days',
+        'hoursStatus',
         'id',
         'isVerified',
         'liveStatus',
@@ -127,6 +128,7 @@ describe('the live status in the directory', () => {
         'areaId',
         'cover',
         'days',
+        'hoursStatus',
         'id',
         'isVerified',
         'liveStatus',
@@ -165,30 +167,10 @@ describe('the live status in the directory', () => {
     );
 
     const occupancy = await request(app).get('/api/v1/spaces/open-room/occupancy');
-    expect(occupancy.body).toEqual({ success: true, data: { status: 'AVAILABLE' } });
-  });
-
-  it('availableNow keeps only AVAILABLE spaces, before the page is cut: every page full, the total right', async () => {
-    const names: string[] = [];
-    for (const page of [1, 2]) {
-      const response = await request(app).get(
-        `/api/v1/spaces?availableNow=true&limit=1&page=${String(page)}`,
-      );
-      expect(response.status).toBe(200);
-      const body = response.body as {
-        data: { nameEn: string; liveStatus: unknown }[];
-        meta: { totalRecords: number; totalPages: number };
-      };
-      expect(body.data).toHaveLength(1);
-      expect(body.meta).toMatchObject({ totalRecords: 2, totalPages: 2 });
-      names.push(...body.data.map(({ nameEn }) => nameEn));
-      expect(body.data.map(({ liveStatus }) => liveStatus)).toEqual(['AVAILABLE']);
-    }
-    expect(names.sort()).toEqual(['Open Room', 'Second Open']);
-
-    // Not asked for, every listed space.
-    const all = await request(app).get('/api/v1/spaces?availableNow=false&limit=50');
-    expect((all.body as { meta: { totalRecords: number } }).meta.totalRecords).toBe(6);
+    expect(occupancy.body).toEqual({
+      success: true,
+      data: { status: 'AVAILABLE', hoursStatus: 'OPEN' },
+    });
   });
 
   it('a closure in force closes a space and an override in force gives its state, on the card, the pin and /occupancy', async () => {
@@ -228,30 +210,35 @@ describe('the live status in the directory', () => {
       .data;
     expect(statusesOf(pins)).toMatchObject(expected);
 
-    for (const [slug, status] of [
-      ['closure-room', 'CLOSED'],
-      ['override-room', 'FULL'],
+    for (const [slug, status, expectedHours] of [
+      ['closure-room', 'CLOSED', 'CLOSED'],
+      ['override-room', 'FULL', 'OPEN'],
     ] as const) {
       const response = await request(app).get(`/api/v1/spaces/${slug}/occupancy`);
-      expect(response.body).toEqual({ success: true, data: { status } });
+      expect(response.body).toEqual({
+        success: true,
+        data: { status, hoursStatus: expectedHours },
+      });
     }
   });
 
-  it('availableNow on the map keeps the same spaces', async () => {
-    const response = await request(app).get('/api/v1/map/spaces?availableNow=true');
-    expect(response.status).toBe(200);
-    const { pins } = (response.body as { data: { pins: { nameEn: string }[] } }).data;
-    expect(pins.map(({ nameEn }) => nameEn).sort()).toEqual(['Open Room', 'Second Open']);
-  });
-
-  it('GET /spaces/:slug/occupancy answers { status } for a listed space, with the public cache; 404 for a hidden, deleted or unknown one', async () => {
+  it('GET /spaces/:slug/occupancy answers { status, hoursStatus } for a listed space, with the public cache; 404 for a hidden, deleted or unknown one', async () => {
     const shown = await request(app).get('/api/v1/spaces/full-room/occupancy');
     expect(shown.status).toBe(200);
-    expect(shown.body).toEqual({ success: true, data: { status: 'FULL' } });
+    expect(shown.body).toEqual({ success: true, data: { status: 'FULL', hoursStatus: 'OPEN' } });
     expect(shown.headers['cache-control']).toBe('public, max-age=30');
 
+    // An unverified space has no live status, but its state by its hours.
     const unverified = await request(app).get('/api/v1/spaces/unverified/occupancy');
-    expect(unverified.body).toEqual({ success: true, data: { status: null } });
+    expect(unverified.body).toEqual({ success: true, data: { status: null, hoursStatus: 'OPEN' } });
+    const closed = await request(app).get('/api/v1/spaces/closed-room/occupancy');
+    expect(closed.body).toEqual({
+      success: true,
+      data: { status: 'CLOSED', hoursStatus: 'CLOSED' },
+    });
+    await createPublicSpace(areaId, 'No Hours');
+    const noHours = await request(app).get('/api/v1/spaces/no-hours/occupancy');
+    expect(noHours.body).toEqual({ success: true, data: { status: null, hoursStatus: null } });
 
     await prisma.space.update({ where: { slug: 'open-room' }, data: { isHidden: true } });
     await prisma.space.update({ where: { slug: 'second-open' }, data: { deletedAt: new Date() } });

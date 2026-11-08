@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { liveStatus, type LiveStatusInput } from './liveStatus.ts';
+import { hoursStatusOf, liveStatus, type LiveStatusInput } from './liveStatus.ts';
 
 const NOW = new Date('2026-10-18T07:00:00Z');
 const IN_AN_HOUR = new Date('2026-10-18T08:00:00Z');
@@ -112,5 +112,29 @@ describe('liveStatus', () => {
     const aroundTheClock = WEEK.map(() => ({ opensMinute: 0, closesMinute: 1440 }));
     expect(liveStatus({ ...OPEN, week: aroundTheClock, at: at(0, 1439) })).toBe('AVAILABLE');
     expect(liveStatus({ ...OPEN, week: aroundTheClock, at: at(0, 0) })).toBe('AVAILABLE');
+  });
+});
+
+describe('hoursStatusOf', () => {
+  const sunday = (minute: number) => at(0, minute);
+
+  it('a space without hours has none, even under a closure', () => {
+    expect(hoursStatusOf({ week: null, closureNow: false, at: sunday(600) })).toBeNull();
+    expect(hoursStatusOf({ week: null, closureNow: true, at: sunday(600) })).toBeNull();
+  });
+
+  it('a closure in force closes a space its hours keep open', () => {
+    expect(hoursStatusOf({ week: WEEK, closureNow: true, at: sunday(600) })).toBe('CLOSED');
+  });
+
+  it('is OPEN from the opening minute, and CLOSED from the closing minute', () => {
+    expect(hoursStatusOf({ week: WEEK, closureNow: false, at: sunday(479) })).toBe('CLOSED');
+    expect(hoursStatusOf({ week: WEEK, closureNow: false, at: sunday(480) })).toBe('OPEN');
+    expect(hoursStatusOf({ week: WEEK, closureNow: false, at: sunday(1079) })).toBe('OPEN');
+    expect(hoursStatusOf({ week: WEEK, closureNow: false, at: sunday(1080) })).toBe('CLOSED');
+  });
+
+  it('a closed day is CLOSED at any minute', () => {
+    expect(hoursStatusOf({ week: WEEK, closureNow: false, at: at(5, 600) })).toBe('CLOSED');
   });
 });

@@ -67,12 +67,16 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `Today ${range}`,
     closedToday: 'Closed today',
     openAllDay: 'Open around the clock today',
+    /** A space whose hours were never saved: none is ever assumed. */
+    noHours: 'Hours not available',
     /** The straight-line distance from the visitor's point, the number left to right. */
     distance: ({ km }: { km: string }) => `${km} km away`,
   },
   status: {
-    /** A space with no live status: unverified, or with no hours or capacity yet. */
+    /** A space with no live status nor hours: unverified without hours, or with no capacity yet. */
     none: 'No live status',
+    /** An unverified space's state by its hours alone, on a neutral badge, never the live status's. */
+    byHours: { OPEN: 'Open now', CLOSED: 'Closed now' },
   },
   /** The filters: a sidebar from 1024 px, a bottom sheet below it. */
   filters: {
@@ -95,10 +99,11 @@ export const DIRECTORY = {
     showLoading: 'Show results',
     clear: 'Clear',
     close: 'Close',
-    spaces: 'Spaces',
-    availableNow: 'Available now only',
+    /** The group of the hours' filters. */
+    schedule: 'Hours',
+    openNow: 'Open now',
+    evening: 'Open in the evening',
     verified: 'Verified spaces only',
-    availableNote: '“Available now” covers verified spaces only.',
     price: 'Price',
     period: 'Period',
     from: 'From',
@@ -187,14 +192,14 @@ export const DIRECTORY = {
     truncated: ({ count }: { count: string }) =>
       `Showing the first ${count} spaces; zoom in to see the rest.`,
   },
-  /** Home's spaces: available now, or the nearest while near me sorts by distance. */
+  /** Home's spaces: open now, or the nearest while near me sorts by distance. */
   home: {
-    available: 'Available now',
+    openNow: 'Open now',
     nearest: 'Spaces nearest you',
     viewAll: 'View all',
     empty: {
-      title: 'No spaces available right now',
-      text: 'Spaces may be full or closed at this time. Browse all spaces to see their hours.',
+      title: 'No spaces open right now',
+      text: 'Spaces may be closed at this time. Browse all spaces to see their hours.',
       action: 'Browse all spaces',
     },
   },
@@ -236,6 +241,8 @@ export const DIRECTORY = {
     liveStatus: {
       live: 'Live right now',
       unverified: 'Live status is shown for verified spaces only',
+      /** Beside an unverified space's state by its hours. */
+      byHours: 'By its opening hours; live status is shown for verified spaces only',
       unset: 'This space’s live status isn’t set up yet.',
       failed: 'We couldn’t read the status just now',
       /** In place of «live», once a refresh failed and the status shown is past 3 minutes old. */
@@ -302,7 +309,7 @@ export const DIRECTORY = {
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       /** The shifts' names, listed. */
       shifts: ({ list }: { list: string }) => `Shifts: ${list}`,
-      none: 'Opening hours not added yet',
+      none: 'Hours not available',
     },
     location: {
       directions: 'Directions',

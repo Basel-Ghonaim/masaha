@@ -8,7 +8,8 @@ const DEFAULTS: DirectoryFilters = {
   period: 'DAY',
   min: undefined,
   max: undefined,
-  availableNow: false,
+  openNow: false,
+  evening: false,
   verified: false,
   studentPrices: false,
   openFriday: false,
@@ -24,7 +25,7 @@ describe('filtersOf', () => {
     expect(read('')).toEqual(DEFAULTS);
     expect(
       read(
-        'q=Focus&area=3,7,3&period=MONTH&min=10&max=30&available=1&verified=1&students=1&friday=1&sort=name&page=2',
+        'q=Focus&area=3,7,3&period=MONTH&min=10&max=30&open=1&evening=1&verified=1&students=1&friday=1&sort=name&page=2',
       ),
     ).toEqual({
       q: 'Focus',
@@ -32,7 +33,8 @@ describe('filtersOf', () => {
       period: 'MONTH',
       min: 10,
       max: 30,
-      availableNow: true,
+      openNow: true,
+      evening: true,
       verified: true,
       studentPrices: true,
       openFriday: true,
@@ -54,12 +56,18 @@ describe('filtersOf', () => {
     expect(read('max=100000').max).toBe(100_000);
     expect(read('min=50&max=10')).toMatchObject({ min: 50, max: undefined });
     expect(read('min=10&max=10')).toMatchObject({ min: 10, max: 10 });
-    expect(read('available=true').availableNow).toBe(false);
+    expect(read('open=true').openNow).toBe(false);
+    expect(read('evening=yes').evening).toBe(false);
     expect(read('sort=relevance').sort).toBeUndefined();
     expect(read('sort=distance').sort).toBeUndefined();
     expect(read('page=0').page).toBe(1);
     expect(read('page=2.5').page).toBe(1);
     expect(read('view=grid').view).toBe('list');
+  });
+
+  it('reads the retired available=1 and availableNow=true as nothing: an old link opens unfiltered', () => {
+    expect(read('available=1')).toEqual(DEFAULTS);
+    expect(read('availableNow=true')).toEqual(DEFAULTS);
   });
 
   it('reads and writes view=map, the list unwritten', () => {
@@ -95,11 +103,13 @@ describe('paramsOf', () => {
         areas: [3, 7],
         period: 'WEEK',
         max: 30,
+        openNow: true,
+        evening: true,
         verified: true,
         sort: 'updated',
         page: 2,
       }).toString(),
-    ).toBe('q=Focus&area=3%2C7&period=WEEK&max=30&verified=1&sort=updated&page=2');
+    ).toBe('q=Focus&area=3%2C7&period=WEEK&max=30&open=1&evening=1&verified=1&sort=updated&page=2');
     expect(paramsOf({ ...DEFAULTS, min: 10 }).toString()).toBe('period=DAY&min=10');
   });
 });

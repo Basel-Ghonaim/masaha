@@ -110,3 +110,33 @@ describe('Home’s near me', () => {
     });
   });
 });
+
+describe('Home’s spaces', () => {
+  it('asks for six spaces open now, is titled «Open now», and «View all» leads to the open list', async () => {
+    const requests = fakeTransport((request) =>
+      request.url === '/lookups'
+        ? ok({ governorates: [], amenities: [] })
+        : request.url === '/map/spaces'
+          ? ok({ pins: [], truncated: false })
+          : EMPTY_PAGE,
+    );
+    const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
+      initialEntries: ['/'],
+    });
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Open now' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
+      'href',
+      '/spaces?open=1',
+    );
+    expect(await screen.findByText('No spaces open right now')).toBeInTheDocument();
+    expect(
+      requests.filter(({ url }) => url === '/spaces').map(({ params }) => params as unknown),
+    ).toEqual([{ limit: 6, openNow: true }]);
+  });
+});

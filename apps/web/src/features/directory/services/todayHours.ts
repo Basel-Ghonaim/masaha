@@ -8,19 +8,20 @@ type TodayWords = {
   today: (values: { range: string }) => string;
   closedToday: string;
   openAllDay: string;
+  noHours: string;
 };
 
 /**
  * Today's opening hours as the card says them, today being Gaza's (the week runs Sunday 0 to
  * Saturday 6, as `days` does): closed, around the clock, or the range, left to right. Hours never
- * saved draw nothing.
+ * saved say so: none are ever assumed.
  */
 export function todayHours(
   days: (OpeningRange | null)[] | null,
   now: Date,
   words: TodayWords,
-): string | null {
-  if (days === null) return null;
+): string {
+  if (days === null) return words.noHours;
   const today = days[gazaClockOf(now).dayOfWeek] ?? null;
   if (today === null) return words.closedToday;
   if (today.opensMinute === 0 && today.closesMinute === DAY_MINUTES) return words.openAllDay;

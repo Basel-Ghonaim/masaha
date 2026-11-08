@@ -45,7 +45,7 @@ function favorites(caller: { authorization: string } | null, query = '', near?: 
 type Favorite = { listed: boolean; savedAt: string; space: { id: number } };
 
 describe('GET /me/favorites', () => {
-  it('the favourites, whole, newest saved first: a listed space as its card with its live status; a deleted, hidden or inactive-area one listed false with its name', async () => {
+  it('the favourites, whole, newest saved first: a listed space as its card with its states; a deleted, hidden or inactive-area one listed false with its name', async () => {
     const open = await createPublicSpace(areaId, 'Open Room');
     await signInOwnerOf(open.id);
     await setWeek(open.id, EVERY_DAY);
@@ -65,10 +65,12 @@ describe('GET /me/favorites', () => {
 
     expect(response.status).toBe(200);
     const listed = (await request(app).get('/api/v1/spaces').expect(200)).body as {
-      data: { id: number; liveStatus: unknown }[];
+      data: { id: number; liveStatus: unknown; hoursStatus: unknown }[];
     };
     const cardOf = (id: number) => listed.data.find((card) => card.id === id);
-    expect(cardOf(open.id)?.liveStatus).toBe('AVAILABLE');
+    expect(cardOf(open.id)).toMatchObject({ liveStatus: 'AVAILABLE', hoursStatus: 'OPEN' });
+    // Hours never saved: no state by them.
+    expect(cardOf(plain.id)).toMatchObject({ liveStatus: null, hoursStatus: null });
     expect(dataOf(response)).toEqual([
       {
         listed: false,
