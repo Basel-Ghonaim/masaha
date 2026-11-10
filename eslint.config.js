@@ -37,8 +37,8 @@ const sharedPaths = (levels) => ['core', ...levels.flatMap((level) => MODULE_LEV
 
 // The design-system layer's public entries (docs/frontend/design-system/foundation.md §3): its one
 // surface, and the entries of its components that carry a heavy library: the data components
-// (finding 45) and the calendar (finding 169).
-const LAYER_ENTRIES = ['index.ts', 'data.ts', 'calendar.ts'];
+// (finding 45), the calendar (finding 169) and the sortable list.
+const LAYER_ENTRIES = ['index.ts', 'data.ts', 'calendar.ts', 'sortable.ts'];
 
 // The capabilities with a second entry, public.ts, beside their index.ts: what the site draws of
 // them, apart from what only the dashboard draws, so a site page's chunk never reaches the
@@ -73,6 +73,7 @@ const LAYER_ONLY_IMPORTS = {
     'react-day-picker/*',
     '@tanstack/react-table',
     '@tanstack/table-core',
+    '@dnd-kit/*',
   ],
   message:
     'Only the design-system layer imports this package. Use what @shared/design-system exports.',

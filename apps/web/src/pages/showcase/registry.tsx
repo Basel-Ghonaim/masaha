@@ -28,6 +28,7 @@ import { InputSection } from './sections/fields/InputSection';
 import { RadioGroupSection } from './sections/fields/RadioGroupSection';
 import { SegmentedControlSection } from './sections/fields/SegmentedControlSection';
 import { SelectSection } from './sections/fields/SelectSection';
+import { SortableSection } from './sections/fields/SortableSection';
 import { SwitchSection } from './sections/fields/SwitchSection';
 import { TextareaSection } from './sections/fields/TextareaSection';
 import { ToggleGroupSection } from './sections/fields/ToggleGroupSection';
@@ -178,6 +179,7 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
     <RefreshingSection samples={samples} />
   )),
   entry('data', 'Heatmap', 'heatmap', (samples) => <HeatmapSection samples={samples} />),
+  entry('fields', 'Sortable', 'sortable', (samples) => <SortableSection samples={samples} />),
 ];
 
 export type ShowcaseView =

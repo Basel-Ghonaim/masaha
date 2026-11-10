@@ -646,6 +646,31 @@
           "panel": "اختيار نهاية الاشتراك"
         }
       },
+      "sortable": {
+        "title": "قائمة قابلة للترتيب",
+        "gridCaption": "شبكة تُرتَّب بسحب البطاقة كلها؛ الأولى هي الغلاف",
+        "gridLabel": "صور المساحة",
+        "listCaption": "قائمة تُرتَّب بمقبض في كل صف",
+        "listLabel": "وسائل التواصل",
+        "heldCaption": "قائمة موقوفة أثناء الحفظ: لا ترفع شيئًا وتقول السبب",
+        "tiles": [
+          "قاعة العمل المشتركة",
+          "غرفة الاجتماعات",
+          "ركن القهوة",
+          "المدخل الرئيسي",
+          "الشرفة المطلة"
+        ],
+        "rows": ["واتساب الاستقبال", "هاتف المكتب", "بريد المساحة", "صفحة إنستغرام"],
+        "first": "الغلاف",
+        "handle": "رتّب {name}",
+        "roleDescription": "عنصر قابل للترتيب",
+        "instructions": "اضغط المسافة أو Enter لرفع العنصر، ثم الأسهم لنقله، ثم المسافة لوضعه، أو Escape للتراجع",
+        "lifted": "رُفع {name}، في الموضع {position} من {count}",
+        "moved": "نُقل {name} إلى الموضع {position} من {count}",
+        "dropped": "وُضع {name} في الموضع {position} من {count}",
+        "cancelled": "أُعيد {name} إلى الموضع {position} من {count}",
+        "held": "لا يمكن نقل {name} الآن: الحفظ جارٍ"
+      },
       "members": {
         "label": "مشتركو مساحة الريادة",
         "columns": {
@@ -1513,6 +1538,36 @@
           "error": "Choose the end date before saving",
           "panel": "Choose the end of the membership"
         }
+      },
+      "sortable": {
+        "title": "Sortable list",
+        "gridCaption": "A grid ordered by dragging the whole tile; the first is the cover",
+        "gridLabel": "The space's photos",
+        "listCaption": "A list ordered by a handle on each row",
+        "listLabel": "Contact details",
+        "heldCaption": "A list held while saving: it lifts nothing and says why",
+        "tiles": [
+          "The shared work hall",
+          "The meeting room",
+          "The coffee corner",
+          "The main entrance",
+          "The terrace with a view"
+        ],
+        "rows": [
+          "Reception's WhatsApp",
+          "The office phone",
+          "The space's email",
+          "The Instagram page"
+        ],
+        "first": "The cover",
+        "handle": "Reorder {name}",
+        "roleDescription": "Reorderable item",
+        "instructions": "Press Space or Enter to lift the item, the arrow keys to move it, Space to drop it, or Escape to put it back",
+        "lifted": "Lifted {name}, in position {position} of {count}",
+        "moved": "Moved {name} to position {position} of {count}",
+        "dropped": "Dropped {name} in position {position} of {count}",
+        "cancelled": "Put {name} back in position {position} of {count}",
+        "held": "Cannot move {name} now: a save is under way"
       },
       "members": {
         "label": "Members of the Riyada space",
