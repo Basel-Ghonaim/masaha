@@ -10,5 +10,7 @@ export { dayWord } from './time/dayWord';
 export { updatedAgo } from './time/updatedAgo';
 export { carrierOf, type Carrier } from './phone/carrierOf';
 export { whatsappLink } from './phone/whatsappLink';
+export { contactLinkOf, type ContactLink, type ContactWords } from './contacts/contactLink';
+export { mapsLink } from './map/mapsLink';
 export { csvOf, type CsvValue } from './csv/csvOf';
 export { downloadFile } from './csv/downloadFile';

@@ -1,12 +1,11 @@
 import type { PublicSpace } from '@masaha/shared/directory';
 import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
-import { spaceNameOf, updatedAgo } from '@shared/lib';
+import { contactLinkOf, mapsLink, spaceNameOf, updatedAgo } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
 import type { PageTitle } from '@shared/routing';
 import { useState } from 'react';
 import { statusViewOf } from '../../services/cardView';
-import { contactLinkOf } from '../../services/contactLinks';
 import { distanceText } from '../../services/distanceText';
 import { freshnessOf } from '../../services/freshness';
 import { localText } from '../../services/localText';
@@ -36,10 +35,6 @@ const closureRuns = (announcements: PublicSpace['announcements'], now: Date) =>
       Date.parse(announcement.startsAt) <= now.getTime() &&
       (announcement.endsAt === null || Date.parse(announcement.endsAt) > now.getTime()),
   );
-
-/** Directions to a point, in the visitor's maps. */
-const directionsTo = ({ lat, lng }: { lat: number; lng: number }) =>
-  `https://www.google.com/maps/search/?api=1&query=${String(lat)},${String(lng)}`;
 
 /**
  * A space's public page, ready to render (screen 3): its states (loading; a failure, said with its
@@ -265,7 +260,7 @@ export function useSpacePage(slug: string): SpacePageView {
       landmark: space ? localText(space.landmarkAr, space.landmarkEn, english) : null,
       directions: {
         label: words.location.directions,
-        href: directionsTo(space?.location ?? { lat: 0, lng: 0 }),
+        href: mapsLink(space?.location ?? { lat: 0, lng: 0 }),
       },
     },
     contacts:

@@ -1,4 +1,4 @@
-import type { ContactLink } from '../../services/contactLinks';
+import type { ContactLink } from '@shared/lib';
 
 /**
  * A space's contacts, one link each: its type's word (a phone's with its carrier), then its value as

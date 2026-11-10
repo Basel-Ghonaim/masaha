@@ -1,6 +1,6 @@
 import { CATALOGUES } from '@shared/copy';
 import { describe, expect, it } from 'vitest';
-import { contactLinkOf } from './contactLinks';
+import { contactLinkOf } from './contactLink';
 
 const WORDS = CATALOGUES.ar.directory.page.contacts;
 

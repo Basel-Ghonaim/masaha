@@ -1,10 +1,15 @@
-import type { Contact } from '@masaha/shared/spaces';
-import type { Catalogue } from '@shared/copy';
-import { carrierOf } from '@shared/lib';
+import type { Contact, ContactType } from '@masaha/shared/spaces';
+import type { Carrier } from '../phone/carrierOf';
+import { carrierOf } from '../phone/carrierOf';
 
-type Words = Catalogue['directory']['page']['contacts'];
+/** The words a contact's link is named with, as each catalogue that shows contacts gives them. */
+export type ContactWords = {
+  types: Record<ContactType, string>;
+  withCarrier: (values: { type: string; carrier: string }) => string;
+  carriers: Record<Carrier, string>;
+};
 
-/** A contact as the page links it. */
+/** A contact as a page links it. */
 export type ContactLink = {
   key: string;
   /** Its type's word, a phone's with its carrier. */
@@ -19,9 +24,10 @@ export type ContactLink = {
 /**
  * A space's contact as a link: WhatsApp to `wa.me` with the number's digits, a phone to call (its
  * carrier in its label, read from its prefix), an email to write, and a network or a website to its
- * stored `https://` address.
+ * stored `https://` address. One rule for every page that shows a space's contacts, so an owner
+ * tries each as a visitor would.
  */
-export function contactLinkOf({ type, value }: Contact, words: Words): ContactLink {
+export function contactLinkOf({ type, value }: Contact, words: ContactWords): ContactLink {
   const base = { key: `${type}:${value}`, value };
   switch (type) {
     case 'WHATSAPP':
