@@ -130,6 +130,20 @@ describe('SpaceDetails', () => {
     );
   });
 
+  it('names a contact of another kind by its own name, isolated from the page’s direction', async () => {
+    renderDetails(
+      1440,
+      publicSpace({
+        contacts: [{ type: 'OTHER', value: 'https://discord.gg/noor', label: 'Discord' }],
+      }),
+    );
+
+    const link = await screen.findByRole('link', { name: /Discord/ });
+    expect(link).toHaveAttribute('href', 'https://discord.gg/noor');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(within(link).getByText('Discord')).toHaveAttribute('dir', 'auto');
+  });
+
   it('the owner’s dialog shows the page’s contact, or its `none` line', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderDetails(1440, publicSpace({ isVerified: false }), <p>لا توجد وسيلة تواصل متاحة الآن.</p>);

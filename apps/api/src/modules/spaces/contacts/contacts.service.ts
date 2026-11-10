@@ -7,9 +7,13 @@ import type { Actor, LoadedSpace } from '../../../shared/auth/index.ts';
 import { createGroupEdit, type GroupEditDependencies } from '../facts/groupEdit.ts';
 import { createContactsRepository } from './contacts.repository.ts';
 
-/** The contacts as an audit entry records them: the whole list. */
+/** The contacts as an audit entry records them: the whole list, a name only where one is held. */
 function contactsValues(contacts: readonly Contact[]): AuditValues {
-  return { contacts: contacts.map(({ type, value }) => ({ type, value })) };
+  return {
+    contacts: contacts.map(({ type, value, label }): AuditValues =>
+      label === null ? { type, value } : { type, value, label },
+    ),
+  };
 }
 
 /**
@@ -29,7 +33,7 @@ export function createContactsService(dependencies: GroupEditDependencies) {
     ): Promise<AdminSpace> {
       return editGroup(actor, space, 'contacts', 'Edited', async (tx, current) => {
         const before = await contacts.listFor(space.id, tx);
-        const next = request.contacts.map(({ type, value }) => ({ type, value }));
+        const next = request.contacts.map(({ type, value, label }) => ({ type, value, label }));
         if (current.contactsUpdatedAt && isDeepStrictEqual(before, next)) return null;
 
         await contacts.replace(space.id, next, tx);

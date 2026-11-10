@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-11-10 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -1376,8 +1376,10 @@ Price = {
   amountAgorot: number                          // whole agorot, ILS; display only
 }
 Contact = {
-  type: "WHATSAPP" | "PHONE" | "EMAIL" | "INSTAGRAM" | "FACEBOOK" | "TIKTOK" | "WEBSITE",   // CONTACT_TYPES
+  type: "WHATSAPP" | "PHONE" | "EMAIL" | "INSTAGRAM" | "FACEBOOK" | "TELEGRAM" | "TIKTOK"
+      | "X" | "LINKEDIN" | "YOUTUBE" | "WEBSITE" | "OTHER",                // CONTACT_TYPES
   value: string                                 // in its type's stored form
+  label: string | null                          // OTHER's own name («ديسكورد»); null for every other type
 }
 ```
 
@@ -1454,8 +1456,8 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422), with `invalid_choice` on `amenityIds.<i>` for an amenity added that is retired or does not exist; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/contacts` · 🛡
-- **Body:** `{ contacts }`, at most 20, each `{ type, value }`: `type` from its list (`invalid_choice`); `value` at most 200 characters, valid for its type and stored in its one form ([data-model › Conventions](../architecture/data-model.md#conventions)), else `invalid_format` on `contacts.<i>.value`. A contact that repeats an earlier one once both are in their stored form is `not_unique`.
-- **200:** `AdminSpace`, the contacts in their stored form. Audited `space.contactsEdited` (`before` and `after`: `{ contacts }`).
+- **Body:** `{ contacts }`, at most 20, each `{ type, value, label? }`: `type` from its list (`invalid_choice`); `value` at most 200 characters, valid for its type and stored in its one form ([data-model › Conventions](../architecture/data-model.md#conventions)), else `invalid_format` on `contacts.<i>.value`. `label` is a contact of another kind's (`OTHER`) own name, one line of 1–40 characters, trimmed (`too_short`, `too_long`; a bidirectional or control character `invalid_format`): required for `OTHER` (`required` on `contacts.<i>.label`), refused on any other type (`invalid_format` there), absent or `null` otherwise. A contact that repeats an earlier one once both are in their stored form is `not_unique`; two of another kind with one value are one contact, whatever their names.
+- **200:** `AdminSpace`, the contacts in their stored form, each `label` trimmed or `null`. Audited `space.contactsEdited` (`before` and `after`: `{ contacts }`, each `{ type, value }`, with its `label` when it has one).
 - **Errors:** `validation` (422); `forbidden` (403); `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡

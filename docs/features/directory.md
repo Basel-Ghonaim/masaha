@@ -1,6 +1,6 @@
 # Directory
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-10 · **Owner:** Basel Ghoneim
 > **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status; and a signed-in user's favourites as its cards. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public) and [its favourites](../api/api-contract.md#favourites); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list, its filters and near me, its map, a space's page, Home's spaces and its areas' counts, About's legend of the statuses, and the account's favourites are built.
 > **Scope:** the API module `directory` (L5); `@masaha/shared/directory`; the web feature `features/directory`, for any page group.
 
@@ -161,6 +161,7 @@ The page shows its announcements: a running closure's notice at its top, the oth
 - **A page not found says «لم نجد هذه المساحة», and an unverified space's notice and dialog say «فريقنا»** (design issues 25, 26). *Why:* «غير متاحة» read as full; «فريق مساحة» read as the space's team. 2026-10-22, #107.
 - **A section with nothing saved is not drawn, but the prices and the hours say so** (design issues 24, 33, 35). *Why:* the prototype's rule; a visitor needs to know a price or an hour is missing, not hidden. 2026-10-22, #107.
 - **Contacts' labels are Arabic in Arabic, their values as stored, left to right** (design issue 30). 2026-10-22, #107.
+- **A contact of another kind is named by its own name, isolated from the page's direction; a number among them calls** (M4). *Why:* the name is the space's own text, in either script. 2026-11-10, #140.
 - **The gallery opens for every space with more than one photo, and the page polls its live status while visible** (design issue 32, decision 3). *Why:* visitors can inspect all available photos and see a fresh status without polling directory lists. 2026-10-22, #108.
 
 ## Code map
@@ -216,3 +217,4 @@ The page shows its announcements: a running closure's notice at its top, the oth
 - 2026-11-08, #139 — the panel's «الدوام» and «أخرى» as checkboxes, the address's `open` and `evening`; an unverified space's state by its hours on its card, its pin and its page; «ساعات العمل غير متوفرة»; Home's «مفتوحة الآن».
 - 2026-11-08, #139 — the price as a subscription on `SegmentedControl`, its range hinted by the subscriptions' prices, the sort's price orders, the card's price.
 - 2026-11-08, #139 — 18 spaces a page; the sheet's button counts the results in Arabic agreement; the filter column 4 of 12 below 1280 px.
+- 2026-11-10, #140 — a space's page links Telegram, X, LinkedIn and YouTube, and names a contact of another kind by its own name; its contacts' and directions' links are `@shared/lib`'s.

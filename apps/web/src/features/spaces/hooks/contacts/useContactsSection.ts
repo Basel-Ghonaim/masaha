@@ -19,12 +19,22 @@ import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
 
-/** The contacts as their form holds them: each value as typed. */
-type ContactsValues = { contacts: { type: ContactType; value: string }[] };
+/**
+ * The contacts as their form holds them: each value as typed, and a contact of another kind's own
+ * name as saved (this section names none yet: it offers no such contact, and keeps a saved one).
+ */
+type ContactsValues = { contacts: { type: ContactType; value: string; label: string | null }[] };
 
 const contactsValues = (space: Pick<AdminSpace, 'contacts'>): ContactsValues => ({
-  contacts: space.contacts.map(({ type, value }) => ({ type, value })),
+  contacts: space.contacts.map(({ type, value, label }) => ({ type, value, label })),
 });
+
+/** The types a row offers: every type but another kind, which needs a name this section cannot take. */
+const typesFor = (current: ContactType) =>
+  CONTACT_TYPES.filter((option) => option !== 'OTHER' || current === 'OTHER');
+
+/** The networks reached by a link only: a name alone says no page. */
+const LINK_ONLY: readonly ContactType[] = ['LINKEDIN'];
 
 // The fields in the order the section shows them: a refusal focuses the first it names.
 /** A contact's field, by its row. */
@@ -40,7 +50,7 @@ const NEW_TYPE: ContactType = 'WHATSAPP';
 
 /**
  * The editor's «التواصل» section, ready to render: the contacts, up to the contract's twenty, each
- * of the contract's seven types, its value's helper showing the form it is stored in as it is typed
+ * of the contract's types but another kind (a saved one kept, with its name), its value's helper showing the form it is stored in as it is typed
  * (the shared rule's), or an example while it holds none, and a phone's carrier beside it. A value
  * that cannot be stored, or a repeat once stored, is refused on its own row before anything is sent.
  */
@@ -119,7 +129,8 @@ export function useContactsSection({
     if (code === 'too_long') return lines.too_long;
     if (value.trim() === '') return lines.empty;
     if (type === 'PHONE' || type === 'WHATSAPP') return lines.phone;
-    return type === 'EMAIL' ? lines.email : lines.link;
+    if (type === 'EMAIL') return lines.email;
+    return LINK_ONLY.includes(type) ? lines.linkOnly : lines.link;
   };
   const full = list.fields.length >= MAX_CONTACTS;
 
@@ -135,7 +146,7 @@ export function useContactsSection({
         type: {
           label: words.type,
           value: type,
-          options: CONTACT_TYPES.map((option) => ({ value: option, label: words.types[option] })),
+          options: typesFor(type).map((option) => ({ value: option, label: words.types[option] })),
           disabled: form.isPending,
           choose: (option: string) => {
             setValue(contactField(index, 'type'), option as ContactType, { shouldDirty: true });
@@ -167,7 +178,7 @@ export function useContactsSection({
       disabled: full || form.isPending,
       reason: full ? words.limit : null,
       run: () => {
-        list.append({ type: NEW_TYPE, value: '' });
+        list.append({ type: NEW_TYPE, value: '', label: null });
       },
     },
   };

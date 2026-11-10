@@ -61,6 +61,11 @@ enum ContactType {
   FACEBOOK
   TIKTOK
   WEBSITE
+  TELEGRAM
+  X
+  LINKEDIN
+  YOUTUBE
+  OTHER
 }
 
 // How a subscription or a package is charged: one fixed price, or its attendance at a rate.
@@ -543,12 +548,14 @@ model SpacePrice {
   @@map("space_prices")
 }
 
-/// Phone and WhatsApp values are E.164; social and website values are full https URLs.
+/// Phone and WhatsApp values are E.164; social and website values are full https URLs. A contact
+/// of another kind (OTHER) has its own label, never blank; no other type has one.
 model SpaceContact {
   id        Int         @id @default(autoincrement())
   spaceId   Int         @map("space_id")
   type      ContactType
   value     String
+  label     String?
   sortOrder Int         @default(0) @map("sort_order")
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)

@@ -140,7 +140,7 @@ describe('useSpacePage', () => {
     unverified.unmount();
 
     const emailOnly = renderPage(() =>
-      ok(publicSpace({ contacts: [{ type: 'EMAIL', value: 'hi@noor.ps' }] })),
+      ok(publicSpace({ contacts: [{ type: 'EMAIL', value: 'hi@noor.ps', label: null }] })),
     );
     await waitFor(() => {
       expect(emailOnly.result.current.state).toBe('ready');

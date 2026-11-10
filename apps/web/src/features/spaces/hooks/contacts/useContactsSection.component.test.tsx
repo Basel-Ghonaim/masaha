@@ -20,7 +20,7 @@ const isolated = (value: string) => `${LRI}${value}${PDI}`;
 /** A space whose contacts were saved: one phone. */
 const SPACE = {
   id: 7,
-  contacts: [{ type: 'PHONE', value: '+970599123456' }],
+  contacts: [{ type: 'PHONE', value: '+970599123456', label: null }],
   isVerified: false,
   updatedAt: { contacts: '2026-10-10T08:00:00Z' },
   staleGroups: [],
@@ -120,8 +120,65 @@ describe('useContactsSection', () => {
       expect(writes()).toHaveLength(1);
     });
     expect(bodyOf(writes()[0])).toEqual({
-      contacts: [{ type: 'WHATSAPP', value: '+970599123456' }],
+      contacts: [{ type: 'WHATSAPP', value: '+970599123456', label: null }],
     });
+  });
+
+  it('offers the four new networks, and no contact of another kind, which needs its name', () => {
+    const { result } = renderSection(MISSING);
+
+    act(() => {
+      result.current.add.run();
+    });
+
+    expect(result.current.rows[0]?.type.options.map(({ value }) => value)).toEqual([
+      'WHATSAPP',
+      'PHONE',
+      'EMAIL',
+      'INSTAGRAM',
+      'FACEBOOK',
+      'TELEGRAM',
+      'TIKTOK',
+      'X',
+      'LINKEDIN',
+      'YOUTUBE',
+      'WEBSITE',
+    ]);
+  });
+
+  it('keeps a saved contact of another kind with its name, its type offered on its row only', async () => {
+    const other = { type: 'OTHER', value: 'https://discord.gg/noor', label: 'ديسكورد' } as const;
+    const { result, writes } = renderSection({ ...SPACE, contacts: [other] });
+    await addContact(result, '0599 123 456');
+
+    expect(result.current.rows[0]?.type.options.at(-1)).toEqual({
+      value: 'OTHER',
+      label: 'Other',
+    });
+    expect(result.current.rows[1]?.type.options.map(({ value }) => value)).not.toContain('OTHER');
+
+    save(result);
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({
+      contacts: [other, { type: 'WHATSAPP', value: '+970599123456', label: null }],
+    });
+  });
+
+  it('refuses a LinkedIn name alone, asking for the page’s full link', async () => {
+    const { result, writes } = renderSection(MISSING);
+    await addContact(result, 'masaha', 'LINKEDIN');
+
+    save(result);
+
+    await waitFor(() => {
+      expect(result.current.rows[0]?.value.error).toBe(
+        'Not a valid link: paste the page’s full link, a name alone is not enough here',
+      );
+    });
+    expect(writes()).toHaveLength(0);
   });
 
   it('refuses each value on its row, in its type’s words, sending nothing', async () => {
@@ -198,6 +255,7 @@ describe('useContactsSection', () => {
       contacts: Array.from({ length: 20 }, (_, index) => ({
         type: 'EMAIL' as const,
         value: `desk${String(index)}@example.com`,
+        label: null,
       })),
     });
 

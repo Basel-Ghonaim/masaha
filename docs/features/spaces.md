@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-10 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -149,6 +149,7 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - **Contacts are validated per type and stored in one form** (F6), the forms the [data model](../architecture/data-model.md#conventions) gives. *Why:* one number or address has one form, so a repeat is found and a link always opens. 2026-10-07, #48.
 - **A network link keeps its path only, but a Facebook profile keeps its numeric `id`** ([data model](../architecture/data-model.md#conventions)). *Why:* a query is mostly tracking, but a profile with no username has no other address (the owner's refinement). 2026-10-07, #48.
 - **The phone rule is the platform's, in `core`** (D6). *Why:* every phone number in the database has one form; the customers will use it. 2026-10-07, #48.
+- **A contact may be of another kind, with a name of its own** (M4): `OTHER`, its `label` required and kept by a `CHECK`, its value a number by the phone rule (D6) or else a web link; Telegram, X, LinkedIn and YouTube are networks like the others, LinkedIn by a link only. *Why:* the owner's «any contact the owner has»; a number keeps one form, and a foreign messenger is reached by its link. 2026-11-10, #140.
 - **Only an active amenity can be added; a retired one already linked stays until it is removed** (F7). *Why:* a retired amenity keeps its links (data-model). 2026-10-07, #48.
 - **The space's reads name the retired amenities it holds** (`retiredAmenities`, named by `lookups` in the read's transaction, in the platform's order). *Why:* the owner's checklist shows each, marked, until a save leaves it out (the owner's 99). 2026-10-29, #132.
 - **A space keeps amenities of its own beside the platform's, in the amenities group** (the owner's decision, D2): short texts, Arabic required and English optional, in their order, saved, dated, audited and confirmed with the group. *Why:* an owner must be able to say what the space offers beyond the platform's common list, which stays the admin's ([lookups](lookups.md)). 2026-10-12, #64.
@@ -267,6 +268,7 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - **The prices table starts at 1024 px,** each price a card below it. *Why:* full tables are the desktop's, from 1024 px ([foundation §9](../frontend/design-system/foundation.md#9-responsive-layout)); between 768 and 1024 px, beside the sidebar, the shift's select was cut ([finding 67](../architecture/findings/67-the-prices-table-cuts-its-shift-at-768-px.md)). 2026-10-20, #96.
 - **The editor lands on the section its address's hash names, once its cards have drawn** (`useHashLanding`, finding 184): it scrolls there and focuses the section's heading, which carries `tabIndex={-1}`; once per opening, a later hash change being the shell's. *Why:* the cards draw only after the space's read, so the browser's own jump found nothing. 2026-10-29, #132.
 - **A page may set a notice above a section of the editable editor** (`noticeFor`, by fact group), such as `data-reports`' report notice. *Why:* the editor knows its sections, the page what stands above them; no feature imports another. 2026-10-29, #132.
+- **The contacts' section offers the four new networks, but no contact of another kind yet,** and keeps a saved one with its name (a row of that kind is offered its type). *Why:* another kind needs its name's field, which the redesigned profile brings. 2026-11-10, #140.
 
 
 ## Code map
@@ -280,6 +282,8 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 - [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
 - [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
+- [217](../architecture/findings/217-contacts-and-every-phone-refuse-arabic-indic-digits.md): contacts and every phone refuse Arabic-Indic digits.
+- [218](../architecture/findings/218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md): a website's bare number is stored as an IP address; a Facebook video link loses its id.
 
 ## History
 
@@ -298,6 +302,7 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
 - #132 — the daily reclamation of the photos' files no row holds (finding 63); the space's reads name the retired amenities it holds (finding 99's API half).
 - 2026-11-08, #139 — the public listing's hours filters (open now, open in the evening), its price per period (the lateral lowest price, the card's price and the price orders) and the price ranges.
+- 2026-11-10, #140 — contacts of any kind: Telegram, X, LinkedIn and YouTube, and another kind with its own name, stored, audited and answered in every read.
 
 ### Web history
 
@@ -319,3 +324,4 @@ editor, on the dashboard's «ملف المساحة» page; its prices lead to Pa
 - #132 — the amenities' section hands `lookups`' checklist the space's retired amenities (`retired`), named, so an owner's lists them (finding 99).
 - #132 — the editor lands on the section its hash names once drawn (finding 184), and a page's notice above a section (`noticeFor`).
 - #132 — `useSpaceOwners`, the space's active owners from the managed read, for the ledger's staff filter (finding 166).
+- 2026-11-10, #140 — the contacts' section offers Telegram, X, LinkedIn and YouTube; a LinkedIn name alone is refused in its own words.

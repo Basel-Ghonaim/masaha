@@ -350,8 +350,13 @@ export const DIRECTORY = {
         EMAIL: 'Email',
         INSTAGRAM: 'Instagram',
         FACEBOOK: 'Facebook',
+        TELEGRAM: 'Telegram',
         TIKTOK: 'TikTok',
+        X: 'X (Twitter)',
+        LINKEDIN: 'LinkedIn',
+        YOUTUBE: 'YouTube',
         WEBSITE: 'Website',
+        OTHER: 'Other',
       },
       /** A phone's type with its carrier. */
       withCarrier: ({ type, carrier }: { type: string; carrier: string }) => `${type} — ${carrier}`,

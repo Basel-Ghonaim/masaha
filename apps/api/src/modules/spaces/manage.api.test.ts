@@ -48,7 +48,10 @@ const factRoutes = [
   { suffix: '/hours', body: hours },
   { suffix: '/prices', body: { prices: [] } },
   { suffix: '/amenities', body: { amenityIds: [], ownAmenities: [] } },
-  { suffix: '/contacts', body: { contacts: [] } },
+  {
+    suffix: '/contacts',
+    body: { contacts: [{ type: 'OTHER', value: 'discord.gg/branch', label: 'ديسكورد' }] },
+  },
 ] as const;
 const confirmRoutes = ['profile', 'hours', 'prices', 'amenities', 'contacts'] as const;
 
