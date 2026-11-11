@@ -121,6 +121,12 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?demo=outside` | the location Sheet | «استخدم موقعي الحالي» lands past the Strip: «الموقع خارج قطاع غزة» |
 | `Admin space edit.html?id=golden` · `palm` · `new` · `focus` | the admin's editor | unverified and stale; hidden with the prices never saved; a new space; verified, the same view read-only |
 
+### Identity trial — ink + spark (2026-11-11)
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?identity=slate-coral` · `slate-berry` | every app page, carried on its links | a **trial** identity (`slate-berry` adopted by the owner, 2026-11-11; `slate-coral` kept to compare): ink actions, a spark for what matters now and the candidate's logo ([CHANGES.md](CHANGES.md#identity-trial--ink--spark-2026-11-11)); without it, *Sea* |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |

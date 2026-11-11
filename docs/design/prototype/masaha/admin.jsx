@@ -19,7 +19,7 @@ const ADMIN_NAV = () => [
 
 // SH-006: the platform's mark stays on the 768 rail, as the space's does in the owner's shell.
 const AdminMark = () => (
-  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground" aria-hidden="true">{tr('م', 'M')}</span>
+  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground" aria-hidden="true" data-brand-mark="tile">{tr('م', 'M')}</span>
 );
 
 function AdminShell({ current, title, theme, setTheme, actions, loadError, children }) {
@@ -37,7 +37,7 @@ function AdminShell({ current, title, theme, setTheme, actions, loadError, child
       <ASidebar label={tr('لوحة إدارة المنصة', 'Platform admin')}>
         <div className="sidebar-stick">
           <ASHeader mark={rail ? <ATip><ATipT asChild><span><AdminMark /></span></ATipT><ATipC>{brand}</ATipC></ATip> : <AdminMark />}>
-            <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-label">{tr('مساحة', 'Masaha')}</span><span className="truncate text-caption text-muted-foreground">{tr('إدارة المنصة', 'Platform admin')}</span></span>
+            <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-label" data-brand-mark="name">{tr('مساحة', 'Masaha')}</span><span className="truncate text-caption text-muted-foreground">{tr('إدارة المنصة', 'Platform admin')}</span></span>
           </ASHeader>
           <ASContent>
             {ADMIN_NAV().map((g, i) => (

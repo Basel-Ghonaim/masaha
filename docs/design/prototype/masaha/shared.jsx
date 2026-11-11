@@ -305,7 +305,7 @@ function SiteHeader({ current, theme, setTheme }) {
             <Button variant="ghost" size="icon" className="md:hidden" aria-label={tr("القائمة", "Menu")}><MenuIcon /></Button>
           </SheetTrigger>
           <SheetContent side="start" closeLabel={tr("إغلاق القائمة", "Close menu")} aria-describedby={undefined}>
-            <SheetHeader><SheetTitle className="text-primary">{tr("مساحة", "Masaha")}</SheetTitle></SheetHeader>
+            <SheetHeader><SheetTitle className="text-primary" data-brand-mark="word">{tr("مساحة", "Masaha")}</SheetTitle></SheetHeader>
             <SheetBody>
               <nav aria-label={tr("التنقل الرئيسي", "Main navigation")} className="flex flex-col gap-1">
                 {links.map((l) => (
@@ -320,7 +320,7 @@ function SiteHeader({ current, theme, setTheme }) {
             <div className="p-4"><ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} /></div>
           </SheetContent>
         </Sheet>
-        <a href="Home.html" className="text-heading-3 text-primary">{tr("مساحة", "Masaha")}</a>
+        <a href="Home.html" className="text-heading-3 text-primary" data-brand-mark="word">{tr("مساحة", "Masaha")}</a>
         <nav aria-label={tr("التنقل الرئيسي", "Main navigation")} className="ms-6 hidden items-center gap-1 md:flex">
           {links.map((l) => (
             <Button key={l.id} variant="ghost" size="sm" className={current === l.id ? 'text-foreground' : 'text-muted-foreground'} asChild>

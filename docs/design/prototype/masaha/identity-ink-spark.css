@@ -1,0 +1,114 @@
+/* Identity trial — "ink + spark" (2026-11-11). The owner adopted slate-berry (2026-11-11); slate-coral stays to
+   compare. Until foundation.md takes it, foundation §4–§5 (Sea) still rule and stay the default.
+   Loaded last on every app page. It does nothing unless <html data-identity="…"> is set, which i18n.js does
+   from ?identity=slate-coral | slate-berry (carried on every link). Without it the page is Sea.
+   The brand has two roles: a dark INK (neutral-900 / neutral-50) carries actions, links, focus and structure;
+   a warm SPARK marks what matters now — selected, current, the brand mark — sparingly, as fills, borders and
+   marks at ≥ 3:1, never as small text, never on an action button, never for destructive.
+   Every value was measured (TASKS/IDENTITY/5_PLAN_INK_SPARK.md): the ramps come from the palette lab's engine. */
+
+/* ── Primitives per candidate: the ink-hued neutral ramp, the spark ramp, and brand = spark, so any brand
+   use the remap below does not reach shows the spark, never Sea's teal. ── */
+
+/* Slate-blue ink + coral spark — ink: neutral hue 255, chroma 0.03; spark seed #C2492F */
+html[data-identity=slate-coral]{--neutral-50:#f7fbff;--neutral-100:#ebf3fe;--neutral-200:#d7e5f8;--neutral-300:#c3d0e2;--neutral-400:#99a6b7;--neutral-500:#707d8e;--neutral-600:#596473;--neutral-700:#434e5d;--neutral-800:#27313e;--neutral-900:#151f2c;--neutral-950:#09121e;--spark-50:#fef5f2;--spark-100:#ffe7e1;--spark-200:#fdcfc3;--spark-300:#fea793;--spark-400:#ef7b62;--spark-500:#d2573d;--spark-600:#ab432d;--spark-700:#8a3725;--spark-800:#69281a;--spark-900:#4a1a0f;--spark-950:#2d0c06}
+/* Dark uses spark-300: spark-400 (#EF7B62) measured ΔE 0.036 from red-400, 0.005 under CVD — the same colour. */
+html[data-identity=slate-coral][data-theme=light]{--spark:var(--spark-500);--spark-foreground:var(--neutral-950)}
+html[data-identity=slate-coral][data-theme=dark]{--spark:var(--spark-300);--spark-foreground:var(--neutral-950)}
+
+/* Slate ink + berry spark — ink: neutral hue 250, chroma 0.014; spark seed #A149A0, hue 328 */
+html[data-identity=slate-berry]{--neutral-50:#f7fbff;--neutral-100:#ecf4fc;--neutral-200:#dde5ed;--neutral-300:#c9d0d7;--neutral-400:#9fa6ad;--neutral-500:#767d84;--neutral-600:#5e646a;--neutral-700:#484e54;--neutral-800:#2c3137;--neutral-900:#1a1f25;--neutral-950:#0d1217;--spark-50:#fef3fe;--spark-100:#ffe3fd;--spark-200:#fac8f7;--spark-300:#eba5e8;--spark-400:#d27ed0;--spark-500:#b55bb3;--spark-600:#934791;--spark-700:#773a75;--spark-800:#5a2a59;--spark-900:#3f1b3e;--spark-950:#260d25}
+html[data-identity=slate-berry][data-theme=light]{--spark:var(--spark-500);--spark-foreground:var(--neutral-950)}
+html[data-identity=slate-berry][data-theme=dark]{--spark:var(--spark-400);--spark-foreground:var(--neutral-950)}
+
+html[data-identity]{--brand-50:var(--spark-50);--brand-100:var(--spark-100);--brand-200:var(--spark-200);--brand-300:var(--spark-300);--brand-400:var(--spark-400);--brand-500:var(--spark-500);--brand-600:var(--spark-600);--brand-700:var(--spark-700);--brand-800:var(--spark-800);--brand-900:var(--spark-900);--brand-950:var(--spark-950)}
+
+/* ── The semantic remap, shared by both. Destructive, success, warning, info and their subtle pairs are
+   the bundle's, unchanged (they read the Sea red/green/amber/blue ramps, which no candidate touches).
+   Hover and selected are two roles (round 4, measured as WCAG contrast of the fill against its ground):
+   - accent / sidebar-accent = SELECTED, the spark tint. Light spark-100: 1.19 on the card (spark-50 was 1.08,
+     unseen). Dark spark-900 lifted 30% toward 800: 1.23 on the card (900 alone was 1.14), still 0.13 (berry)
+     and 0.10 (coral) in OKLab from the destructive tint.
+   - hover = a neutral fill of its own, never the spark. Light neutral-200: 1.27 on the card, 1.22 on the
+     background (muted, neutral-100, was 1.11 / 1.07); muted-foreground on it 4.71. Dark keeps muted
+     (1.26 / 1.44). hover-on-muted is for the controls drawn on a muted track, where an opaque fill would
+     vanish: ink at 10% / 8%, 1.21 / 1.27 on the track. ── */
+html[data-identity][data-theme=light]{
+  --primary:var(--neutral-900);--primary-foreground:var(--white);
+  --ring:var(--primary);
+  --accent:var(--spark-100);--accent-foreground:var(--neutral-900);
+  --sidebar-primary:var(--spark);--sidebar-primary-foreground:var(--spark-foreground);
+  --sidebar-accent:var(--spark-100);--sidebar-accent-foreground:var(--neutral-900);
+  --hover:var(--neutral-200);--hover-on-muted:color-mix(in oklab,var(--foreground) 10%,transparent);
+  --sidebar-ring:var(--primary);
+  --chart-1:var(--spark);
+}
+html[data-identity][data-theme=dark]{
+  --primary:var(--neutral-50);--primary-foreground:var(--neutral-950);
+  --ring:var(--primary);
+  --accent:color-mix(in oklab,var(--spark-800) 30%,var(--spark-900));--accent-foreground:var(--neutral-50);
+  --sidebar-primary:var(--spark);--sidebar-primary-foreground:var(--spark-foreground);
+  --sidebar-accent:var(--accent);--sidebar-accent-foreground:var(--neutral-50);
+  --hover:var(--muted);--hover-on-muted:color-mix(in oklab,var(--foreground) 8%,transparent);
+  --sidebar-ring:var(--primary);
+  --chart-1:var(--spark);
+}
+
+/* ── Ink: actions, links, structure. ── */
+
+/* The bundle's primary hover mixes primary with foreground; with ink both are one colour, so the hover would
+   vanish. Mixed toward the background instead (white text keeps 4.5:1: measured in both themes). */
+html[data-identity] [data-slot=button].bg-primary:hover{background-color:color-mix(in oklch,var(--primary),var(--background) 18%)}
+/* The spark never sits on an action, and hover is never the selected tint. Inside a button (its hover and its
+   open state) and in a menu, a select or a combobox list (the highlighted item) accent is the hover fill. */
+html[data-identity] [data-slot=button],html[data-identity] [data-slot=dropdown-menu-content],html[data-identity] [data-slot=select-content],html[data-identity] [data-slot=combobox-content]{--accent:var(--hover);--accent-foreground:var(--foreground)}
+/* Everything else the bundle hovers with accent or sidebar-accent: table rows (and the row whose menu is open),
+   cards, chips, the phone's segmented pills, sort headers, input actions, sidebar items and the switchers.
+   What is selected keeps its tint under the pointer: a chip that is on, today's row, the current item. */
+html[data-identity] .hover\:bg-accent:hover:not([data-state=on]):not(.bg-accent),html[data-identity] .has-data-open\:bg-accent:has([data-state=open]),html[data-identity] .not-data-active\:hover\:bg-accent:not([data-state=active]):hover,html[data-identity] .hover\:bg-sidebar-accent:not([data-active=true]):hover,html[data-identity] .pf-tile-link:hover{background-color:var(--hover)}
+/* The segmented controls drawn on a muted track: the desktop tabs (the bundle gives their hover no fill) and the
+   Directory's subscription choice. */
+@media (width>=48rem){html[data-identity] [data-slot=tabs-list].md\:bg-muted>[data-slot=tabs-trigger]:not([data-state=active]):hover{background-color:var(--hover-on-muted)}}
+html[data-identity] [role=radiogroup].bg-muted>[role=radio][aria-checked=false]:hover{background-color:var(--hover-on-muted)}
+/* Links in text are ink like the words around them, so colour alone no longer marks them: underlined. The
+   anchors that are cards, navigation, menu items or buttons are left alone. */
+html[data-identity] a:not([data-slot]):not([data-brand-mark]):not([class*=text-foreground]):not([class*=block]):not(.pf-tile-link),html[data-identity] [data-slot=button].underline-offset-4{text-decoration-line:underline;text-underline-offset:.2em}
+
+/* ── Spark: what matters now. ── */
+
+/* The current item of the dashboard's sidebar: the spark tint (the token) and a spark bar at the inline start.
+   Hover on the other items is the neutral hover fill (above), so the tint means "you are here". */
+html[data-identity] [data-slot=sidebar-menu-button][data-active=true]{box-shadow:inset 3px 0 0 var(--spark)}
+html[data-identity][dir=rtl] [data-slot=sidebar-menu-button][data-active=true]{box-shadow:inset -3px 0 0 var(--spark)}
+/* A selected filter chip: the spark tint (the token) and a spark edge. */
+html[data-identity] [data-slot=toggle-group-item][data-state=on]{border-color:var(--spark)}
+/* The line tabs' indicator. */
+html[data-identity] [data-slot=tabs-trigger]::after{background-color:var(--spark)}
+/* The selected pin: a spark ring outside the card-coloured halo. */
+html[data-identity] .space-pin[data-selected] .pin-mark{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--spark),var(--elevation-raised)}
+/* Reordering: the item dragged over and the one lifted from the keyboard. */
+html[data-identity] [data-sortable][data-over]{box-shadow:0 0 0 2px var(--spark)}
+html[data-identity] [data-sortable][data-lifted]{box-shadow:0 0 0 3px var(--spark)}
+/* The drawn cover's first tone. masaha.css mixes the tones with the card in OKLCH, whose hue travels the short
+   way round: from a coral spark to a slate-blue card it passes through violet, so the dark covers turned purple.
+   OKLab mixes without a hue path, for every tone, under the trial only. */
+html[data-identity] .tone-primary{--tone:var(--spark)}
+html[data-identity] .cover-art .wall{fill:color-mix(in oklab,var(--tone) 20%,var(--card))}
+html[data-identity] .cover-art .window{fill:color-mix(in oklab,var(--tone) 8%,var(--card))}
+html[data-identity] .cover-art .mullion{stroke:color-mix(in oklab,var(--tone) 45%,var(--card))}
+html[data-identity] .cover-art .floor{fill:color-mix(in oklab,var(--tone) 38%,var(--card))}
+/* The brand mark: the logo (logo/, drawn in each candidate's own ink and spark), per identity and theme. The
+   full logo is 2473 × 903; the small mark is square. */
+html[data-identity=slate-coral][data-theme=light]{--logo:url(logo/masaha-logo.svg);--logo-mark:url(logo/masaha-mark.svg)}
+html[data-identity=slate-coral][data-theme=dark]{--logo:url(logo/masaha-logo-dark.svg);--logo-mark:url(logo/masaha-mark-dark.svg)}
+html[data-identity=slate-berry][data-theme=light]{--logo:url(logo/masaha-logo-berry.svg);--logo-mark:url(logo/masaha-mark-berry.svg)}
+html[data-identity=slate-berry][data-theme=dark]{--logo:url(logo/masaha-logo-dark-berry.svg);--logo-mark:url(logo/masaha-mark-dark-berry.svg)}
+/* The site's header, the drawer's title and the auth pages: the word «مساحة» / "Masaha" stays in the element
+   as its accessible name, made transparent, and the logo, 40px tall, is drawn over it. The width is capped at
+   the logo's own, so where a column stretches the element (the drawer's title) the logo stays at the start. */
+html[data-identity] [data-brand-mark=word]{display:inline-block;height:2.5rem;width:auto;max-width:calc(2.5rem*2473/903);aspect-ratio:2473/903;overflow:hidden;white-space:nowrap;vertical-align:middle;color:transparent;background:var(--logo) no-repeat center/contain}
+/* The admin's sidebar: the «م» tile becomes the full logo, and the word beside it, which the logo now says, is
+   kept for screen readers only. On the 768 rail (the shell's tablet mode) the tile is the small mark. */
+html[data-identity] [data-brand-mark=tile]{width:auto;height:2.25rem;aspect-ratio:2473/903;border-radius:0;color:transparent;background:var(--logo) no-repeat center/contain}
+html[data-identity] [data-slot=sidebar][data-mode=tablet] [data-brand-mark=tile]{aspect-ratio:1;background-image:var(--logo-mark)}
+html[data-identity] [data-brand-mark=name]{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
