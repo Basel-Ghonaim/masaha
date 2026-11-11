@@ -193,6 +193,25 @@ export const SPACES = {
       limits: 'Up to 10 photos · JPEG, PNG or WebP · up to 4 MB each',
       full: 'You’ve reached the limit (10 photos). Delete one to add another.',
       list: 'The photos, in order',
+      /** How the cover is chosen, by a drag or from the keyboard. */
+      hint: 'Drag a photo to the first place to make it the cover. With the keyboard: focus a photo, press Space to lift it, move it with the arrow keys, then Space to drop it.',
+      /** What the sortable grid says at each step of a move. */
+      sort: {
+        roleDescription: 'Movable photo',
+        instructions:
+          'Press Space to lift the photo, move it with the arrow keys, then press Space to drop it, or Escape to put it back.',
+        lifted: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name} lifted, position ${String(position)} of ${String(count)}.`,
+        moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name}: position ${String(position)} of ${String(count)}`,
+        dropped: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name} dropped at position ${String(position)} of ${String(count)}.`,
+        cancelled: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `Move cancelled. ${name} is back at position ${String(position)} of ${String(count)}.`,
+        held: ({ name }: { name: string }) => `${name} can move once the last order is saved.`,
+      },
+      orderSaved: 'The photos’ order saved',
+      covered: ({ photo }: { photo: string }) => `${photo} is the cover now`,
       removeNamed: ({ photo }: { photo: string }) => `Delete ${photo}`,
       removeDialog: {
         title: 'Delete this photo?',
@@ -533,6 +552,21 @@ export const SPACES = {
       limit: 'Up to 20 contacts',
       remove: ({ name }: { name: string }) => `Remove ${name}`,
       list: 'The contacts, in order',
+      hint: 'Drag the handle to order the contacts. With the keyboard: focus the handle, press Space, move it with the arrow keys, then Space.',
+      handle: ({ name }: { name: string }) => `Reorder ${name}`,
+      sort: {
+        roleDescription: 'Movable contact',
+        instructions:
+          'Press Space to lift the contact, move it with the arrow keys, then press Space to drop it, or Escape to put it back.',
+        lifted: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name} lifted, position ${String(position)} of ${String(count)}.`,
+        moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name}: position ${String(position)} of ${String(count)}`,
+        dropped: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name} dropped at position ${String(position)} of ${String(count)}.`,
+        cancelled: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `Move cancelled. ${name} is back at position ${String(position)} of ${String(count)}.`,
+      },
       offered: 'The space’s contacts',
       empty: {
         text: 'No contacts yet. Visitors won’t find a way to reach you.',

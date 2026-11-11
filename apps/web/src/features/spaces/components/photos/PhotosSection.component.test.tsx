@@ -7,7 +7,7 @@ import { axe } from 'vitest-axe';
 import { fakeCanvas, fakeFile } from '../../../../test/fakeCanvas';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
 import { deferred } from '../../../../test/fakeSession';
-import { ok, restoreTransport } from '../../../../test/fakeTransport';
+import { bodyOf, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { findToast } from '../../../../test/findToast';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -195,5 +195,97 @@ describe('the photos’ edit state', () => {
     await screen.findByRole('button', { name: 'اختر صورًا' });
 
     expect(await axe(arabic.container)).toHaveNoViolations();
+  });
+});
+
+describe('ordering the photos (P4)', () => {
+  it('lifts, moves and drops a photo from the keyboard, each step said, then sends the whole order once', async () => {
+    const user = userEvent.setup();
+    const sent = deferred<FakeAnswer>();
+    const { writes } = renderProfile({ write: () => sent.promise });
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
+
+    const second = within(list).getByRole('button', { name: 'Photo 2' });
+    second.focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('Photo 2 lifted, position 2 of 3.')).toBeInTheDocument();
+    // In English the grid reads left to right: the right arrow moves the photo on.
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByText('Photo 2: position 3 of 3')).toBeInTheDocument();
+    await user.keyboard(' ');
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(writes()[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/photos/order' });
+    expect(bodyOf(writes()[0])).toEqual({ ids: [3, 5, 4] });
+    // The order dropped stays on screen while it is sent (SD2).
+    expect(
+      within(list)
+        .getAllByRole('img')
+        .map((image) => image.getAttribute('src')),
+    ).toEqual(['/files/3-card.webp', '/files/5-card.webp', '/files/4-card.webp']);
+    // A second move waits until the gallery is read again.
+    within(list).getAllByRole('button', { name: /Photo/ })[0]?.focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('Photo 1 can move once the last order is saved.')).toBeInTheDocument();
+    expect(writes()).toHaveLength(1);
+  });
+
+  it('follows the reading direction in Arabic: the left arrow moves a photo on', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    const { writes } = renderProfile({ write: () => ({ status: 204 }) });
+    await user.click(await screen.findByRole('button', { name: 'إدارة الصور' }));
+    const list = screen.getByRole('list', { name: 'الصور بترتيبها' });
+
+    within(list).getByRole('button', { name: 'الصورة 1، الغلاف' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowLeft}');
+    await user.keyboard(' ');
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({ ids: [4, 3, 5] });
+  });
+
+  it('puts a photo back on Escape and sends nothing', async () => {
+    const user = userEvent.setup();
+    const { writes } = renderProfile();
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
+
+    within(list).getByRole('button', { name: 'Photo 2' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowRight}');
+    await user.keyboard('{Escape}');
+
+    expect(
+      screen.getByText('Move cancelled. Photo 2 is back at position 2 of 3.'),
+    ).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+  });
+
+  it('puts the server’s order back when a move is refused, its reason on the photo', async () => {
+    const user = userEvent.setup();
+    renderProfile({ write: () => refused(500, { type: 'server' }) });
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
+
+    within(list).getByRole('button', { name: 'Photo 2' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowRight}');
+    await user.keyboard(' ');
+
+    expect(
+      await within(section).findByText('We couldn’t change the photos’ order'),
+    ).toBeInTheDocument();
+    expect(
+      within(list)
+        .getAllByRole('img')
+        .map((image) => image.getAttribute('src')),
+    ).toEqual(['/files/3-card.webp', '/files/4-card.webp', '/files/5-card.webp']);
   });
 });

@@ -24,4 +24,9 @@ export const LIBRARY_CHUNKS: readonly LibraryChunk[] = [
     name: 'calendar',
     test: /[\\/]node_modules[\\/](?:react-day-picker|date-fns)[\\/]/,
   },
+  // dnd-kit, under the design system's Sortable: the space profile's photos and contacts.
+  {
+    name: 'sortable',
+    test: /[\\/]node_modules[\\/]@dnd-kit[\\/]/,
+  },
 ];

@@ -43,7 +43,8 @@ const FIELDS: Path<ContactsValues>[] = Array.from({ length: MAX_CONTACTS }, (_, 
  * and a phone's carrier — up to twenty, a new row a WhatsApp number. A value its type cannot store is
  * refused on its row in its type's words, a repeat says «هذه الوسيلة مضافة من قبل», and «وسيلة أخرى»
  * without a name «اكتب اسم الوسيلة», all before anything is sent. A row that leaves «وسيلة أخرى» drops
- * its name. The rows' order is the order saved; contacts as saved send nothing.
+ * its name. The rows are ordered by dragging their handle, the keyboard included, the first shown first
+ * to visitors; that order is the order saved; contacts as saved send nothing.
  */
 export function useContactsSheet(host: SectionHost) {
   const copy = useCopy();
@@ -126,6 +127,7 @@ export function useContactsSheet(host: SectionHost) {
       return {
         key: row.id,
         name,
+        handle: words.handle({ name }),
         type: {
           label: words.type,
           value: type,
@@ -176,6 +178,20 @@ export function useContactsSheet(host: SectionHost) {
         },
       };
     }),
+    /** The rows' order, by dragging (C2): only the Sheet's draft moves; «حفظ» saves it. */
+    order:
+      list.fields.length > 1
+        ? {
+            label: words.list,
+            hint: words.hint,
+            words: words.sort,
+            move: (next: string[], moved: string) => {
+              const from = list.fields.findIndex(({ id }) => id === moved);
+              const to = next.indexOf(moved);
+              if (from >= 0 && to >= 0) list.move(from, to);
+            },
+          }
+        : null,
     add: {
       label: words.add,
       disabled: full || form.isPending,

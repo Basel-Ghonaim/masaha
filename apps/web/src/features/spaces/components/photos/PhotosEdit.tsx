@@ -1,9 +1,11 @@
-import { Button } from '@shared/design-system';
+import { Button, cn } from '@shared/design-system';
+import { Sortable } from '@shared/design-system/sortable';
 import { useCopy } from '@shared/copy';
 import { useRef, type RefObject } from 'react';
 import { meanwhileLines } from '../../hooks/editor/meanwhileLines';
 import type { EditorPlace } from '../../types/EditorPlace';
 import type { PhotoGalleryView } from '../../types/PhotoGalleryView';
+import type { PhotoTileView } from '../../types/PhotoTileView';
 import { PhotoRemoveDialog } from './PhotoRemoveDialog';
 import { PhotoTile } from './PhotoTile';
 import { PhotoUploadTile } from './PhotoUploadTile';
@@ -24,12 +26,27 @@ export function PhotosEdit({
   /** «اختر صورًا», which the header's «أضف صورة غلاف» gives the focus to. */
   choose: RefObject<HTMLButtonElement | null>;
 }) {
-  const meanwhile = meanwhileLines(place, useCopy(), 'photos');
+  const copy = useCopy();
+  const meanwhile = meanwhileLines(place, copy, 'photos');
   const picker = useRef<HTMLInputElement>(null);
-  const grid = useRef<HTMLUListElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
   // The removal that opened the dialog, which takes the focus back once it closes.
   const opener = useRef<HTMLElement | null>(null);
   const { uploads } = gallery;
+  const byId = new Map(gallery.tiles.map((tile) => [tile.id, tile]));
+  const coverName = (photo: string) => copy.spaces.editor.photos.coverNamed({ photo });
+  // A removal remembers its button, which takes the focus back once the dialog closes.
+  const withOpener = (tile: PhotoTileView): PhotoTileView => ({
+    ...tile,
+    remove: tile.remove && {
+      label: tile.remove.label,
+      run: () => {
+        const active = document.activeElement;
+        opener.current = active instanceof HTMLElement ? active : null;
+        tile.remove?.run();
+      },
+    },
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,25 +85,63 @@ export function PhotosEdit({
       <p role="status" className="text-caption text-muted-foreground empty:hidden">
         {uploads.summary}
       </p>
-      <ul ref={grid} className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {gallery.tiles.map((tile) => (
-          <li key={tile.key} className="min-w-0">
-            <PhotoTile
-              tile={{
-                ...tile,
-                remove: tile.remove && {
-                  label: tile.remove.label,
-                  run: () => {
-                    const active = document.activeElement;
-                    opener.current = active instanceof HTMLElement ? active : null;
-                    tile.remove?.run();
-                  },
-                },
-              }}
-              cover={gallery.view.cover}
-            />
-          </li>
-        ))}
+      {gallery.changed !== null && (
+        <p role="status" className="text-caption text-muted-foreground">
+          {gallery.changed}
+        </p>
+      )}
+      {gallery.order && (
+        <p id="photos-order-hint" className="text-caption text-muted-foreground">
+          {gallery.order.hint}
+        </p>
+      )}
+      <div ref={grid}>
+        {gallery.order ? (
+          <Sortable
+            items={gallery.tiles.map(({ id }) => id)}
+            layout="grid"
+            label={gallery.order.label}
+            words={gallery.order.words}
+            nameOf={(id) => byId.get(id)?.label ?? ''}
+            onMove={gallery.order.move}
+            disabled={gallery.order.held}
+            className="grid-cols-2 gap-3 md:grid-cols-3"
+            renderItem={(id, { handleProps, lifted, dragging }) => {
+              const tile = byId.get(id);
+              if (tile === undefined) return null;
+              return (
+                <PhotoTile
+                  tile={withOpener(tile)}
+                  cover={gallery.view.cover}
+                  picture={(image) => (
+                    // The picture is what a mouse, a finger or the keyboard moves; the removal
+                    // beside it keeps its own click and keys.
+                    <div
+                      {...handleProps}
+                      aria-label={tile.cover ? coverName(tile.label) : tile.label}
+                      className={cn(
+                        'cursor-grab select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                        (lifted || dragging) && 'outline-2 outline-primary',
+                      )}
+                    >
+                      {image}
+                    </div>
+                  )}
+                />
+              );
+            }}
+          />
+        ) : (
+          <ul aria-label={gallery.title} className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {gallery.tiles.map((tile) => (
+              <li key={tile.key} className="min-w-0">
+                <PhotoTile tile={withOpener(tile)} cover={gallery.view.cover} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <ul className="grid grid-cols-2 gap-3 empty:hidden md:grid-cols-3">
         {uploads.tiles.map((tile, index) => (
           <PhotoUploadTile
             key={tile.key}

@@ -5,15 +5,16 @@ import type { EditorPlace } from '../../types/EditorPlace';
 import type { PhotoGalleryView } from '../../types/PhotoGalleryView';
 import type { PhotoTileView } from '../../types/PhotoTileView';
 import { meanwhileLines } from '../editor/meanwhileLines';
+import { usePhotoOrder } from './usePhotoOrder';
 import { usePhotoRemove } from './usePhotoRemove';
 import { usePhotosQuery } from './usePhotosQuery';
 import { usePhotoUploads } from './usePhotoUploads';
 
 /**
  * «الصور», ready to render (P1–P7, M1): the gallery as the server has it, the first its cover, read
- * as a visitor sees it, or, editing in place (P2), each photo with its removal — which asks first,
- * the cover's dialog saying the next one takes its place — the picker, and each chosen file's own
- * tile while it travels. Photos are no fact group: nothing here is dated, confirmed or saved. A 403
+ * as a visitor sees it, or, editing in place (P2), ordered by dragging (P4) — the order dropped shown
+ * while it is sent — each photo with its removal, which asks first, the cover's dialog saying the
+ * next one takes its place, the picker, and each chosen file's own tile while it travels. Photos are no fact group: nothing here is dated, confirmed or saved. A 403
  * or a 404 on a write fetches the space again, so a space verified or deleted meanwhile changes the
  * page's shape rather than leaving a control that cannot work.
  */
@@ -27,11 +28,14 @@ export function usePhotoGallery(
   const words = copy.spaces.editor.photos;
   const query = usePhotosQuery(place, spaceId);
   const photos = query.data ?? [];
+  const order = usePhotoOrder(place, spaceId, photos);
   const removal = usePhotoRemove(place, spaceId);
   const uploads = usePhotoUploads(place, spaceId, photos, onUploadingChange);
   const lines = meanwhileLines(place, copy, 'photos');
   const loaded = useRefusalView(query.error ?? null, words.loadFailed);
   const removalFailure = useRefusalView(removal.refusal, words.removeFailed, lines);
+  // A move's refusal belongs to the photo moved; the rest of the gallery is as it is.
+  const orderFailure = useRefusalView(order.refusal, words.orderFailed, lines);
 
   /** One photo as the gallery shows it: its place in the order, and its own place in the list. */
   const tileOf = (photo: SpacePhoto, index: number): PhotoTileView => {
@@ -43,7 +47,7 @@ export function usePhotoGallery(
       label,
       cover: index === 0,
       image: { src: photo.urls.card },
-      failure: null,
+      failure: order.refusedId === photo.id ? orderFailure.view : null,
       remove: editable
         ? {
             label: words.removeNamed({ photo: label }),
@@ -54,7 +58,7 @@ export function usePhotoGallery(
         : null,
     };
   };
-  const tiles = query.isSuccess ? photos.map(tileOf) : [];
+  const tiles = query.isSuccess ? order.photos.map(tileOf) : [];
   const removingCover = removal.target?.cover === true && tiles.length > 1;
 
   return {
@@ -82,6 +86,20 @@ export function usePhotoGallery(
             }
           : null,
     },
+    changed: order.changed,
+    // The order, by dragging, once there are two photos to order (P4).
+    order:
+      editable && tiles.length > 1
+        ? {
+            label: words.list,
+            hint: words.hint,
+            held: order.held,
+            words: words.sort,
+            move: (ids: number[], moved: number) => {
+              order.move(ids, moved);
+            },
+          }
+        : null,
     empty:
       query.isSuccess && tiles.length === 0
         ? { text: words.empty.text, hint: words.empty.hint, action: words.empty.action }

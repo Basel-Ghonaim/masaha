@@ -1,5 +1,5 @@
 import { createQueryClient } from '@shared/api';
-import { Toaster } from '@shared/design-system';
+import { DirectionProvider, Toaster } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -121,11 +121,15 @@ export function renderProfile({
     ],
     { initialEntries: [entry] },
   );
+  // The app gives Radix and the layer the page's direction, as its providers do.
+  const direction = document.documentElement.lang === 'ar' ? 'rtl' : 'ltr';
   const rendered = render(
-    <QueryClientProvider client={createQueryClient()}>
-      <Toaster label="Notifications" closeLabel="Close notification" />
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
+    <DirectionProvider dir={direction}>
+      <QueryClientProvider client={createQueryClient()}>
+        <Toaster label="Notifications" closeLabel="Close notification" />
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </DirectionProvider>,
   );
   const writes = () => requests.filter((request) => request.method !== 'get');
   return { ...rendered, requests, writes, router, owned };

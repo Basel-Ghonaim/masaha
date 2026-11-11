@@ -174,6 +174,23 @@ export const SPACES = {
       limits: 'حتى 10 صور · JPEG أو PNG أو WebP · حتى 4 ميجابايت للصورة',
       full: 'وصلت الحد الأقصى (10 صور). احذف صورة لتضيف غيرها.',
       list: 'الصور بترتيبها',
+      hint: 'اسحب صورة إلى الأول لتصبح الغلاف. بلوحة المفاتيح: اختر الصورة، اضغط مسافة لرفعها، حرّكها بالأسهم، ثم مسافة لوضعها.',
+      sort: {
+        roleDescription: 'صورة قابلة للترتيب',
+        instructions:
+          'اضغط مسافة لرفع الصورة، حرّكها بالأسهم، ثم اضغط مسافة لوضعها، أو Escape لإرجاعها.',
+        lifted: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `رُفعت ${name}، المكان ${String(position)} من ${String(count)}.`,
+        moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name}: المكان ${String(position)} من ${String(count)}`,
+        dropped: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `وُضعت ${name} في المكان ${String(position)} من ${String(count)}.`,
+        cancelled: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `أُلغي النقل. عادت ${name} إلى المكان ${String(position)} من ${String(count)}.`,
+        held: ({ name }: { name: string }) => `تتحرك ${name} بعد حفظ الترتيب السابق.`,
+      },
+      orderSaved: 'حُفظ ترتيب الصور',
+      covered: ({ photo }: { photo: string }) => `${photo} هي الغلاف الآن`,
       removeNamed: ({ photo }: { photo: string }) => `حذف ${photo}`,
       removeDialog: {
         title: 'حذف هذه الصورة؟',
@@ -465,6 +482,21 @@ export const SPACES = {
       limit: 'الحد 20 وسيلة',
       remove: ({ name }: { name: string }) => `حذف ${name}`,
       list: 'وسائل التواصل بترتيبها',
+      hint: 'اسحب المقبض لترتيب الوسائل. بلوحة المفاتيح: اختر المقبض، اضغط مسافة، حرّكها بالسهمين، ثم مسافة.',
+      handle: ({ name }: { name: string }) => `ترتيب ${name}`,
+      sort: {
+        roleDescription: 'وسيلة قابلة للترتيب',
+        instructions:
+          'اضغط مسافة لرفع الوسيلة، حرّكها بالسهمين، ثم اضغط مسافة لوضعها، أو Escape لإرجاعها.',
+        lifted: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `رُفعت ${name}، المكان ${String(position)} من ${String(count)}.`,
+        moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `${name}: المكان ${String(position)} من ${String(count)}`,
+        dropped: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `وُضعت ${name} في المكان ${String(position)} من ${String(count)}.`,
+        cancelled: ({ name, position, count }: { name: string; position: number; count: number }) =>
+          `أُلغي النقل. عادت ${name} إلى المكان ${String(position)} من ${String(count)}.`,
+      },
       offered: 'وسائل التواصل مع المساحة',
       empty: {
         text: 'لم تُضف وسائل تواصل بعد. الزوار لن يجدوا طريقة للتواصل معك.',

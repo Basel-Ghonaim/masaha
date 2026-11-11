@@ -179,6 +179,42 @@ describe('the contacts’ Sheet', () => {
     );
   });
 
+  it('moves a contact by its handle from the keyboard, the order sent on «حفظ»', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ write: () => ok(SPACE) });
+    const sheet = await openContacts(user);
+
+    within(sheet).getByRole('button', { name: 'Reorder ديسكورد' }).focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('ديسكورد lifted, position 2 of 2.')).toBeInTheDocument();
+    await user.keyboard('{ArrowUp}');
+    await user.keyboard(' ');
+    // Escape inside the Sheet would close it; the lift keeps it open.
+    expect(screen.getByRole('dialog', { name: 'Edit the contacts' })).toBeVisible();
+    expect(writes()).toEqual([]);
+
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({ contacts: [SPACE.contacts[1], SPACE.contacts[0]] });
+  });
+
+  it('keeps the Sheet open when Escape puts a lifted contact back', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderProfile();
+    const sheet = await openContacts(user);
+
+    within(sheet).getByRole('button', { name: 'Reorder ديسكورد' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowUp}');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('dialog', { name: 'Edit the contacts' })).toBeVisible();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(within(sheet).getByRole('button', { name: 'Reorder ديسكورد' })).toHaveFocus();
+  });
+
   it('has no detectable accessibility violations open', async () => {
     const user = userEvent.setup({ delay: null });
     renderProfile();

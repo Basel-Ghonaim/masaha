@@ -20,6 +20,11 @@ describe("the library chunks' patterns", () => {
     ['/repo/node_modules/react-day-picker/dist/esm/locale.js', 'calendar'],
     // The calendar's date helpers: left out, they land in the shared chunk the site downloads first.
     ['/repo/node_modules/date-fns/addDays.js', 'calendar'],
+    [String.raw`C:\repo\node_modules\@dnd-kit\core\dist\core.esm.js`, 'sortable'],
+    ['/repo/node_modules/@dnd-kit/sortable/dist/sortable.esm.js', 'sortable'],
+    // The core's helpers and its announcer: left out, they would land in the shared first download.
+    ['/repo/node_modules/@dnd-kit/utilities/dist/utilities.esm.js', 'sortable'],
+    ['/repo/node_modules/@dnd-kit/accessibility/dist/accessibility.esm.js', 'sortable'],
   ])('place %s in one library chunk', (id, chunk) => {
     expect(chunksOf(id)).toEqual([chunk]);
   });
@@ -30,6 +35,7 @@ describe("the library chunks' patterns", () => {
     '/repo/apps/web/src/shared/design-system/components/data/DataTable/DataTable.tsx',
     '/repo/apps/web/src/shared/map/components/LeafletPointPicker.tsx',
     '/repo/apps/web/src/shared/design-system/components/fields/Calendar/Calendar.tsx',
+    '/repo/apps/web/src/shared/design-system/components/fields/Sortable/Sortable.tsx',
     // Gaza's clock in @masaha/shared reads it too, on every page of the site.
     '/repo/node_modules/@date-fns/tz/date/index.js',
   ])('leave %s to the other chunks', (id) => {

@@ -1,3 +1,4 @@
+import type { SortableWords } from '@shared/design-system/sortable';
 import type { FormFailureView } from '@shared/forms';
 import type { PhotoTileView, PhotoUploadTileView } from './PhotoTileView';
 
@@ -55,6 +56,16 @@ export type PhotoGalleryView = {
     others: string;
     more: { text: string; label: string } | null;
   };
+  /** Why the gallery was read again under the user, for everyone to read. */
+  changed: string | null;
+  /** The order by dragging, once two photos can be ordered: the sortable's words, held while a move travels. */
+  order: {
+    label: string;
+    hint: string;
+    held: boolean;
+    words: SortableWords;
+    move: (ids: number[], moved: number) => void;
+  } | null;
   empty: { text: string; hint: string; action: string } | null;
   remove: PhotoRemoveDialogView;
   uploads: PhotoUploadView;
