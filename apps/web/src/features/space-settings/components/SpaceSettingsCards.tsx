@@ -5,8 +5,8 @@ import { ReceptionCard } from './reception/ReceptionCard';
 import { ReminderCard } from './reminder/ReminderCard';
 
 /**
- * The space's settings, a card each: visit pricing, its description leading to Packages & prices
- * (`pricesLink`), reception, and the debt reminder, its preview naming the space (`spaceName`).
+ * The space's settings, a card each: visit pricing, its description leading to the space profile's
+ * prices (`pricesLink`), reception, and the debt reminder, its preview naming the space (`spaceName`).
  * While the settings load, a placeholder stands for each card; if they cannot be read, one alert
  * says so, with its reference and «إعادة المحاولة».
  */

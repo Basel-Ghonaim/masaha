@@ -2,6 +2,7 @@ import { LiveStatusControl } from '@features/occupancy';
 import { OwnerOverview, type OwnerOverviewLinks } from '@features/overview';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useParams } from 'react-router';
+import { ownerGroupLink } from '../../fieldSections';
 import { spaceCustomerPath, spacePagePath } from '../../navigation';
 import { PageHeader } from '../../shell/PageHeader';
 
@@ -9,8 +10,7 @@ import { PageHeader } from '../../shell/PageHeader';
 function linksOf(spaceId: number): OwnerOverviewLinks {
   const page = (name: Parameters<typeof spacePagePath>[1]) => spacePagePath(spaceId, name);
   return {
-    group: (group) =>
-      group === 'prices' ? `${page('packages')}#prices` : `${page('profile')}#${group}`,
+    group: (group) => ownerGroupLink(spaceId, group),
     reports: `${page('dataReports')}?status=open`,
     desk: `${page('desk')}#uncollected`,
     deskUnpriced: `${page('desk')}#unpriced`,

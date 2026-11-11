@@ -14,7 +14,7 @@ export const SPACE_SETTINGS = {
   pricing: {
     title: 'تسعير الزيارات',
     description: 'كيف يُحسب سعر الزيارة من أسعار الساعة واليوم.',
-    pricesLink: 'الباقات والأسعار',
+    pricesLink: 'تُعدَّل أسعار الساعة واليوم في ملف المساحة',
     rounding: 'التقريب',
     upAfter: 'تقريب لأعلى بعد',
     minutesLabel: 'دقائق التقريب',

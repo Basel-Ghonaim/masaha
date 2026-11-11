@@ -5,7 +5,7 @@ import { usePricingCard } from '../../hooks/pricing/usePricingCard';
 import { SettingsCard } from '../SettingsCard';
 
 /**
- * «تسعير الزيارات»: its description leads to Packages & prices (`pricesLink`), where the hour and
+ * «تسعير الزيارات»: its description leads to the space profile's prices (`pricesLink`), where the hour and
  * day prices are; then the rounding, a choice of three, the first with its minutes and its example
  * (design issue 16: the examples name no money), and the two switches.
  */

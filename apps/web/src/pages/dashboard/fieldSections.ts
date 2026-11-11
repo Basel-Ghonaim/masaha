@@ -1,25 +1,38 @@
 import type { DataReportField } from '@masaha/shared/data-reports';
+import type { FactGroup } from '@masaha/shared/spaces';
 import { adminSpacePath, spacePagePath } from './navigation';
 
 /**
- * Where a report's link lands: its notice (`#report`), drawn above the section its field is edited
- * in — «أخرى» above the profile —, so the notice and «تم التصحيح» are in sight with the field below.
+ * Where a report's link lands: its notice (`#report`), drawn inside the section its field is edited
+ * in, so the notice and «تم التصحيح» are in sight with the section's facts.
  */
 const LANDING = '#report';
 
 /**
- * The owner's «تعديل الحقل»: where the report's field is edited — the prices on Packages & prices,
- * the other groups in the space profile — carrying the report, so its notice shows there and the
- * page lands on it (D6.8).
+ * The owner's «تعديل الحقل»: where the report's field is edited — every field in the space profile,
+ * the prices included (R1) — carrying the report, so its notice shows there and the page lands on it
+ * (D6.8).
  */
-export function ownerFieldLink(spaceId: number, field: DataReportField, reportId: number): string {
-  const page = spacePagePath(spaceId, field === 'PRICES' ? 'packages' : 'profile');
-  return `${page}?report=${String(reportId)}${LANDING}`;
+export function ownerFieldLink(spaceId: number, reportId: number): string {
+  return `${spacePagePath(spaceId, 'profile')}?report=${String(reportId)}${LANDING}`;
+}
+
+/**
+ * Where the owner's overview leads for a fact group: its section of the space profile, the profile's
+ * own group to «عن المساحة», the prices to «الأسعار المعلنة» (R1).
+ */
+export function ownerGroupLink(spaceId: number, group: FactGroup): string {
+  return `${spacePagePath(spaceId, 'profile')}#${group === 'profile' ? 'about' : group}`;
+}
+
+/** Where the owner edits the published prices: the space profile's prices Sheet, opened (R1). */
+export function ownerPricesLink(spaceId: number): string {
+  return `${spacePagePath(spaceId, 'profile')}?sheet=prices#prices`;
 }
 
 /**
  * The admin's link to a space's editor; with a report, its «تعديل الحقل», carrying the report and
- * landing on its notice above the field's section (D6.8).
+ * landing on its notice inside the field's section (D6.8).
  */
 export function adminEditorLink(
   spaceId: number,

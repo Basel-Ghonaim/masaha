@@ -350,3 +350,4 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - 2026-11-11, #143 — the space profile, view first: the header and its completeness, the index, eight sections in the public page's order, each edited in a Sheet (the photos in place), the admin's editor the same page; the prices edited in the profile only, read-only on Packages & prices; «وسيلة أخرى» with its name.
 - 2026-11-11, #143 — the photos and the contacts ordered by dragging, the keyboard included (the layer's `Sortable`); the dropped order shown while it is sent.
 - 2026-11-11, #143 — the admin's hide and delete in the profile's top bar (`SpaceEditorActions`).
+- 2026-11-11, #143 — every link that edits the prices lands on the profile's «الأسعار المعلنة»: the owner's overview, the settings' visit pricing and a prices report's «تعديل الحقل»; a prices report's notice shows there.
