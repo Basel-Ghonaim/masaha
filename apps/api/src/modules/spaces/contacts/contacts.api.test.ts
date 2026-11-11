@@ -31,7 +31,7 @@ beforeEach(async () => {
   });
 });
 
-function save(contacts: { type: string; value: string }[], id = spaceId) {
+function save(contacts: { type: string; value: string; label?: string | null }[], id = spaceId) {
   return adminRequest(app, admin, 'put', `/spaces/${String(id)}/contacts`, { contacts });
 }
 
@@ -41,7 +41,7 @@ async function stored() {
     contacts: await prisma.spaceContact.findMany({
       where: { spaceId },
       orderBy: { sortOrder: 'asc' },
-      select: { type: true, value: true, sortOrder: true },
+      select: { type: true, value: true, label: true, sortOrder: true },
     }),
     contactsUpdatedAt: (await prisma.space.findUniqueOrThrow({ where: { id: spaceId } }))
       .contactsUpdatedAt,
@@ -60,9 +60,9 @@ describe('PUT /admin/spaces/:spaceId/contacts', () => {
 
     expect(response.status).toBe(200);
     const contacts = [
-      { type: 'WHATSAPP', value: '+970599123456' },
-      { type: 'INSTAGRAM', value: 'https://www.instagram.com/masaha' },
-      { type: 'EMAIL', value: 'hello@masaha.ps' },
+      { type: 'WHATSAPP', value: '+970599123456', label: null },
+      { type: 'INSTAGRAM', value: 'https://www.instagram.com/masaha', label: null },
+      { type: 'EMAIL', value: 'hello@masaha.ps', label: null },
     ];
     const data = dataOf(response) as { contacts: unknown; updatedAt: { contacts: string } };
     expect(data.contacts).toEqual(contacts);
@@ -85,7 +85,81 @@ describe('PUT /admin/spaces/:spaceId/contacts', () => {
     const response = await adminRequest(app, admin, 'get', `/spaces/${String(spaceId)}`);
 
     expect((dataOf(response) as { contacts: unknown }).contacts).toEqual([
-      { type: 'TIKTOK', value: 'https://www.tiktok.com/@masaha' },
+      { type: 'TIKTOK', value: 'https://www.tiktok.com/@masaha', label: null },
+    ]);
+  });
+
+  it('stores the networks in their one form and a contact of another kind with its name', async () => {
+    const response = await save([
+      { type: 'TELEGRAM', value: '@masaha_ps' },
+      { type: 'X', value: 'twitter.com/masaha_ps' },
+      { type: 'LINKEDIN', value: 'linkedin.com/company/masaha' },
+      { type: 'YOUTUBE', value: '@masaha' },
+      { type: 'OTHER', value: 'discord.gg/focushub', label: ' ديسكورد ' },
+    ]);
+
+    expect(response.status).toBe(200);
+    const contacts = [
+      { type: 'TELEGRAM', value: 'https://t.me/masaha_ps', label: null },
+      { type: 'X', value: 'https://x.com/masaha_ps', label: null },
+      { type: 'LINKEDIN', value: 'https://www.linkedin.com/company/masaha', label: null },
+      { type: 'YOUTUBE', value: 'https://www.youtube.com/@masaha', label: null },
+      { type: 'OTHER', value: 'https://discord.gg/focushub', label: 'ديسكورد' },
+    ];
+    const read = await adminRequest(app, admin, 'get', `/spaces/${String(spaceId)}`);
+    expect((dataOf(read) as { contacts: unknown }).contacts).toEqual(contacts);
+    expect((await stored()).contacts).toEqual(
+      contacts.map((contact, sortOrder) => ({ ...contact, sortOrder })),
+    );
+    const [entry] = await auditEntries();
+    expect(entry?.after).toEqual({
+      contacts: [
+        { type: 'TELEGRAM', value: 'https://t.me/masaha_ps' },
+        { type: 'X', value: 'https://x.com/masaha_ps' },
+        { type: 'LINKEDIN', value: 'https://www.linkedin.com/company/masaha' },
+        { type: 'YOUTUBE', value: 'https://www.youtube.com/@masaha' },
+        { type: 'OTHER', value: 'https://discord.gg/focushub', label: 'ديسكورد' },
+      ],
+    });
+  });
+
+  it('refuses a contact of another kind without its name, and a name on another type', async () => {
+    const unnamed = await save([{ type: 'OTHER', value: 'discord.gg/focushub' }]);
+    const named = await save([{ type: 'WHATSAPP', value: '0599123456', label: 'رقمي' }]);
+
+    expect(unnamed.status).toBe(422);
+    expect(errorOf(unnamed).errors).toEqual({ 'contacts.0.label': ['required'] });
+    expect(named.status).toBe(422);
+    expect(errorOf(named).errors).toEqual({ 'contacts.0.label': ['invalid_format'] });
+    expect(await stored()).toEqual({ contacts: [], contactsUpdatedAt: BEFORE });
+  });
+
+  it('takes a new name alone for a contact of another kind as a change: written, dated, audited', async () => {
+    await prisma.spaceContact.create({
+      data: { spaceId, type: 'OTHER', value: 'https://discord.gg/focushub', label: 'ديسكورد' },
+    });
+
+    const response = await save([
+      { type: 'OTHER', value: 'https://discord.gg/focushub', label: 'Discord' },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(await stored()).toEqual({
+      contacts: [
+        { type: 'OTHER', value: 'https://discord.gg/focushub', label: 'Discord', sortOrder: 0 },
+      ],
+      contactsUpdatedAt: NOW,
+    });
+    expect(await auditEntries()).toMatchObject([
+      {
+        action: 'space.contactsEdited',
+        before: {
+          contacts: [{ type: 'OTHER', value: 'https://discord.gg/focushub', label: 'ديسكورد' }],
+        },
+        after: {
+          contacts: [{ type: 'OTHER', value: 'https://discord.gg/focushub', label: 'Discord' }],
+        },
+      },
     ]);
   });
 

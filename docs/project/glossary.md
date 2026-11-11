@@ -1,6 +1,6 @@
 # Glossary
 
-> **Status:** Active · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-11-10 · **Owner:** Basel Ghoneim
 > **Authority:** The canonical vocabulary. Code, documents and copy use these terms.
 
 | Term | Arabic | Meaning |
@@ -37,5 +37,6 @@
 | **Governorate** | محافظة | One of the Gaza Strip's five governorates; the upper level of the place list |
 | **Area** | منطقة | A neighbourhood or town within a governorate; every space is in one. The admin hides an unreachable area without deleting it |
 | **Amenity** | مرفق | A feature a space offers: one of the platform's common amenities, a lookup the space ticks, or an **own amenity** (مرفق إضافي), typed by the space beside them |
+| **Contact** | وسيلة تواصل | A way to reach a space, of one type: WhatsApp (واتساب), phone (هاتف), email (بريد إلكتروني), Instagram (إنستغرام), Facebook (فيسبوك), Telegram (تيليجرام), TikTok (تيك توك), X (X (تويتر)), LinkedIn (لينكدإن), YouTube (يوتيوب), website (موقع إلكتروني), or **another kind** (وسيلة أخرى), named by the space |
 | **Lookup** | قائمة ثابتة | An admin-managed bilingual list: governorates, areas, amenities |
 | **Audit log** | سجل التدقيق | The record of sensitive actions: who, when, what |

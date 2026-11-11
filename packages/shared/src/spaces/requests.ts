@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { paragraphSchema, textSchema } from '../core/index.ts';
-import { CONTACT_TYPES, normaliseContact } from './contacts.ts';
+import { CONTACT_LABEL_MAX_LENGTH, CONTACT_TYPES, normaliseContact } from './contacts.ts';
 import { isInGazaStrip } from './gazaStrip.ts';
 import { PHOTO_LIMIT } from './photos.ts';
 
@@ -258,22 +258,37 @@ export type UpdateSpaceAmenitiesRequest = z.infer<typeof updateSpaceAmenitiesSch
 export const CONTACT_VALUE_MAX_LENGTH = 200;
 export const MAX_CONTACTS = 20;
 
-/** A contact, its value validated and stored in its type's one form (decision F6). */
+/**
+ * A contact, its value validated and stored in its type's one form (decision F6). A contact of
+ * another kind (`OTHER`) has its own name, required; no other type takes one, and theirs is `null`.
+ */
 const contact = z
   .object({
     type: z.enum(CONTACT_TYPES),
     value: z.string().max(CONTACT_VALUE_MAX_LENGTH),
+    label: optional(textSchema(1, CONTACT_LABEL_MAX_LENGTH)),
   })
-  .transform(({ type, value }, ctx) => {
+  .transform(({ type, value, label = null }, ctx) => {
+    const named = type === 'OTHER';
+    const nameRefused = named !== (label !== null);
+    if (nameRefused) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['label'],
+        params: { code: named ? 'required' : 'invalid_format' },
+        message: named ? 'A contact of another kind needs its name' : 'Only another kind is named',
+      });
+    }
     const stored = normaliseContact(type, value);
-    if (stored !== null) return { type, value: stored };
-    ctx.addIssue({
-      code: 'custom',
-      path: ['value'],
-      params: { code: 'invalid_format' },
-      message: `Not a valid ${type.toLowerCase()} contact`,
-    });
-    return z.NEVER;
+    if (stored === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['value'],
+        params: { code: 'invalid_format' },
+        message: `Not a valid ${type.toLowerCase()} contact`,
+      });
+    }
+    return stored === null || nameRefused ? z.NEVER : { type, value: stored, label };
   });
 
 /**

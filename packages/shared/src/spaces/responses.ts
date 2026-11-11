@@ -43,6 +43,8 @@ export interface OwnAmenity {
 export interface Contact {
   type: ContactType;
   value: string;
+  /** A contact of another kind's own name; `null` for every other type. */
+  label: string | null;
 }
 
 /** The opening hours with the shifts, as they are saved together. */

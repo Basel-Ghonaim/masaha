@@ -40,8 +40,8 @@ export function publicSpace(change: Partial<PublicSpace> = {}): PublicSpace {
     ],
     amenities: [{ nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi' }],
     contacts: [
-      { type: 'WHATSAPP', value: '+970599111001' },
-      { type: 'PHONE', value: '+970599111002' },
+      { type: 'WHATSAPP', value: '+970599111001', label: null },
+      { type: 'PHONE', value: '+970599111002', label: null },
     ],
     updatedAt: {
       profile: '2026-10-20T08:00:00Z',

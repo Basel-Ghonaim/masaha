@@ -2,7 +2,8 @@ import { emailSchema, normalisePhone } from '../core/index.ts';
 
 // A space's contacts are a typed list (docs/architecture/data-model.md › Conventions, Contacts),
 // each stored in one form, whatever form it was typed in (decision F6): a phone or WhatsApp number
-// in E.164, an email lowercased, a social network or a website as a full https:// address.
+// in E.164, an email lowercased, a social network or a website as a full https:// address. A
+// contact of another kind («وسيلة أخرى») has a name of its own and is a number or a link.
 
 export const CONTACT_TYPES = [
   'WHATSAPP',
@@ -10,11 +11,22 @@ export const CONTACT_TYPES = [
   'EMAIL',
   'INSTAGRAM',
   'FACEBOOK',
+  'TELEGRAM',
   'TIKTOK',
+  'X',
+  'LINKEDIN',
+  'YOUTUBE',
   'WEBSITE',
+  'OTHER',
 ] as const;
 
 export type ContactType = (typeof CONTACT_TYPES)[number];
+
+/** The longest name a contact of another kind takes, e.g. «ديسكورد». */
+export const CONTACT_LABEL_MAX_LENGTH = 40;
+
+/** What is written as a number: digits, a leading +, and the separators people type between them. */
+const LIKE_A_NUMBER = /^\+?[\d\s\-.()]+$/;
 
 /** A handle, as a network shows it, with or without its @. */
 const HANDLE = /^@?([A-Za-z0-9._]{1,50})$/;
@@ -29,10 +41,17 @@ interface Network {
   hosts: readonly string[];
   /** Its address for a handle, and the base its links are stored on. */
   base: string;
-  handlePath: (handle: string) => string;
+  /** Its address for a handle; a network without one is reached by a link only. */
+  handlePath?: (handle: string) => string;
+  /** The paths a link may have, when only some name what the contact is (a channel, not a video). */
+  paths?: RegExp;
+  /** Whether a country's two-letter subdomain of its host (`ps.linkedin.com`) is its host too. */
+  countrySubdomains?: boolean;
 }
 
-const NETWORKS: Record<'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK', Network> = {
+type NetworkType = 'INSTAGRAM' | 'FACEBOOK' | 'TELEGRAM' | 'TIKTOK' | 'X' | 'LINKEDIN' | 'YOUTUBE';
+
+const NETWORKS: Record<NetworkType, Network> = {
   INSTAGRAM: {
     hosts: ['instagram.com'],
     base: 'https://www.instagram.com',
@@ -43,10 +62,35 @@ const NETWORKS: Record<'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK', Network> = {
     base: 'https://www.facebook.com',
     handlePath: (handle) => `/${handle}`,
   },
+  TELEGRAM: {
+    hosts: ['t.me', 'telegram.me'],
+    base: 'https://t.me',
+    handlePath: (handle) => `/${handle}`,
+  },
   TIKTOK: {
     hosts: ['tiktok.com'],
     base: 'https://www.tiktok.com',
     handlePath: (handle) => `/@${handle}`,
+  },
+  X: {
+    hosts: ['x.com', 'twitter.com', 'mobile.twitter.com'],
+    base: 'https://x.com',
+    handlePath: (handle) => `/${handle}`,
+  },
+  // A LinkedIn address names a person, a company or a school by its path: a bare name says none.
+  // Search engines often show a country's subdomain (`ps.linkedin.com`); it is stored on www.
+  LINKEDIN: {
+    hosts: ['linkedin.com'],
+    base: 'https://www.linkedin.com',
+    countrySubdomains: true,
+  },
+  // A channel, by its handle or its older addresses. A video, a playlist or a search names no
+  // channel, and its query would be dropped: refused, as a video's short link (youtu.be) is.
+  YOUTUBE: {
+    hosts: ['youtube.com', 'm.youtube.com'],
+    base: 'https://www.youtube.com',
+    handlePath: (handle) => `/@${handle}`,
+    paths: /^\/(?:@[^/]+|(?:channel|c|user)\/[^/]+)(?:\/|$)/,
   },
 };
 
@@ -64,6 +108,16 @@ function linkOf(input: string): URL | null {
   return onTheWeb && !url.username && !url.password && url.hostname.includes('.') ? url : null;
 }
 
+/** Whether a link's host, without `www.`, is one of the network's. */
+function onHostOf(network: Network, url: URL): boolean {
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  if (network.hosts.includes(host)) return true;
+  const country = /^[a-z]{2}\.(.+)$/.exec(host)?.[1];
+  return (
+    network.countrySubdomains === true && country !== undefined && network.hosts.includes(country)
+  );
+}
+
 /** The path of a link, without its trailing slash. */
 function pathOf(url: URL): string {
   return url.pathname.replace(/\/+$/, '');
@@ -76,14 +130,14 @@ function pathOf(url: URL): string {
  */
 function networkAddress(network: Network, input: string): string | null {
   const handle = HANDLE.exec(input)?.[1];
-  if (handle && !LIKE_A_LINK.test(handle)) return `${network.base}${network.handlePath(handle)}`;
+  if (network.handlePath && handle && !LIKE_A_LINK.test(handle)) {
+    return `${network.base}${network.handlePath(handle)}`;
+  }
 
   const url = linkOf(input);
-  if (!url || !network.hosts.includes(url.hostname.toLowerCase().replace(/^www\./, ''))) {
-    return null;
-  }
+  if (!url || !onHostOf(network, url)) return null;
   const path = pathOf(url);
-  if (!path) return null;
+  if (!path || (network.paths && !network.paths.test(path))) return null;
   if (network === NETWORKS.FACEBOOK && path === '/profile.php') {
     const id = url.searchParams.get('id');
     return id && /^\d+$/.test(id) ? `${network.base}${path}?id=${id}` : null;
@@ -111,9 +165,18 @@ export function normaliseContact(type: ContactType, input: string): string | nul
     }
     case 'INSTAGRAM':
     case 'FACEBOOK':
+    case 'TELEGRAM':
     case 'TIKTOK':
+    case 'X':
+    case 'LINKEDIN':
+    case 'YOUTUBE':
       return networkAddress(NETWORKS[type], value);
     case 'WEBSITE':
       return websiteAddress(value);
+    // A number takes the platform's phone rule, so one number has one form; anything else is a
+    // link on the web, as a website's. A number the rule refuses is refused, never read as a link
+    // (a URL reads a bare number as an IP address).
+    case 'OTHER':
+      return LIKE_A_NUMBER.test(value) ? normalisePhone(value) : websiteAddress(value);
   }
 }

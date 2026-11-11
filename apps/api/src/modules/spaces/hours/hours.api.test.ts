@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
@@ -219,6 +220,38 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
     expect(errorOf(response).code).toBeUndefined();
     expect(await stored()).toEqual(before);
     expect(await prisma.spacePrice.findFirstOrThrow({ where: { spaceId } })).toMatchObject({
+      shiftId: morning.id,
+    });
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('refuses the owner to remove a shift a package uses, writing nothing: the package changes first', async () => {
+    const owner = await signInOwnerOf(spaceId);
+    await prisma.spaceHours.create({
+      data: { spaceId, dayOfWeek: 0, opensMinute: 600, closesMinute: 900 },
+    });
+    const morning = await shift('صباحية', 480, 780);
+    await prisma.package.create({
+      data: {
+        spaceId,
+        name: 'صباحي شهري',
+        validityDays: 30,
+        billing: 'FIXED',
+        priceAgorot: 20_000,
+        shiftId: morning.id,
+      },
+    });
+    const before = await stored();
+
+    const response = await request(app)
+      .put(`/api/v1/manage/spaces/${String(spaceId)}/hours`)
+      .set('Authorization', owner.authorization)
+      .send({ days: WEEK, shifts: [] });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).type).toBe('conflict');
+    expect(await stored()).toEqual(before);
+    expect(await prisma.package.findFirstOrThrow({ where: { spaceId } })).toMatchObject({
       shiftId: morning.id,
     });
     expect(await auditEntries()).toEqual([]);

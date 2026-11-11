@@ -10,7 +10,7 @@ export function createContactsRepository() {
       return tx.spaceContact.findMany({
         where: { spaceId },
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-        select: { type: true, value: true },
+        select: { type: true, value: true, label: true },
       });
     },
 
@@ -20,9 +20,9 @@ export function createContactsRepository() {
      */
     async replace(spaceId: number, contacts: readonly Contact[], tx: Tx): Promise<void> {
       await tx.spaceContact.deleteMany({ where: { spaceId } });
-      for (const [sortOrder, { type, value }] of contacts.entries()) {
+      for (const [sortOrder, { type, value, label }] of contacts.entries()) {
         await tx.spaceContact.create({
-          data: { spaceId, type, value, sortOrder },
+          data: { spaceId, type, value, label, sortOrder },
           select: { id: true },
         });
       }

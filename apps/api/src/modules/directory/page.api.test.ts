@@ -80,6 +80,15 @@ describe('GET /spaces/:slug', () => {
     await prisma.spaceContact.create({
       data: { spaceId: space.id, type: 'WHATSAPP', value: '+970599123456' },
     });
+    await prisma.spaceContact.create({
+      data: {
+        spaceId: space.id,
+        type: 'OTHER',
+        value: 'https://discord.gg/focushub',
+        label: 'ديسكورد',
+        sortOrder: 1,
+      },
+    });
     await prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 40 } });
     await addPhotos(space.id, ['cover', 'second']);
 
@@ -131,7 +140,10 @@ describe('GET /spaces/:slug', () => {
           { nameAr: 'ميزة power', nameEn: 'power', icon: 'wifi' },
           { nameAr: 'قاعة تدريب', nameEn: null, icon: null },
         ],
-        contacts: [{ type: 'WHATSAPP', value: '+970599123456' }],
+        contacts: [
+          { type: 'WHATSAPP', value: '+970599123456', label: null },
+          { type: 'OTHER', value: 'https://discord.gg/focushub', label: 'ديسكورد' },
+        ],
         updatedAt: {
           profile: daysAgo(70).toISOString(),
           hours: NOW.toISOString(),

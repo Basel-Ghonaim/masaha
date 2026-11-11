@@ -129,7 +129,9 @@ describe('the space editor’s repository', () => {
 
     it('PUTs the contacts whole', async () => {
       const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-      const request = { contacts: [{ type: 'PHONE' as const, value: '+970599123456' }] };
+      const request = {
+        contacts: [{ type: 'PHONE' as const, value: '+970599123456', label: null }],
+      };
 
       await repository().updateContacts(7, request);
       expect(requests[0]).toMatchObject({ method: 'put', url: `${base}/7/contacts` });

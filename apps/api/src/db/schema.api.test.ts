@@ -155,6 +155,24 @@ describe('a space', () => {
     await expect(contact('PHONE', '0569000001')).rejects.toThrow(/space_contacts_phone_e164_check/);
     await expect(contact('INSTAGRAM', 'https://instagram.com/focus')).resolves.toBeDefined();
   });
+
+  it('names a contact of another kind, never blank, and no other type', async () => {
+    const space = await createSpace();
+    const contact = (type: 'OTHER' | 'WHATSAPP', value: string, label: string | null) =>
+      prisma.spaceContact.create({ data: { spaceId: space.id, type, value, label } });
+
+    await expect(contact('OTHER', 'https://discord.gg/a', null)).rejects.toThrow(
+      /space_contacts_label_check/,
+    );
+    await expect(contact('OTHER', 'https://discord.gg/b', '  ')).rejects.toThrow(
+      /space_contacts_label_check/,
+    );
+    await expect(contact('WHATSAPP', '+970599000001', 'رقمي')).rejects.toThrow(
+      /space_contacts_label_check/,
+    );
+    await expect(contact('OTHER', 'https://discord.gg/c', 'ديسكورد')).resolves.toBeDefined();
+    await expect(contact('WHATSAPP', '+970599000002', null)).resolves.toBeDefined();
+  });
 });
 
 describe("a space's occupancy", () => {
