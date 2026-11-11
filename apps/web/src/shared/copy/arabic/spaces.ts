@@ -77,6 +77,12 @@ export const SPACES = {
       location: 'الموقع',
       contacts: 'التواصل',
     },
+    actions: {
+      menu: 'إجراءات الصفحة',
+      hide: 'إخفاء عن الزوار',
+      show: 'إظهار للزوار',
+      delete: 'حذف المساحة',
+    },
     navigation: 'أقسام الملف',
     states: {
       ok: 'مكتمل',

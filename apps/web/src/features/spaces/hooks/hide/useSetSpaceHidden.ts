@@ -1,10 +1,11 @@
 import { currentCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toastDone, toastFailed } from '../../components/toast/actionToasts';
 import { createSpacesRepository } from '../../repository/spacesRepository';
 import type { SpaceAction } from '../../types/SpaceAction';
 import { useRecordHold } from '../hold/useRecordHold';
+import { EDITOR_SCOPES } from '../editor/editorScope';
 import { spaceActionKey } from '../mutationKeys';
 import { useRefreshAdmin } from '../useRefreshAdmin';
 
@@ -22,6 +23,7 @@ const UNDO_MS = 10_000;
 export function useSetSpaceHidden() {
   const refresh = useRefreshAdmin();
   const recordHold = useRecordHold();
+  const queryClient = useQueryClient();
 
   const mutation = useMutation<
     undefined,
@@ -33,7 +35,11 @@ export function useSetSpaceHidden() {
     gcTime: 0,
     mutationFn: ({ spaceId, isHidden }) => repository.setHidden(spaceId, isHidden),
     onSuccess: async (_answer, action) => {
-      await refresh();
+      // The space's profile, when open, shows whether it is hidden: it reads the space again too.
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: EDITOR_SCOPES.admin.spaceKey(action.spaceId) }),
+      ]);
       // Worded when it lands, in the language the interface speaks then.
       const { toasts } = currentCopy().spaces;
       const { name, isHidden, undoing = false } = action;

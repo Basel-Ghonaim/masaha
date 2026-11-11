@@ -3,6 +3,7 @@ import { AmenityChecklist, AreaCombobox, AreaLine, useAmenityCatalogue } from '@
 import { SpaceOwnersActions } from '@features/space-links';
 import {
   SpaceEditor,
+  SpaceEditorActions,
   useSpaceName,
   type AdminPlace,
   type AmenitiesField,
@@ -62,8 +63,9 @@ const place: AdminPlace = {
  * has loaded, with the trail back to the spaces list, then the profile of `spaces` with the fields of
  * `lookups` and the way to its amenities' tab. An id that names no space shows the 404. The owners'
  * actions of `space-links` unlink a verified space's owners, or link one to an unverified space, a
- * new owner being added on the owners page. A report the address names (`?report=`) shows its notice,
- * from `data-reports`, inside its field's section (D6.8).
+ * new owner being added on the owners page. In the top bar, the space's hide and delete (H4), a
+ * deleted space's way back being the deleted spaces' list. A report the address names (`?report=`)
+ * shows its notice, from `data-reports`, inside its field's section (D6.8).
  */
 export function SpaceEditPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
@@ -86,7 +88,10 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
 
   return (
     <>
-      <PageHeader />
+      <PageHeader>
+        {/* H4: the admin's hide and delete stay in the page's top bar. */}
+        <SpaceEditorActions spaceId={spaceId} deletedLink={`${ADMIN_SPACES_PATH}?status=deleted`} />
+      </PageHeader>
       <div className="flex flex-col gap-4">
         <Breadcrumb label={copy.dashboard.addSpace.trail}>
           <BreadcrumbList>

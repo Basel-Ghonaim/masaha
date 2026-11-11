@@ -92,6 +92,13 @@ export const SPACES = {
       location: 'Location',
       contacts: 'Contacts',
     },
+    /** The admin's actions on the space, in the page's top bar (H4). */
+    actions: {
+      menu: 'Page actions',
+      hide: 'Hide from visitors',
+      show: 'Show to visitors',
+      delete: 'Delete the space',
+    },
     /** Names the sections' index, beside them from 1024 px. */
     navigation: 'Profile sections',
     /** A section's state in the index, said beside its dot. */

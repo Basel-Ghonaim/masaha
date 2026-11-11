@@ -3,6 +3,7 @@ export { SpaceActionsHold } from './components/hold/SpaceActionsHold';
 export type { AreaField } from './types/AreaField';
 export { SpaceActionsMenu } from './components/menu/SpaceActionsMenu';
 export { SpaceEditor } from './components/editor/SpaceEditor';
+export { SpaceEditorActions } from './components/editor/SpaceEditorActions';
 export { SpacePricesCard } from './components/prices/SpacePricesCard';
 export { useSpaceName } from './hooks/editor/useSpaceName';
 export { useSpaceOwners } from './hooks/owners/useSpaceOwners';
