@@ -19,9 +19,37 @@ async function verdicts(file: string, code: string): Promise<string[]> {
     .map(({ message }) => message.slice(0, message.indexOf(' is not allowed')));
 }
 
+/** The import restriction's messages on a probe at `file`, from the repository's root. */
+async function refusals(file: string, code: string): Promise<string[]> {
+  const [result] = await eslint.lintText(code, { filePath: resolve(ROOT, file) });
+  return (result?.messages ?? [])
+    .filter(({ ruleId }) => ruleId === 'no-restricted-imports')
+    .map(({ message }) => message);
+}
+
 const importing = (path: string) => `import * as probe from '${path}';\nexport { probe };\n`;
 
 const FEATURE = 'apps/web/src/features/space-links/probe.ts';
+
+describe('the drag-and-drop library', { timeout: 60_000 }, () => {
+  it.each(['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'])(
+    'refuses %s outside the layer',
+    async (library) => {
+      expect(await refusals(FEATURE, importing(library))).toEqual([
+        expect.stringContaining('Only the design-system layer imports this package'),
+      ]);
+    },
+  );
+
+  it('allows it inside the layer', async () => {
+    expect(
+      await refusals(
+        'apps/web/src/shared/design-system/components/fields/Sortable/probe.ts',
+        importing('@dnd-kit/core'),
+      ),
+    ).toEqual([]);
+  });
+});
 
 describe("the design-system layer's entries", { timeout: 60_000 }, () => {
   it('allows its data components through their own entry', async () => {
@@ -30,6 +58,10 @@ describe("the design-system layer's entries", { timeout: 60_000 }, () => {
 
   it('allows its calendar and date picker through their own entry', async () => {
     expect(await verdicts(FEATURE, importing('@shared/design-system/calendar'))).toEqual([]);
+  });
+
+  it('allows its sortable list through its own entry', async () => {
+    expect(await verdicts(FEATURE, importing('@shared/design-system/sortable'))).toEqual([]);
   });
 
   it("allows the map's stylesheet to shared/map", async () => {
