@@ -95,14 +95,22 @@ export const LOOKUPS = {
   },
   areaName: ({ area, governorate }: { area: string; governorate: string }) =>
     `${area} · ${governorate}`,
+  areaLine: ({ area, governorate }: { area: string; governorate: string }) =>
+    `${area}، ${governorate}`,
   amenityChecklist: {
     empty: 'لا مرافق في القائمة بعد',
-    retired: 'لم يعد في قائمة المنصة',
+    retired: 'أُزيل من القائمة',
   },
   areaSelect: {
     placeholder: 'اختر المنطقة',
     hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
     unavailable: 'المنطقة الحالية — لم تعد متاحة للاختيار',
+    search: {
+      label: 'ابحث عن منطقة',
+      placeholder: 'اسم المنطقة أو المحافظة',
+      list: 'المناطق',
+      empty: 'لا توجد منطقة بهذا الاسم',
+    },
   },
   areaFilter: {
     label: 'المنطقة',

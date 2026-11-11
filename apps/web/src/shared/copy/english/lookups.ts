@@ -116,11 +116,14 @@ export const LOOKUPS = {
   /** A space's area with its governorate, as a read-only page names it. */
   areaName: ({ area, governorate }: { area: string; governorate: string }) =>
     `${area} · ${governorate}`,
+  /** A space's area with its governorate, as the space profile's header and location say it. */
+  areaLine: ({ area, governorate }: { area: string; governorate: string }) =>
+    `${area}, ${governorate}`,
   /** A space's amenities to tick, from the platform's list. */
   amenityChecklist: {
     empty: 'The list has no amenities yet',
     /** The badge of a retired amenity a space still holds, on an owner's checklist. */
-    retired: 'No longer on the platform’s list',
+    retired: 'Retired from the list',
   },
   /** The field that chooses one area for a space, its areas grouped under their governorates. */
   areaSelect: {
@@ -129,6 +132,13 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (hidden)`,
     /** A space's own area that is no longer offered, as the public catalogue cannot name it. */
     unavailable: 'Current area — no longer offered',
+    /** The words of the searched list (`AreaCombobox`). */
+    search: {
+      label: 'Search the areas',
+      placeholder: 'Area or governorate',
+      list: 'Areas',
+      empty: 'No area by that name',
+    },
   },
   /** The site's place filter: any number of areas from the public catalogue. */
   areaFilter: {

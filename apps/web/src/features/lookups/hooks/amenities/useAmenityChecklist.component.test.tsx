@@ -80,7 +80,7 @@ describe('useAmenityChecklist', () => {
     ).toEqual([
       [1, 'إنترنت', false, null],
       [3, 'طاقة شمسية', true, null],
-      [2, 'مولّد', true, 'لم يعد في قائمة المنصة'],
+      [2, 'مولّد', true, 'أُزيل من القائمة'],
     ]);
     expect(result.current).not.toHaveProperty('retiredKept');
     act(() => {

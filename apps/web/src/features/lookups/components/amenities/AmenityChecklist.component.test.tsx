@@ -59,6 +59,17 @@ describe('AmenityChecklist', () => {
     expect(screen.getByRole('checkbox', { name: 'Generator Inactive' })).toBeChecked();
   });
 
+  it('draws each amenity’s icon inside its label, so the whole row ticks it', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderChecklist();
+    await screen.findByRole('checkbox', { name: 'Internet' });
+
+    const label = screen.getByText('Internet').closest('label');
+    expect(label?.querySelector('svg')).not.toBeNull();
+    await user.click(label?.querySelector('svg') ?? document.body);
+    expect(onValueChange).toHaveBeenLastCalledWith([2, 1]);
+  });
+
   it('hands back the amenities as one is ticked', async () => {
     const user = userEvent.setup();
     const { onValueChange } = renderChecklist();
@@ -116,7 +127,7 @@ describe('AmenityChecklist', () => {
     );
 
     const generator = await screen.findByRole('checkbox', {
-      name: 'Generator No longer on the platform’s list',
+      name: 'Generator Retired from the list',
     });
     expect(generator).toBeChecked();
     expect(screen.getAllByRole('checkbox')).toEqual([
