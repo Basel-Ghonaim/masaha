@@ -1,6 +1,5 @@
-import type { FactGroup } from '@masaha/shared/spaces';
 import { ReportNotice, reportIdOf, useReportNotice } from '@features/data-reports';
-import { AmenityChecklist, AmenityNames, AreaName, AreaSelect } from '@features/lookups';
+import { AmenityChecklist, AreaCombobox, AreaLine, useAmenityCatalogue } from '@features/lookups';
 import { SpaceOwnersActions } from '@features/space-links';
 import {
   SpaceEditor,
@@ -8,6 +7,8 @@ import {
   type AdminPlace,
   type AmenitiesField,
   type AreaField,
+  type AreaLine as AreaLineSlot,
+  type SectionId,
 } from '@features/spaces';
 import { useCopy } from '@shared/copy';
 import {
@@ -32,21 +33,19 @@ import { PageHeader } from '../shell/PageHeader';
 /** The admin's reports list. */
 const ADMIN_REPORTS_PATH = `${DASHBOARD_PATHS.admin}/reports`;
 
-/** The editor's area field, from `lookups`, made once so the form keeps it from render to render. */
-const areaField: AreaField = (props) => <AreaSelect source="admin" {...props} />;
+/** The profile's area field, searched, from `lookups`, made once so the form keeps it. */
+const areaField: AreaField = (props) => <AreaCombobox source="admin" {...props} />;
 
-/** A space's area named, from `lookups`, for a verified space's read-only page. */
-const areaName = (areaId: number) => <AreaName areaId={areaId} source="admin" />;
+/** The area with its governorate, from the admin's lists, a hidden area named too. */
+const areaLine: AreaLineSlot = (areaId) => <AreaLine areaId={areaId} source="admin" />;
 
 /** The platform's amenities to tick, from `lookups`, made once as the area field is. */
 const amenitiesField: AmenitiesField = (props) => <AmenityChecklist source="admin" {...props} />;
 
-/** A space's amenities named, from `lookups`, for a verified space's read-only page. */
-const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;
-
 /**
- * The admin's place: the space's owners' actions, from `space-links`, in the editor's notice, the
- * way to the amenities' tab, and a verified space's names, made once as the fields are.
+ * The admin's place: the space's owners' actions, from `space-links` — the unlink in a verified
+ * space's notice, the link in an unverified one's header — the way to the amenities' tab, and to the
+ * space's reports, made once as the fields are.
  */
 const place: AdminPlace = {
   kind: 'admin',
@@ -56,16 +55,15 @@ const place: AdminPlace = {
   ),
   amenitiesListLink: ADMIN_AMENITIES_PATH,
   reportsLink: (spaceId) => `${ADMIN_REPORTS_PATH}?space=${String(spaceId)}`,
-  areaName,
-  amenityNames,
 };
 
 /**
- * The admin edits a space: titled by its name once it has loaded, with the trail back to the spaces
- * list, then the editor of `spaces` with the fields of `lookups` and the way to its amenities' tab. An id that names no space shows
- * the 404. Its notice holds the owners' actions of `space-links`: unlink a verified space's owners,
- * or link one to an unverified space, a new owner being added on the owners page. A report the
- * address names (`?report=`) shows its notice, from `data-reports`, above its field's section (D6.8).
+ * The admin's space editor, the space profile on the admin's place (G5): titled by its name once it
+ * has loaded, with the trail back to the spaces list, then the profile of `spaces` with the fields of
+ * `lookups` and the way to its amenities' tab. An id that names no space shows the 404. The owners'
+ * actions of `space-links` unlink a verified space's owners, or link one to an unverified space, a
+ * new owner being added on the owners page. A report the address names (`?report=`) shows its notice,
+ * from `data-reports`, inside its field's section (D6.8).
  */
 export function SpaceEditPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
@@ -82,8 +80,9 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
     { audience: 'admin', spaceId, reportsPath: ADMIN_REPORTS_PATH },
     reportIdOf(params.get('report')),
   );
-  const noticeFor = (group: FactGroup) =>
-    notice?.group === group ? <ReportNotice view={notice} /> : null;
+  const noticeFor = (section: SectionId) =>
+    notice?.section === section ? <ReportNotice view={notice} /> : null;
+  const catalogue = useAmenityCatalogue('admin');
 
   return (
     <>
@@ -108,7 +107,9 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
           spaceId={spaceId}
           place={place}
           areaField={areaField}
+          areaLine={areaLine}
           amenitiesField={amenitiesField}
+          amenityCatalogue={catalogue}
           publicLink={publicSpacePath}
           noticeFor={noticeFor}
         />

@@ -8,7 +8,7 @@ import type { ReportNoticeView } from '../../types/ReportNoticeView';
 const NOTICE_ID = 'report';
 
 /**
- * An open report's notice, above the section its field is edited in: an info alert, `#report`,
+ * An open report's notice, inside the section its field is edited in: an info alert, `#report`,
  * which a link's hash lands on. It draws from its own read, often after the page's own landing
  * looked for it, so arriving at `#report` it lands on itself once it draws: scrolled to and
  * focused, once per opening. Open: its title, the report's words with who and when, then

@@ -285,7 +285,6 @@ export const SPACE_LINKS = {
   spaceOwners: {
     unlink: ({ name }: { name: string }) => `فك ربط ${name}`,
     link: 'ربط مالك',
-    unsavedReason: 'احفظ التغييرات أو تجاهلها أولًا',
   },
   ownerActions: {
     menu: ({ name }: { name: string }) => `إجراءات: ${name}`,

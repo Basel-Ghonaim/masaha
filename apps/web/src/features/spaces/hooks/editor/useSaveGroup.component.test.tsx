@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe('useSaveGroup', () => {
-  it('names the owner’s prices in its toast as their card is titled, and the admin’s as their section', async () => {
+  it('names the section saved in its toast, and that visitors see it now', async () => {
     fakeTransport(() => ok(SPACE));
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>
@@ -38,14 +38,14 @@ describe('useSaveGroup', () => {
       { wrapper },
     );
     await act(() => owner.result.current.mutateAsync(undefined));
-    expect(await findToast('Published prices saved')).toBeInTheDocument();
+    expect(await findToast('Published prices saved — visitors see it now')).toBeInTheDocument();
 
     const admin = renderHook(
-      () => useSaveGroup('admin', 7, 'prices', () => EDITOR_SCOPES.admin.repository.get(7)),
+      () => useSaveGroup('admin', 7, 'location', () => EDITOR_SCOPES.admin.repository.get(7)),
       { wrapper },
     );
     await act(() => admin.result.current.mutateAsync(undefined));
-    expect(await findToast('Prices saved')).toBeInTheDocument();
+    expect(await findToast('Location saved — visitors see it now')).toBeInTheDocument();
   });
 
   it('keeps an owner’s answer under the space’s scope and fetches the user’s spaces again', async () => {
@@ -64,7 +64,7 @@ describe('useSaveGroup', () => {
           queryKey: ['me', 'spaces'],
           queryFn: () => api.get<unknown[]>('/manage/spaces'),
         });
-        const save = useSaveGroup('owner', 7, 'profile', (request: { nameAr: string }) =>
+        const save = useSaveGroup('owner', 7, 'about', (request: { nameAr: string }) =>
           EDITOR_SCOPES.owner.repository.updateProfile(7, request),
         );
         return { spaces, save };
@@ -102,7 +102,7 @@ describe('useSaveGroup', () => {
           queryKey: ['me', 'spaces'],
           queryFn: () => api.get<unknown[]>('/manage/spaces'),
         });
-        const save = useSaveGroup('owner', 7, 'profile', (request: { nameAr: string }) =>
+        const save = useSaveGroup('owner', 7, 'about', (request: { nameAr: string }) =>
           EDITOR_SCOPES.owner.repository.updateProfile(7, request),
         );
         return { spaces, save };

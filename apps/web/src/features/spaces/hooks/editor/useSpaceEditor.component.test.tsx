@@ -1,53 +1,31 @@
-import type { AdminSpace } from '@masaha/shared/spaces';
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { renderHookInRouter } from '../../../../test/renderHookInRouter';
+import { PHOTOS, SPACE } from '../../../../test/spaceFixtures';
 import { startPreferences } from '../../../../test/startPreferences';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EDITOR_SCOPES } from './editorScope';
 import { useSpaceEditor } from './useSpaceEditor';
 
-const SPACE = {
-  id: 7,
-  slug: 'focus-hub',
-  nameEn: 'Focus Hub',
-  nameAr: null,
-  isHidden: false,
-  isVerified: false,
-  owners: [],
-  missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
-} as unknown as AdminSpace;
-
-/** The editor of space 7 at `place`, the server answering its read with `read`. */
+/** The profile of space 7 at `place`, the server answering its read with `read`, its gallery with `photos`. */
 function renderEditor(
   read: () => FakeAnswer | Promise<FakeAnswer> = () => ok(SPACE),
   place: EditorPlace = 'admin',
+  photos: () => FakeAnswer | Promise<FakeAnswer> = () => ok(PHOTOS),
 ) {
-  const requests = fakeTransport(read);
+  const requests = fakeTransport((request) =>
+    request.url?.endsWith('/photos') === true ? photos() : read(),
+  );
   return {
     ...renderHookInRouter(() => useSpaceEditor(place, 7), { path: '/spaces/7' }),
     requests,
   };
 }
 
-/** The space as its owner reads it: verified, its prices dated two days before 13 October. */
-const OWNED = {
-  ...SPACE,
-  isVerified: true,
-  updatedAt: {
-    profile: null,
-    hours: null,
-    prices: '2026-10-11T08:00:00Z',
-    amenities: null,
-    contacts: null,
-  },
-  staleGroups: [],
-} as unknown as AdminSpace;
-
-/** The editor once its space has loaded. */
+/** The profile once its space has loaded. */
 async function ready(result: { current: ReturnType<typeof useSpaceEditor> }) {
   await waitFor(() => {
     expect(result.current.state).toBe('ready');
@@ -73,14 +51,6 @@ describe('useSpaceEditor', () => {
 
     expect(result.current.state).toBe('loading');
     expect((await ready(result)).space).toEqual(SPACE);
-  });
-
-  it('is the 404 for a space that does not exist or was deleted', async () => {
-    const { result } = renderEditor(() => refused(404, { type: 'not_found' }));
-
-    await waitFor(() => {
-      expect(result.current.state).toBe('notFound');
-    });
   });
 
   it('is the 404 once the space is found deleted, though it was loaded, so nothing stays editable', async () => {
@@ -115,169 +85,111 @@ describe('useSpaceEditor', () => {
     await ready(result);
   });
 
-  it('lists the five groups while one is missing, each line a link to its section', async () => {
+  it('lets the admin edit an unverified space, never a verified one, and the owner only that', async () => {
+    const admin = renderEditor();
+    expect((await ready(admin.result)).editable).toBe(true);
+
+    const verified = renderEditor(() => ok({ ...SPACE, isVerified: true }));
+    expect((await ready(verified.result)).editable).toBe(false);
+
+    const owner = renderEditor(() => ok({ ...SPACE, isVerified: true }), 'owner');
+    expect((await ready(owner.result)).editable).toBe(true);
+  });
+
+  it('opens one Sheet at a time, and closing one leaves another that was opened from it open', async () => {
     const { result } = renderEditor();
-
     const editor = await ready(result);
 
-    expect(
-      editor.checklist?.items.map(({ group, href, status, variant }) => [
-        group,
-        href,
-        status,
-        variant,
-      ]),
-    ).toEqual([
-      ['profile', '#profile', 'Done', 'success'],
-      ['hours', '#hours', 'Not added yet', 'warning'],
-      ['prices', '#prices', 'Not added yet', 'warning'],
-      ['amenities', '#amenities', 'Not added yet', 'warning'],
-      ['contacts', '#contacts', 'Not added yet', 'warning'],
-    ]);
-  });
-
-  it('has no checklist once nothing is missing', async () => {
-    const complete = renderEditor(() => ok({ ...SPACE, missingGroups: [] }));
-    expect((await ready(complete.result)).checklist).toBeNull();
-  });
-
-  it('is read-only for a verified space, with no checklist', async () => {
-    const { result } = renderEditor(() => ok({ ...SPACE, isVerified: true }));
-
-    const editor = await ready(result);
-
-    expect(editor.readOnly).toBe(true);
-    expect(editor.checklist).toBeNull();
-  });
-
-  it('gives the owner the head line and the public link, no notice and no privacy line', async () => {
-    const { result, requests } = renderEditor(() => ok(OWNED), 'owner');
-
-    const editor = await ready(result);
-
-    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
-      'get /manage/spaces/7',
-    ]);
-    expect(editor.head).toEqual({
-      intro: 'Each section saves on its own and shows to visitors as soon as it’s saved.',
-      viewPublic: 'View public page',
+    act(() => {
+      editor.openSheet('prices');
     });
-    expect(editor.notice).toBeNull();
-    expect(editor.privacy).toBeNull();
-    // Its own space is the owner's to edit, the groups still missing listed.
-    expect(editor.readOnly).toBe(false);
-    expect(editor.checklist).not.toBeNull();
-    // The admin's editor keeps its notice and its privacy line, and has no head line.
-    const admin = await ready(renderEditor().result);
-    expect(admin.head).toBeNull();
-    expect(admin.notice?.unverified.title).toBe('You’re editing an unverified space');
-    expect(admin.privacy).not.toBeNull();
-  });
-
-  it('draws the prices as a link to Packages & prices on the owner’s place, with its date, stale or never added', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-10-13T07:00:00Z'));
-    const dated = await ready(renderEditor(() => ok(OWNED), 'owner').result);
-    expect(dated.pricesLink).toEqual({
-      title: 'Prices',
-      description: 'Edited and confirmed in Packages & prices',
-      date: 'Updated 2 days ago',
-      stale: null,
-      action: { label: 'Packages & prices' },
+    await waitFor(() => {
+      expect((result.current as typeof editor).sheetHost('prices').open).toBe(true);
     });
+    act(() => {
+      (result.current as typeof editor).openSheet('shifts');
+    });
+    const now = result.current as typeof editor;
+    expect(now.sheetHost('prices').open).toBe(false);
+    expect(now.sheetHost('shifts').open).toBe(true);
 
-    const stale = await ready(
-      renderEditor(() => ok({ ...OWNED, staleGroups: ['prices'] }), 'owner').result,
-    );
-    expect(stale.pricesLink?.stale).toBe('Out of date');
-
-    const missing = await ready(
-      renderEditor(() => ok({ ...OWNED, updatedAt: { ...OWNED.updatedAt, prices: null } }), 'owner')
-        .result,
-    );
-    expect(missing.pricesLink).toMatchObject({ date: 'Not added yet', stale: null });
-
-    // The admin edits the prices in the editor itself: no link.
-    expect((await ready(renderEditor().result)).pricesLink).toBeNull();
-    vi.useRealTimers();
+    act(() => {
+      now.sheetHost('prices').close();
+    });
+    expect((result.current as typeof editor).sheetHost('shifts').open).toBe(true);
   });
 
-  it('shows the owner only that the space is hidden from visitors, when it is', async () => {
-    expect((await ready(renderEditor(() => ok(OWNED), 'owner').result)).badges).toEqual([]);
-    expect(
-      (await ready(renderEditor(() => ok({ ...OWNED, isHidden: true }), 'owner').result)).badges,
-    ).toEqual([{ label: 'Hidden from visitors', variant: 'warning' }]);
-  });
-
-  it('shows its state as two facts: whether it is verified, and hidden', async () => {
-    const { result } = renderEditor(() => ok({ ...SPACE, isHidden: true }));
-
-    expect((await ready(result)).badges).toEqual([
-      { label: 'Unverified', variant: 'neutral' },
-      { label: 'Hidden', variant: 'warning' },
-    ]);
-  });
-
-  it('asks before leaving while a section reports unsaved changes, in the groups’ order, and no longer once it reports none', async () => {
+  it('asks before leaving only while the open Sheet has changes, naming its section', async () => {
     const { result, router } = renderEditor();
     const editor = await ready(result);
-
     act(() => {
-      editor.onDirtyChange('contacts', true);
-      editor.onDirtyChange('profile', true);
+      editor.openSheet('hours');
     });
-    await act(() => router.navigate('/elsewhere'));
-    expect(result.current.guard.description).toBe(
-      'Unsaved changes in The space and Contacts will be lost.',
-    );
+    // A closed Sheet's changes are no one's: only the open one is heard.
     act(() => {
-      result.current.guard.stay.run();
-      editor.onDirtyChange('contacts', false);
-      editor.onDirtyChange('profile', false);
+      (result.current as typeof editor).sheetHost('contacts').reportDirty(true);
     });
-
     await act(() => router.navigate('/elsewhere'));
     expect(router.state.location.pathname).toBe('/elsewhere');
-  });
 
-  it('says whether the hours have unsaved changes, for the prices', async () => {
-    const { result } = renderEditor();
-    const editor = await ready(result);
-
+    await act(() => router.navigate('/spaces/7'));
+    const back = await ready(result);
     act(() => {
-      editor.onDirtyChange('profile', true);
+      back.openSheet('hours');
     });
-    expect(result.current).toMatchObject({ hoursUnsaved: false });
     act(() => {
-      editor.onDirtyChange('hours', true);
-    });
-    expect(result.current).toMatchObject({ hoursUnsaved: true });
-    act(() => {
-      editor.onDirtyChange('hours', false);
-    });
-    expect(result.current).toMatchObject({ hoursUnsaved: false });
-  });
-
-  it('says the changes are being saved while one of the space’s writes is pending', async () => {
-    const { result, router, client } = renderEditor();
-    const editor = await ready(result);
-    act(() => {
-      editor.onDirtyChange('profile', true);
-    });
-
-    act(() => {
-      void client
-        .getMutationCache()
-        .build(client, {
-          mutationKey: EDITOR_SCOPES.admin.writeKey(7),
-          mutationFn: () => new Promise(() => undefined),
-        })
-        .execute(undefined);
+      (result.current as typeof editor).sheetHost('hours').reportDirty(true);
     });
     await act(() => router.navigate('/elsewhere'));
 
-    await waitFor(() => {
-      expect(result.current.guard.description).toBe('The changes in The space are being saved.');
+    expect(result.current.guard.open).toBe(true);
+    expect(result.current.guard.description).toBe(
+      'Your changes to Opening hours aren’t saved, and will be lost.',
+    );
+  });
+
+  it('counts nothing while the gallery is read, then each section’s state for the index (DI-4)', async () => {
+    let answer: (value: FakeAnswer) => void = () => undefined;
+    const { result } = renderEditor(
+      () => ok({ ...SPACE, staleGroups: ['contacts'] }),
+      'admin',
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const editor = await ready(result);
+
+    expect(editor.completeness).toBeNull();
+    expect(editor.index.items.every(({ state }) => state === null)).toBe(true);
+    act(() => {
+      answer(ok([]));
     });
+
+    await waitFor(() => {
+      expect((result.current as typeof editor).completeness?.done).toBe(6);
+    });
+    const states = (result.current as typeof editor).index.items.map(({ id, state }) => [
+      id,
+      state,
+    ]);
+    expect(states).toEqual([
+      ['photos', 'missing'],
+      ['prices', 'ok'],
+      ['hours', 'ok'],
+      ['shifts', 'ok'],
+      ['amenities', 'ok'],
+      ['about', 'ok'],
+      ['location', 'ok'],
+      ['contacts', 'stale'],
+    ]);
+  });
+
+  it('gives the admin the privacy line, and the owner none', async () => {
+    const admin = renderEditor();
+    expect((await ready(admin.result)).privacy).toMatch(/private to its management/);
+
+    const owner = renderEditor(() => ok({ ...SPACE, isVerified: true }), 'owner');
+    expect((await ready(owner.result)).privacy).toBeNull();
   });
 });

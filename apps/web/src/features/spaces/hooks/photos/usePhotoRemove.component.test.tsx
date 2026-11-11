@@ -28,7 +28,7 @@ const tileOf = (position: number, id: number): PhotoTileView => ({
   cover: position === 1,
   image: { src: `/files/${String(id)}-card.webp` },
   failure: null,
-  actions: null,
+  remove: null,
 });
 
 /** The removal hook of space 7's gallery; the server answers each write with `answer`. */

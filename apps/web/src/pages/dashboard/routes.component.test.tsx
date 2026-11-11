@@ -803,7 +803,8 @@ describe("the admin's add-space page", () => {
     expect(requests.find(({ method }) => method === 'post')).toMatchObject({
       url: '/admin/spaces',
     });
-    expect(await screen.findByRole('region', { name: 'Still missing' })).toBeInTheDocument();
+    // The profile opens on what the new space still lacks: its header counts it.
+    expect(await screen.findByRole('meter', { name: 'Profile completeness' })).toBeInTheDocument();
     // The editor opens on the space the creation answered: it is not read again.
     expect(requests.filter(({ url }) => url === '/admin/spaces/7')).toEqual([]);
   });
@@ -834,7 +835,9 @@ describe("the admin's space editor", () => {
       'href',
       '/dashboard/admin/spaces',
     );
-    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'About the space' }),
+    ).toBeInTheDocument();
   });
 
   it('is titled "Edit space" while the space loads', async () => {
@@ -876,7 +879,9 @@ describe("the owner's space profile", () => {
     renderDashboard('/dashboard/spaces/7/profile');
 
     await topBarTitle('Space profile');
-    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'About the space' }),
+    ).toBeInTheDocument();
     expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7');
     expect(requests.filter(({ url }) => url?.startsWith('/admin/') === true)).toEqual([]);
   });
@@ -886,7 +891,7 @@ describe("the owner's space profile", () => {
     renderDashboard('/dashboard/spaces/7/profile');
 
     expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { level: 2, name: 'The space' })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 2, name: 'About the space' })).toBeNull();
   });
 });
 

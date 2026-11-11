@@ -31,14 +31,16 @@ const EVENINGS: SpacePackage = { ...TEN_DAYS, id: 4, name: 'Evenings', isActive:
 const heard = (expected: string) => (name: string) =>
   name.replace(/[\u2066-\u2069]/g, '') === expected;
 
-/** The section of space 7 holding `packages`, offered `shifts`, at a page whose hours are at `/profile#hours`. */
+/** The section of space 7 holding `packages`, offered `shifts`, at a page whose shifts are at `/profile?sheet=shifts#shifts`. */
 function renderSection(shifts: ShiftChoice[] | null, packages = [TEN_DAYS, EVENINGS]) {
   fakeTransport(() => ok(packages));
   const router = createMemoryRouter(
     [
       {
         path: '/packages',
-        element: <PackagesSection spaceId={7} shifts={shifts} hoursLink="/profile#hours" />,
+        element: (
+          <PackagesSection spaceId={7} shifts={shifts} hoursLink="/profile?sheet=shifts#shifts" />
+        ),
       },
     ],
     { initialEntries: ['/packages'] },
@@ -93,8 +95,8 @@ describe('PackagesSection', () => {
 
     expect(within(sheet).getByText(/No shifts are saved yet\./)).toBeInTheDocument();
     expect(
-      within(sheet).getByRole('link', { name: 'Add shifts in the opening hours' }),
-    ).toHaveAttribute('href', '/profile#hours');
+      within(sheet).getByRole('link', { name: 'Add shifts in the space profile' }),
+    ).toHaveAttribute('href', '/profile?sheet=shifts#shifts');
     expect(await axe(document.body)).toHaveNoViolations();
   });
   it('says the desk sells the packages, and puts a row’s price at its end beside its switch', async () => {

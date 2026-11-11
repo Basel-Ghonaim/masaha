@@ -1,15 +1,6 @@
 import type { FormFailureView, Refusal } from '@shared/forms';
 
-/** What one photo in the gallery offers, and whether it is there to offer it. */
-export type PhotoActions = {
-  before: { label: string; disabled: boolean; busy: boolean; run: () => void };
-  after: { label: string; disabled: boolean; busy: boolean; run: () => void };
-  /** Null on the cover itself: the first photo is already the cover. */
-  cover: { label: string; run: () => void } | null;
-  remove: { label: string; run: () => void };
-};
-
-/** One photo of the gallery, ready to render: its thumb, its place and what may be done with it. */
+/** One photo of the gallery, ready to render: its picture, its place, and its removal. */
 export type PhotoTileView = {
   /** The photo's id on the server, the one every write names. */
   id: number;
@@ -22,8 +13,8 @@ export type PhotoTileView = {
   image: { src: string };
   /** Why the last write on it failed, read as any refusal is. */
   failure: FormFailureView | null;
-  /** Null on a verified space, whose photos nothing may change. */
-  actions: PhotoActions | null;
+  /** Its removal, which asks first; none where the place may not edit. */
+  remove: { label: string; run: () => void } | null;
 };
 
 /** Where a chosen file stands while it travels: being read, going up, or refused. */

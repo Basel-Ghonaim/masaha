@@ -257,6 +257,6 @@ export function usePhotoUploads(
     tiles,
     summary,
     canAdd: !full,
-    addReason: full ? words.limitReason : null,
+    addReason: full ? words.full : null,
   };
 }

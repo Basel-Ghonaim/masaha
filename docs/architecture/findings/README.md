@@ -19,6 +19,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 - [217. Contacts and every phone refuse Arabic-Indic digits](217-contacts-and-every-phone-refuse-arabic-indic-digits.md)
 - [218. A website's bare number is stored as an IP address; a Facebook video link loses its id](218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md)
+- [219. A toast's removal timer can outlive its test file's jsdom](219-a-toasts-removal-timer-can-outlive-its-test-files-jsdom.md)
 
 ## Accepted
 
@@ -32,6 +33,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [150. The owner sees a report's exact time](150-the-owner-sees-a-reports-exact-time.md)
 - [187. A favourite just removed cannot be saved again for an undo](187-a-favourite-just-removed-cannot-be-saved-again-for-an-undo.md)
 - [193. A visit left to a customer is both a debt and uncollected](193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)
+- [216. The admin's shifts Sheet cannot mark a shift a package uses](216-the-admins-shifts-sheet-cannot-mark-a-shift-a-package-uses.md)
 
 ## Resolved
 

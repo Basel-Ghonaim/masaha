@@ -104,7 +104,7 @@ export const PACKAGES = {
     shift: 'الوردية',
     noShift: 'بدون وردية',
     noShifts: 'لا ورديات محفوظة بعد.',
-    addShifts: 'أضف ورديات في ساعات العمل',
+    addShifts: 'أضف ورديات في ملف المساحة',
     shiftsLoading: 'جارٍ تحميل الورديات…',
     summary: 'الملخّص',
     unnamed: 'باقة بدون اسم',

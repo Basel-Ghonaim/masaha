@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { amenitiesInput, amenitiesValues, amenityIdsOf, sameAmenities } from './amenitiesForm';
+import {
+  amenitiesInput,
+  amenitiesValues,
+  amenityIdsOf,
+  catalogueClashes,
+  sameAmenities,
+} from './amenitiesForm';
 
 const SPACE = {
   amenityIds: [3, 1],
@@ -65,5 +71,31 @@ describe('sameAmenities', () => {
         SPACE,
       ),
     ).toBe(true);
+  });
+});
+
+describe('catalogueClashes', () => {
+  const CATALOGUE = [
+    { nameAr: 'إنترنت', nameEn: 'Internet' },
+    { nameAr: 'مولّد', nameEn: 'Generator' },
+  ];
+
+  it('names the own rows that repeat a listed amenity, in either language, trimmed, in any case', () => {
+    expect(
+      catalogueClashes(
+        [
+          { nameAr: 'غرفة صلاة', nameEn: '' },
+          { nameAr: ' إنترنت ', nameEn: '' },
+          { nameAr: 'كهرباء', nameEn: 'GENERATOR' },
+          { nameAr: 'Internet', nameEn: '' },
+        ],
+        CATALOGUE,
+      ),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('finds none while the rows name what the list does not, an empty English name included', () => {
+    expect(catalogueClashes([{ nameAr: 'خزائن', nameEn: '' }], CATALOGUE)).toEqual([]);
+    expect(catalogueClashes([{ nameAr: 'إنترنت', nameEn: '' }], [])).toEqual([]);
   });
 });

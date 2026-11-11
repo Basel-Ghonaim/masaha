@@ -1,13 +1,13 @@
 import type { FormFailureView } from '@shared/forms';
-import type { NoticeGroup } from '../services/noticeGroup';
+import type { NoticeSection } from '../services/noticeSection';
 
 /**
- * One open report's notice, ready to render above the section its field is edited in (`group`):
+ * One open report's notice, ready to render inside the section its field is edited in (`section`):
  * open, its words and «تم التصحيح» with the way to reply; or, once marked here, that it was, with
  * the way back to the reports.
  */
 export type ReportNoticeView = {
-  group: NoticeGroup;
+  section: NoticeSection;
   title: string;
   said: { text: string; message: { none: boolean } };
 } & (

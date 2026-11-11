@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { sectionName } from './sectionName';
 
 describe('sectionName', () => {
-  it('names the owner’s prices «Published prices», as their own page titles them, and every other section by its group', () => {
-    expect(sectionName('owner', 'prices', CATALOGUES.en)).toBe('Published prices');
-    expect(sectionName('admin', 'prices', CATALOGUES.en)).toBe('Prices');
-    expect(sectionName('owner', 'hours', CATALOGUES.en)).toBe('Opening hours');
+  it('names each section by its own title, the prices «Published prices» on both places', () => {
+    expect(sectionName('prices', CATALOGUES.en)).toBe('Published prices');
+    expect(sectionName('shifts', CATALOGUES.en)).toBe('Shifts');
+    expect(sectionName('about', CATALOGUES.ar)).toBe('عن المساحة');
+    expect(sectionName('location', CATALOGUES.ar)).toBe('الموقع');
   });
 });

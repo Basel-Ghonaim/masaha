@@ -16,6 +16,7 @@
 | **Visit** | زيارة | A same-day stay (hours or one day), checked in by name only and charged at check-out. Daily visitors are visits, not customers |
 | **Subscription** | اشتراك | Any multi-day arrangement for a customer, with optional limits and fixed or usage-based billing. Replaces *Membership* |
 | **Package** | باقة | An owner-defined subscription template. The published prices are the public packages; private packages are never shown publicly |
+| **Published prices** | الأسعار المعلنة | A space's prices shown to the public, each a **price** (سعر) — a period, an audience, an optional shift, an amount — for display only, paid at the space. A price is never «اشتراك», a customer's subscription at the desk |
 | **Custom subscription** | اشتراك مخصّص | A subscription with one-off terms typed at the desk («مخصّص») |
 | **Subscription status** | حالة الاشتراك | Active, ending soon or expired, derived from the dates or the totals ([data-model](../architecture/data-model.md#derived-values-computed-not-stored)) |
 | **Payment** | دفعة | Money received for one visit or one subscription, recorded by hand (cash or transfer). Never edited or deleted ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) |
@@ -36,7 +37,7 @@
 | **Stale** | قد تكون قديمة | A fact not updated or confirmed within its staleness threshold, one for prices and one for the other facts, both admin settings ([data-model](../architecture/data-model.md#derived-values-computed-not-stored)) |
 | **Governorate** | محافظة | One of the Gaza Strip's five governorates; the upper level of the place list |
 | **Area** | منطقة | A neighbourhood or town within a governorate; every space is in one. The admin hides an unreachable area without deleting it |
-| **Amenity** | مرفق | A feature a space offers: one of the platform's common amenities, a lookup the space ticks, or an **own amenity** (مرفق إضافي), typed by the space beside them |
+| **Amenity** | مرفق | A feature a space offers: one of the platform's common amenities, a lookup the space ticks, or an **own amenity** (مرفق إضافي، «مرافق أخرى» in the space profile), typed by the space beside them |
 | **Contact** | وسيلة تواصل | A way to reach a space, of one type: WhatsApp (واتساب), phone (هاتف), email (بريد إلكتروني), Instagram (إنستغرام), Facebook (فيسبوك), Telegram (تيليجرام), TikTok (تيك توك), X (X (تويتر)), LinkedIn (لينكدإن), YouTube (يوتيوب), website (موقع إلكتروني), or **another kind** (وسيلة أخرى), named by the space |
 | **Lookup** | قائمة ثابتة | An admin-managed bilingual list: governorates, areas, amenities |
 | **Audit log** | سجل التدقيق | The record of sensitive actions: who, when, what |

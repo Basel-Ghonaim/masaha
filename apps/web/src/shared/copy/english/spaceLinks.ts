@@ -347,8 +347,6 @@ export const SPACE_LINKS = {
   spaceOwners: {
     unlink: ({ name }: { name: string }) => `Unlink ${name}`,
     link: 'Link an owner',
-    /** Why the link waits while the editor has unsaved changes, which the link would drop. */
-    unsavedReason: 'Save or discard your changes first',
   },
   /** An owner's row actions on the owners page. */
   ownerActions: {

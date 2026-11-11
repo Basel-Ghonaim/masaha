@@ -8,6 +8,7 @@ export { clockOf } from './time/clockOf';
 export { dayText } from './time/dayText';
 export { dayWord } from './time/dayWord';
 export { updatedAgo } from './time/updatedAgo';
+export { weekRows, type WeekRow, type WeekWords } from './time/weekRows';
 export { carrierOf, type Carrier } from './phone/carrierOf';
 export { whatsappLink } from './phone/whatsappLink';
 export { contactLinkOf, type ContactLink, type ContactWords } from './contacts/contactLink';

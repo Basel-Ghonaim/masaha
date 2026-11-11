@@ -205,7 +205,9 @@ describe('usePhotoUploads', () => {
     });
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(1);
     expect(result.current.uploads.canAdd).toBe(false);
-    expect(result.current.uploads.addReason).toBe('Up to 10 photos — remove one to add another');
+    expect(result.current.uploads.addReason).toBe(
+      'You’ve reached the limit (10 photos). Delete one to add another.',
+    );
   });
 
   it('counts what went up when the batch ends, and clears the line when the next choice starts', async () => {

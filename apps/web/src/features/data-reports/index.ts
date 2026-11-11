@@ -6,5 +6,5 @@ export { useAdminReportsCount } from './hooks/count/useAdminReportsCount';
 export { ReportNotice } from './components/notice/ReportNotice';
 export { useReportNotice, type ReportNoticeScope } from './hooks/notice/useReportNotice';
 export { reportIdOf } from './services/reportIdOf';
-export type { NoticeGroup } from './services/noticeGroup';
+export type { NoticeSection } from './services/noticeSection';
 export type { ReportNoticeView } from './types/ReportNoticeView';
