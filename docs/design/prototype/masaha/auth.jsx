@@ -44,7 +44,7 @@ function AuthShell({ theme, setTheme, children }) {
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SkipLink />
       <header className="flex h-14 items-center justify-between border-b border-border px-4 md:px-8">
-        <a href="Home.html" className="text-heading-3 text-primary">{tr("مساحة", "Masaha")}</a>
+        <a href="Home.html" className="text-heading-3 text-primary" data-brand-mark="word">{tr("مساحة", "Masaha")}</a>
         <div className="flex items-center gap-2">
           <ALanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} />
           <AThemeToggle theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr("المظهر الداكن", "Dark theme") : tr("المظهر الفاتح", "Light theme")} />
