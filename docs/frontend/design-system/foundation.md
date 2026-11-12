@@ -439,7 +439,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 |---|---|---|
 | Toast | shadcn (Sonner) | Success and error feedback |
 | Alert | shadcn | info, warning, destructive |
-| Skeleton | shadcn | Loading states |
+| Skeleton | shadcn | Loading states · its fill is the `skeleton` component token (§4), at least 1.2:1 on `card` and `background` (§5, *Verified*) |
 | EmptyState | hand-built | Icon + title + text + action |
 | Spinner | hand-built | |
 | Refreshing | hand-built | A wrapper for a list that is not a table, such as a grid of cards, while its next page or filter loads: what it holds stays, dimmed (`refreshing`), and it is marked `aria-busy` ([finding 132](../../architecture/findings/132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)) |

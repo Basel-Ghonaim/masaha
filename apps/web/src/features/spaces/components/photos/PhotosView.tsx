@@ -74,7 +74,7 @@ export function PhotosView({ gallery }: { gallery: PhotoGalleryView }) {
               <Picture tile={tile} className="absolute inset-0" />
               {index === 3 && gallery.view.more && (
                 <span
-                  className="absolute inset-0 flex items-center justify-center bg-foreground/60 text-heading-3 text-background"
+                  className="absolute inset-0 flex items-center justify-center bg-scrim text-heading-3 text-scrim-foreground"
                   aria-label={gallery.view.more.label}
                   role="img"
                 >
