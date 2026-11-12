@@ -91,6 +91,7 @@ function toDirectorySpace(
     area: { id: area.id, nameAr: area.nameAr, nameEn: area.nameEn },
     isVerified: space.isVerified,
     days: space.days,
+    worksEvenings: space.worksEvenings,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
     // Only a list filtered by a period has a price: the one the filter kept.
     ...(space.priceAgorot !== null && { priceAgorot: space.priceAgorot }),

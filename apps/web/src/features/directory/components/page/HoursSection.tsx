@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   cn,
+  MoonIcon,
   Table,
   TableBody,
   TableCaption,
@@ -16,8 +17,8 @@ import { Section } from './Section';
 
 /**
  * «ساعات العمل»: a table of the week, Saturday first, equal days grouped, today's row marked
- * («اليوم», `aria-current="date"`); «عرض كل الأيام» lists each day; the shifts named once under it.
- * Hours never saved say so.
+ * («اليوم», `aria-current="date"`); «عرض كل الأيام» lists each day; «دوام مسائي» while its owner
+ * declares the evening, and the shifts named once under it. Hours never saved say so.
  */
 export function HoursSection({ hours }: { hours: SpacePageView['hours'] }) {
   return (
@@ -66,6 +67,12 @@ export function HoursSection({ hours }: { hours: SpacePageView['hours'] }) {
             >
               {hours.toggle.label}
             </Button>
+          )}
+          {hours.evening !== null && (
+            <p className="flex items-center gap-2 text-body">
+              <MoonIcon aria-hidden className="size-4 text-muted-foreground" />
+              {hours.evening}
+            </p>
           )}
           {hours.shifts !== null && (
             <p className="text-body-sm text-muted-foreground">{hours.shifts}</p>

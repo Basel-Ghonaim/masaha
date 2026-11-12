@@ -34,6 +34,8 @@ export interface DirectorySpace {
   isVerified: boolean;
   /** The week, Sunday (0) to Saturday (6), `null` on a closed day; `null` while never saved. */
   days: (OpeningRange | null)[] | null;
+  /** Its owner declares it works in the evening: the card's «دوام مسائي» (E6). */
+  worksEvenings: boolean;
   /** Straight-line, from the rounded point, to the nearest 100 m: only when sorted by distance. */
   distanceMeters?: number;
   /**

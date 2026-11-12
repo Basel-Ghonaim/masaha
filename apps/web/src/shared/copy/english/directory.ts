@@ -335,6 +335,8 @@ export const DIRECTORY = {
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       /** The shifts' names, listed. */
       shifts: ({ list }: { list: string }) => `Shifts: ${list}`,
+      /** The owner declares the space works in the evening (E6). */
+      evening: 'Evening hours',
       none: 'Hours not available',
     },
     location: {

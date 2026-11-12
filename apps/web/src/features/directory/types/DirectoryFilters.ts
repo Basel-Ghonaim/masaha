@@ -22,7 +22,7 @@ export type DirectoryFilters = {
   max: number | undefined;
   /** «مفتوحة الآن»: open now by the hours. */
   openNow: boolean;
-  /** «مفتوحة مساءً»: closes at 20:00 or later on one of its days. */
+  /** «مفتوحة مساءً»: its owner declares the space works in the evening. */
   evening: boolean;
   verified: boolean;
   studentPrices: boolean;

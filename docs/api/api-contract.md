@@ -1163,7 +1163,7 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
   - `openNow=true`: open now by its hours, on Gaza's clock, under no closure in force, and, for a verified space, under no override to `CLOSED` in force; a full space passes; a space whose hours were never saved never does (2026-11-08, #139);
-  - `evening=true`: at least one open day of its week closes at 20:00 or later, whatever the day today; a space whose hours were never saved never passes (2026-11-08, #139);
+  - `evening=true`: its owner declares it works in the evening (`worksEvenings`), whatever its week or the day today; a space whose hours were never saved never passes, its switch being saved only with them (2026-11-12, #145; until then, a day closing at 20:00 or later, 2026-11-08, #139);
   - each `true` filter takes `true` or `false` (`invalid_choice` otherwise), and `false` filters nothing. The retired `availableNow` is dropped as any unknown key: the answer is the unfiltered list, never a refusal (2026-11-08, #139);
   - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
@@ -1176,6 +1176,7 @@ DirectorySpace = {
   area: { id: number, nameAr: string, nameEn: string },   // its governorate: the catalogue's
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
+  worksEvenings: boolean,                  // its owner declares the evening (2026-11-12, #145)
   distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
   priceAgorot?: number,                    // with `period` only: the lowest general price of it within the bounds
   cover: string | null,                    // the first photo's card-size URL; null: the web draws the space's mark

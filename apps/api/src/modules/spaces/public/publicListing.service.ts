@@ -27,6 +27,8 @@ export interface ListedPublicSpace {
   isVerified: boolean;
   /** Sunday (0) to Saturday (6), `null` on a closed day; `null` while never saved. */
   days: (OpeningRange | null)[] | null;
+  /** Its owner declares it works in the evening (E4). */
+  worksEvenings: boolean;
   /** In metres, straight-line, to the nearest 100: only when ordered by distance. */
   distanceMeters: number | null;
   /** Its first photo's card-size URL, or `null` without a photo. */
@@ -80,6 +82,7 @@ export function createPublicListingService({ platformSettings, now, storage }: D
       location: { lat: record.lat, lng: record.lng },
       isVerified: record.isVerified,
       days: weeks.get(record.id) ?? null,
+      worksEvenings: record.worksEvenings,
       distanceMeters: record.distance === null ? null : Math.round(record.distance / 100) * 100,
       cover: coverUrl(covers.get(record.id)),
       priceAgorot: record.price,

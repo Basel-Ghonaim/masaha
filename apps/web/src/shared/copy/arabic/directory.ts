@@ -297,6 +297,7 @@ export const DIRECTORY = {
       pair: ({ first, second }: { first: string; second: string }) => `${first}، ${second}`,
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       shifts: ({ list }: { list: string }) => `الورديات: ${list}`,
+      evening: 'دوام مسائي',
       none: 'ساعات العمل غير متوفرة',
     },
     location: {

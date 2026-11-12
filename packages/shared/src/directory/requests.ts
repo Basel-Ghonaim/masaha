@@ -97,7 +97,7 @@ const filters = {
   verified: z.stringbool().optional(),
   /** Only the spaces open now by their hours, on Gaza's clock, under no closure in force. */
   openNow: z.stringbool().optional(),
-  /** Only the spaces that close at 20:00 or later on one of their open days. */
+  /** Only the spaces whose owner declares they work in the evening (E7). */
   evening: z.stringbool().optional(),
   q: searchText.optional(),
 };

@@ -72,6 +72,8 @@ export type SpacePageView = {
     rows: WeekRow[];
     toggle: { label: string; expanded: boolean; run: () => void } | null;
     shifts: string | null;
+    /** «دوام مسائي», while its owner declares the evening. */
+    evening: string | null;
   };
   amenities: {
     title: string;
