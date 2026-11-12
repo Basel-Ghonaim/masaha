@@ -57,7 +57,7 @@ export function AboutPage() {
         </div>
         <p className="text-body-sm text-muted-foreground">
           {words.source.note} {words.source.wrong}{' '}
-          <a href={`#${CONTACT_ANCHOR}`} className="text-primary">
+          <a href={`#${CONTACT_ANCHOR}`} className="text-primary underline underline-offset-4">
             {words.source.wrongLink}
           </a>
           {words.source.wrongEnd}

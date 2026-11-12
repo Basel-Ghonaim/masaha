@@ -9,8 +9,9 @@ import { cn } from '../../../lib/cn';
 // the foreground, which raises the contrast with the label in both themes. Outline and ghost
 // hover, and mark their open menu, with the neutral `hover` fill, never the selected tint. The
 // outline variant is edged like a card, so the edge stays visible in the dark theme, where the
-// plain border is faint. A button marked `aria-disabled`, which waits but keeps its place in the
-// focus order, looks disabled too.
+// plain border is faint. The link variant is underlined at rest, as a link in running text is: in
+// ink, it would read as text. A button marked `aria-disabled`, which waits but keeps its place in
+// the focus order, looks disabled too.
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-(--radius-control) border border-transparent text-label whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -25,7 +26,7 @@ const buttonVariants = cva(
           'text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]',
-        link: 'text-primary underline-offset-4 hover:underline',
+        link: 'text-primary underline underline-offset-4',
       },
       // A small button grows to the control height on touch screens, so it stays a 44px target.
       size: {

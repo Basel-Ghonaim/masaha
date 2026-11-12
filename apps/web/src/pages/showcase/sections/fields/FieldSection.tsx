@@ -37,10 +37,7 @@ export function FieldSection({ samples }: { samples: FieldSamples }) {
         <Field
           label={samples.labelEnd.label}
           labelEnd={
-            <a
-              href="#field"
-              className="text-caption text-primary underline-offset-4 hover:underline"
-            >
+            <a href="#field" className="text-caption text-primary underline underline-offset-4">
               {samples.labelEnd.link}
             </a>
           }

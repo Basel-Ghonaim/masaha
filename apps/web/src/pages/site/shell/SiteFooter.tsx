@@ -15,16 +15,16 @@ export function SiteFooter({ barRoom }: { barRoom: boolean }) {
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-body-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
         <p>{copy.site.tagline}</p>
         <div className="flex flex-wrap gap-4">
-          <Link to={SITE_PATHS.spaces} className="text-primary">
+          <Link to={SITE_PATHS.spaces} className="text-primary underline underline-offset-4">
             {copy.site.browseSpaces}
           </Link>
-          <Link to={SITE_PATHS.about} className="text-primary">
+          <Link to={SITE_PATHS.about} className="text-primary underline underline-offset-4">
             {copy.site.links.about}
           </Link>
-          <Link to={SITE_PATHS.privacy} className="text-primary">
+          <Link to={SITE_PATHS.privacy} className="text-primary underline underline-offset-4">
             {copy.site.links.privacy}
           </Link>
-          <Link to={SITE_PATHS.contact} className="text-primary">
+          <Link to={SITE_PATHS.contact} className="text-primary underline underline-offset-4">
             {copy.site.contact}
           </Link>
         </div>

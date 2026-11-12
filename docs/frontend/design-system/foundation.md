@@ -251,6 +251,7 @@ A role "at 10%" is the colour mixed with transparent in OKLab, so it lies over i
 - **The spark is never text, never on an action, never destructive.** It marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words.
 - **Text over a photo** sits on `scrim` with `scrim-foreground`, never on an opacity of another role.
 - **Hover is not selected.** A hover is the neutral `hover` fill; selected is the spark's tint (`accent`, `sidebar-accent`). They differ by hue and, where the design gives one, a second mark: the sidebar's current item has a 3 px `spark` bar at its inline start, a chip that is on a `spark` edge and a check. Selected keeps its tint under the pointer: an item hovers only while it is not selected (`not-data-on:`, `not-data-active:`, `not-data-[active=true]:`, or the caller's own condition), never by the order Tailwind emits its variants in. A control drawn on a `muted` or `secondary` ground hovers with `hover-on-muted`: in dark, `hover` equals `muted` and would vanish there.
+- **Links in running text are underlined.** The ink is also the text's colour, so a link inside a sentence, a note or the footer is underlined at rest (`text-primary underline underline-offset-4`), not only under the pointer; so is the link Button.
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
 - **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
@@ -395,7 +396,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
+| Button | shadcn | primary, secondary, outline, ghost, destructive, link (underlined at rest) · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | DropdownMenu | shadcn | Row actions, account menu · a highlighted item takes `hover` · a `destructive` item variant; checkbox and radio items; a submenu toward the end side · a `held` item, for an action that cannot be taken now: `aria-disabled` and drawn disabled, its reason inside the item's text, and selecting it does nothing; unlike `disabled`, which Radix skips in the arrow keys and typeahead, it stays reachable, so its reason is read (§10; [finding 105](../../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)) |
 
 ### `fields`
