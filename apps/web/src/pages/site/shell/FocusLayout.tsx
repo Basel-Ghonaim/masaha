@@ -1,4 +1,5 @@
 import { useCopy } from '@shared/copy';
+import { Logo } from '@shared/design-system';
 import { SkipLink, useMainFocus } from '@shared/routing';
 import type { ReactNode } from 'react';
 import { Link, Outlet } from 'react-router';
@@ -21,8 +22,11 @@ export function FocusLayout({ actions }: { actions?: ReactNode }) {
       <SkipLink />
       <header className="border-b border-border bg-background">
         <div className="flex h-14 items-center gap-2 px-4 md:px-8">
-          <Link to={SITE_PATHS.home} className="text-heading-3 text-primary">
-            {copy.site.wordmark}
+          <Link
+            to={SITE_PATHS.home}
+            className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <Logo label={copy.site.wordmark} className="h-10" />
           </Link>
           <div className="ms-auto flex items-center gap-2">
             {actions ?? (

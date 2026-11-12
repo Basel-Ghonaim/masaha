@@ -1,6 +1,6 @@
 import { useAdminReportsCount } from '@features/data-reports';
 import { useCopy } from '@shared/copy';
-import { SidebarHeader } from '@shared/design-system';
+import { Logo, SidebarHeader } from '@shared/design-system';
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { ADMIN_NAV } from '../navigation';
 import { DashboardLayout } from './DashboardLayout';
@@ -13,22 +13,18 @@ import { DashboardNavigation } from './DashboardNavigation';
 export function AdminLayout() {
   const copy = useCopy();
   const reportsForAdmin = useAdminReportsCount();
-  const tile = (
-    <span
-      aria-hidden
-      className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
-    >
-      {Array.from(copy.site.wordmark)[0]}
-    </span>
-  );
 
   return (
     <DashboardLayout
       label={copy.dashboard.adminNavigation}
       role={copy.users.roles.ADMIN}
       header={
-        <SidebarHeader mark={tile} logo={tile}>
-          <span className="truncate text-label">{copy.site.wordmark}</span>
+        <SidebarHeader
+          mark={<Logo form="mark" className="size-9" />}
+          logo={<Logo className="h-9" />}
+        >
+          {/* The logo is decorative: the name is read here, once, before the area. */}
+          <span className="sr-only">{copy.site.wordmark}</span>
           <span className="truncate text-caption text-muted-foreground">
             {copy.dashboard.platformAdmin}
           </span>

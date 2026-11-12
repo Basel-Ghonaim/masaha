@@ -3,6 +3,7 @@ import { useCopy } from '@shared/copy';
 import {
   Button,
   LogInIcon,
+  Logo,
   MenuIcon,
   Sheet,
   SheetBody,
@@ -47,7 +48,7 @@ export function SiteMenu() {
         <SheetHeader>
           {/* The dialog is named for what it is, the menu; the wordmark is drawn above it. */}
           <SheetTitle className="sr-only">{copy.site.menu}</SheetTitle>
-          <p className="text-heading-3 text-primary">{copy.site.wordmark}</p>
+          <Logo label={copy.site.wordmark} className="h-10 self-start" />
         </SheetHeader>
         <SheetBody>
           <nav aria-label={copy.site.navigation} className="flex flex-col gap-1">

@@ -554,6 +554,7 @@ Steps 3–4 make the design and the code share one design system, so what is des
 The identity's mark, drawn with ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)) and settled with it (§15).
 
 - **Forms.** The full logo: «مساحة» over "MASAHA" in the ink, the ة's two dots in the spark. The small mark: the ة with its dots, square. The layer's `Logo` draws both, on `foreground` and `spark`, so it follows the theme (§12).
+- **Where it shows.** The full logo, named, as the link home in the site's header and in the focus shell's (sign-in, register, the forgotten and the reset password, the forced change), and at the head of the phone's menu: 40 px tall. In the admin's sidebar, decorative beside the name kept for assistive technology and «إدارة المنصة»: the full logo 36 px tall, expanded and in the drawer, and the small mark 36 px on its rail. Not in the owner's and reception's shell: its sidebar head is the space's own (the switcher).
 - **Sizes.** Never under 36 px tall, the smallest the owner reviewed; the small mark from 16 px.
 - **Clear space.** 20% of its height on every side: 8 px around the 40 px logo.
 - **Never** mirrored (the same drawing in both directions), cropped, stretched, recoloured, or set on a photo without a plain ground.
