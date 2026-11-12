@@ -58,7 +58,7 @@ export function ContactsSheet({ host }: { host: SectionHost }) {
             <div
               className={cn(
                 'grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-12 md:items-start',
-                (lifted || dragging) && 'border-primary shadow-floating',
+                (lifted || dragging) && 'border-spark shadow-floating',
               )}
             >
               {view.order && (
