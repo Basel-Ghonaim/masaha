@@ -119,6 +119,7 @@ export const DIRECTORY = {
     schedule: 'Hours',
     openNow: 'Open now',
     evening: 'Open in the evening',
+    womensHall: 'Women’s hall',
     verified: 'Verified spaces only',
     price: 'Price',
     /** The segmented choice's name, read, not shown. */

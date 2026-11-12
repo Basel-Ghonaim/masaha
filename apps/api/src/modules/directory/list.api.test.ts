@@ -86,6 +86,7 @@ describe('GET /spaces', () => {
           isVerified: false,
           days: SAT_TO_THU.map((day) => day && { opensMinute: day[0], closesMinute: day[1] }),
           worksEvenings: true,
+          womensHall: false,
           cover: null,
           // Unverified: no live state, but its state by its hours (Tuesday 12:00 in Gaza).
           liveStatus: null,

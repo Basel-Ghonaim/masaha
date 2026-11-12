@@ -19,6 +19,7 @@ describe('the lookups service', () => {
       findAreaMatches: () => Promise.reject(new Error('not asked here')),
       findActiveAmenitiesNamed: () => Promise.reject(new Error('not asked here')),
       findActiveAmenityIds: () => Promise.reject(new Error('not asked here')),
+      findActiveAmenityIdByKey: () => Promise.reject(new Error('not asked here')),
       findRetiredAmenitiesNamed: () => Promise.reject(new Error('not asked here')),
     };
 

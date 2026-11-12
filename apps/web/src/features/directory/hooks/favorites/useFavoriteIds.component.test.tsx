@@ -18,6 +18,7 @@ const LISTED: DirectorySpace = {
   isVerified: true,
   days: null,
   worksEvenings: false,
+  womensHall: false,
   cover: null,
   liveStatus: null,
   hoursStatus: null,

@@ -36,6 +36,8 @@ export interface DirectorySpace {
   days: (OpeningRange | null)[] | null;
   /** Its owner declares it works in the evening: the card's «دوام مسائي» (E6). */
   worksEvenings: boolean;
+  /** It has the women's hall, the catalogue's `WOMENS_HALL_KEY`: the card's «قاعة للنساء» (W4). */
+  womensHall: boolean;
   /** Straight-line, from the rounded point, to the nearest 100 m: only when sorted by distance. */
   distanceMeters?: number;
   /**

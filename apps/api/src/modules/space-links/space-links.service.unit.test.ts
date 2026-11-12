@@ -64,6 +64,7 @@ function setup(links: ActiveLink[]) {
     areaMatches: () => Promise.reject(new Error('not asked here')),
     activeAmenitiesNamed: () => Promise.reject(new Error('not asked here')),
     activeAmenityIds: () => Promise.reject(new Error('not asked here')),
+    activeAmenityIdOf: () => Promise.reject(new Error('not asked here')),
     retiredAmenitiesNamed: () => Promise.reject(new Error('not asked here')),
   };
   return {

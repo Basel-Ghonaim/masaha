@@ -99,6 +99,8 @@ const filters = {
   openNow: z.stringbool().optional(),
   /** Only the spaces whose owner declares they work in the evening (E7). */
   evening: z.stringbool().optional(),
+  /** Only the spaces with a women's hall: the catalogue's amenity `WOMENS_HALL_KEY`, by its key. */
+  womensHall: z.stringbool().optional(),
   q: searchText.optional(),
 };
 

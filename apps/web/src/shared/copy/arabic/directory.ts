@@ -113,6 +113,7 @@ export const DIRECTORY = {
     schedule: 'الدوام',
     openNow: 'مفتوحة الآن',
     evening: 'مفتوحة مساءً',
+    womensHall: 'قاعة للنساء',
     verified: 'المساحات الموثّقة فقط',
     price: 'السعر',
     subscription: 'نوع الاشتراك',

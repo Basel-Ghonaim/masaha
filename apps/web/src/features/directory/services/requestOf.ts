@@ -26,6 +26,7 @@ function filtersRequestOf(filters: DirectoryFilters): Omit<PinsRequest, 'bounds'
     ...(filters.verified && { verified: true }),
     ...(filters.openNow && { openNow: true }),
     ...(filters.evening && { evening: true }),
+    ...(filters.womensHall && { womensHall: true }),
   };
 }
 

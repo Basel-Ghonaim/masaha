@@ -246,6 +246,54 @@ describe('PATCH /admin/amenities/:id', () => {
   });
 });
 
+describe('the women’s hall, which the directory filters by', () => {
+  it('is never retired: 409 AMENITY_IN_FILTER, nothing written, even beside another change', async () => {
+    const admin = await signIn('ADMIN');
+    const hall = await amenity('womens_hall', 'Women’s hall', 0, { icon: 'venus' });
+    const path = `/amenities/${String(hall.id)}`;
+
+    for (const body of [{ isActive: false }, { nameEn: 'Ladies’ hall', isActive: false }]) {
+      const response = await adminRequest(app, admin, 'patch', path, body);
+
+      expect(response.status).toBe(409);
+      expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'AMENITY_IN_FILTER' });
+    }
+    expect(await prisma.amenity.findUniqueOrThrow({ where: { id: hall.id } })).toMatchObject({
+      nameEn: 'Women’s hall',
+      isActive: true,
+    });
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('is renamed, given another icon and moved like any amenity; another is still retired', async () => {
+    const admin = await signIn('ADMIN');
+    const internet = await amenity('internet', 'Internet', 0);
+    const hall = await amenity('womens_hall', 'Women’s hall', 1, { icon: 'venus' });
+
+    const renamed = await adminRequest(app, admin, 'patch', `/amenities/${String(hall.id)}`, {
+      nameAr: 'مصلى وقاعة للنساء',
+      icon: 'users',
+    });
+    const ordered = await adminRequest(app, admin, 'put', '/amenities/order', {
+      ids: [hall.id, internet.id],
+    });
+    const retired = await adminRequest(app, admin, 'patch', `/amenities/${String(internet.id)}`, {
+      isActive: false,
+    });
+
+    expect(renamed.status).toBe(200);
+    expect(dataOf(renamed)).toMatchObject({
+      key: 'womens_hall',
+      nameAr: 'مصلى وقاعة للنساء',
+      icon: 'users',
+      isActive: true,
+    });
+    expect(ordered.status).toBe(204);
+    expect(await listedKeys(admin)).toEqual(['womens_hall', 'internet']);
+    expect(retired.status).toBe(200);
+  });
+});
+
 describe('PUT /admin/amenities/order', () => {
   it('puts the amenities in the order given, and audits nothing', async () => {
     const admin = await signIn('ADMIN');

@@ -96,6 +96,15 @@ export function createLookupsRepository(db: PrismaClient = prisma) {
       return rows.map((row) => ({ ...row, icon: row.icon as AmenityIconKey }));
     },
 
+    /** The id of the active amenity with this key, or `null` when none is (retired or missing). */
+    async findActiveAmenityIdByKey(key: string, tx: Tx = db): Promise<number | null> {
+      const row = await tx.amenity.findFirst({
+        where: { key, isActive: true },
+        select: { id: true },
+      });
+      return row?.id ?? null;
+    },
+
     /** Of these amenity ids, those of active amenities. */
     async findActiveAmenityIds(ids: readonly number[], tx: Tx = db): Promise<number[]> {
       const rows = await tx.amenity.findMany({

@@ -118,6 +118,7 @@ describe('the live status in the directory', () => {
         'nameAr',
         'nameEn',
         'slug',
+        'womensHall',
         'worksEvenings',
       ].sort(),
     );

@@ -48,7 +48,7 @@ export function useDirectoryFilters() {
   });
 
   // The filters in force, each counted once: the place, whatever its number of areas, the
-  // subscription, with or without its budget, and each of the five boxes (design issue 14).
+  // subscription, with or without its budget, and each of the six boxes (design issue 14).
   const applied = [
     filters.areas.length > 0,
     filters.period !== undefined,
@@ -57,6 +57,7 @@ export function useDirectoryFilters() {
     filters.openFriday,
     filters.verified,
     filters.studentPrices,
+    filters.womensHall,
   ].filter(Boolean).length;
 
   return {

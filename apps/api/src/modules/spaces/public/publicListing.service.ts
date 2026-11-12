@@ -29,6 +29,8 @@ export interface ListedPublicSpace {
   days: (OpeningRange | null)[] | null;
   /** Its owner declares it works in the evening (E4). */
   worksEvenings: boolean;
+  /** It has the women's hall (W3). */
+  womensHall: boolean;
   /** In metres, straight-line, to the nearest 100: only when ordered by distance. */
   distanceMeters: number | null;
   /** Its first photo's card-size URL, or `null` without a photo. */
@@ -83,6 +85,7 @@ export function createPublicListingService({ platformSettings, now, storage }: D
       isVerified: record.isVerified,
       days: weeks.get(record.id) ?? null,
       worksEvenings: record.worksEvenings,
+      womensHall: record.womensHall,
       distanceMeters: record.distance === null ? null : Math.round(record.distance / 100) * 100,
       cover: coverUrl(covers.get(record.id)),
       priceAgorot: record.price,

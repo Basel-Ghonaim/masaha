@@ -13,6 +13,7 @@ const DEFAULTS: DirectoryFilters = {
   verified: false,
   studentPrices: false,
   openFriday: false,
+  womensHall: false,
   sort: undefined,
   page: 1,
   view: 'list',
@@ -25,7 +26,7 @@ describe('filtersOf', () => {
     expect(read('')).toEqual(DEFAULTS);
     expect(
       read(
-        'q=Focus&area=3,7,3&period=MONTH&min=10&max=30&open=1&evening=1&verified=1&students=1&friday=1&sort=name&page=2',
+        'q=Focus&area=3,7,3&period=MONTH&min=10&max=30&open=1&evening=1&verified=1&students=1&friday=1&women=1&sort=name&page=2',
       ),
     ).toEqual({
       q: 'Focus',
@@ -38,6 +39,7 @@ describe('filtersOf', () => {
       verified: true,
       studentPrices: true,
       openFriday: true,
+      womensHall: true,
       sort: 'name',
       page: 2,
       view: 'list',
@@ -58,6 +60,8 @@ describe('filtersOf', () => {
     expect(read('period=DAY&min=10&max=10')).toMatchObject({ min: 10, max: 10 });
     expect(read('open=true').openNow).toBe(false);
     expect(read('evening=yes').evening).toBe(false);
+    expect(read('women=true').womensHall).toBe(false);
+    expect(read('womensHall=1').womensHall).toBe(false);
     expect(read('sort=relevance').sort).toBeUndefined();
     expect(read('sort=distance').sort).toBeUndefined();
     expect(read('page=0').page).toBe(1);
@@ -115,10 +119,13 @@ describe('paramsOf', () => {
         openNow: true,
         evening: true,
         verified: true,
+        womensHall: true,
         sort: 'updated',
         page: 2,
       }).toString(),
-    ).toBe('q=Focus&area=3%2C7&period=WEEK&max=30&open=1&evening=1&verified=1&sort=updated&page=2');
+    ).toBe(
+      'q=Focus&area=3%2C7&period=WEEK&max=30&open=1&evening=1&verified=1&women=1&sort=updated&page=2',
+    );
   });
 
   it('writes the subscription alone, its bounds and a price order only with it', () => {
@@ -143,6 +150,7 @@ describe('paramsOf', () => {
       openFriday: true,
       verified: true,
       studentPrices: true,
+      womensHall: true,
       sort: 'priceDesc',
       page: 3,
       view: 'map',

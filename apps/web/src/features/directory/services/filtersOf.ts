@@ -4,7 +4,7 @@ import type { DirectoryFilters, DirectoryOrder } from '../types/DirectoryFilters
 import { MAX_SHEKELS } from './priceBounds';
 
 // The address's keys (S5): q, area, period, min, max, open, evening, verified, students, friday,
-// sort, page, view. The retired `available` is read as nothing. The budget is in whole shekels, named min and max; the request sends agorot.
+// women (the women's hall), sort, page, view. The retired `available` is read as nothing. The budget is in whole shekels, named min and max; the request sends agorot.
 
 const ORDERS: readonly DirectoryOrder[] = ['updated', 'name', 'relevance', 'priceAsc', 'priceDesc'];
 const MAX_ID = 2_147_483_647;
@@ -67,6 +67,7 @@ export function filtersOf(params: URLSearchParams): DirectoryFilters {
     verified: flag('verified'),
     studentPrices: flag('students'),
     openFriday: flag('friday'),
+    womensHall: flag('women'),
     // Best match is the server's order for a search, and a price order the subscription's: each is
     // refused without them.
     sort: sort !== undefined && allowed(sort, { q, period }) ? sort : undefined,
@@ -94,6 +95,7 @@ export function paramsOf(filters: DirectoryFilters): URLSearchParams {
   if (filters.verified) params.set('verified', '1');
   if (filters.studentPrices) params.set('students', '1');
   if (filters.openFriday) params.set('friday', '1');
+  if (filters.womensHall) params.set('women', '1');
   const defaultOrder = filters.q === undefined ? 'updated' : 'relevance';
   if (
     filters.sort !== undefined &&

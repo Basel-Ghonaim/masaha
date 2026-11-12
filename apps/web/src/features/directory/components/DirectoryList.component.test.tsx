@@ -21,6 +21,7 @@ const space = (id: number, overrides: Partial<DirectorySpace> = {}): DirectorySp
   isVerified: true,
   days: null,
   worksEvenings: false,
+  womensHall: false,
   cover: null,
   liveStatus: 'AVAILABLE',
   hoursStatus: null,

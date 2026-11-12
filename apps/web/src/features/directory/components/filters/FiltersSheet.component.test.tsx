@@ -19,6 +19,7 @@ const space = (id: number): DirectorySpace => ({
   isVerified: true,
   days: null,
   worksEvenings: false,
+  womensHall: false,
   cover: null,
   liveStatus: 'AVAILABLE',
   hoursStatus: null,
@@ -208,7 +209,7 @@ describe('the directory’s filters', () => {
       );
     };
     boxes('الدوام', ['مفتوحة الآن', 'مفتوحة مساءً', 'مفتوحة يوم الجمعة']);
-    boxes('أخرى', ['المساحات الموثّقة فقط', 'أسعار للطلاب']);
+    boxes('أخرى', ['المساحات الموثّقة فقط', 'أسعار للطلاب', 'قاعة للنساء']);
     expect(sidebar.queryByRole('switch')).not.toBeInTheDocument();
     expect(sidebar.queryByText('المساحات')).not.toBeInTheDocument();
   });
@@ -219,6 +220,7 @@ describe('the directory’s filters', () => {
     ['friday=1', 'مفتوحة يوم الجمعة', 'friday=1'],
     ['verified=1', 'المساحات الموثّقة فقط', 'verified=1'],
     ['students=1', 'أسعار للطلاب', 'students=1'],
+    ['women=1', 'قاعة للنساء', 'women=1'],
   ])('the box of %s shows the address and writes it', async (_, name, key) => {
     const user = userEvent.setup();
     const router = renderDirectory({ width: 1440 });
@@ -234,12 +236,12 @@ describe('the directory’s filters', () => {
 
   it('counts each box once, the place once whatever its number of areas, and the price once', async () => {
     renderDirectory({
-      path: '/spaces?area=3,7&period=DAY&min=10&open=1&evening=1&friday=1&verified=1&students=1',
+      path: '/spaces?area=3,7&period=DAY&min=10&open=1&evening=1&friday=1&verified=1&students=1&women=1',
       width: 390,
     });
     await screen.findByRole('link', { name: 'مساحة 1' });
 
-    expect(screen.getByRole('button', { name: 'الفلاتر 7 فلاتر مطبّقة' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'الفلاتر 8 فلاتر مطبّقة' })).toBeInTheDocument();
   });
 
   it('the price: «الكل» chosen with its hint and no budget; a subscription writes its period at once and shows «من» and «إلى» hinted by its prices', async () => {

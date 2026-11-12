@@ -6,7 +6,7 @@ import type { FiltersView } from '../../types/FiltersView';
 import { usePriceFilter } from './usePriceFilter';
 
 /** The filters' flags, each a checkbox. */
-type Flag = 'openNow' | 'evening' | 'openFriday' | 'verified' | 'studentPrices';
+type Flag = 'openNow' | 'evening' | 'openFriday' | 'verified' | 'studentPrices' | 'womensHall';
 
 /** From here up the filters are a sidebar; below it, a bottom sheet (design-system › breakpoints). */
 const WIDE = '(min-width: 1024px)';
@@ -77,7 +77,11 @@ export function useFiltersPanel({
     },
     others: {
       label: words.other,
-      items: [box('verified', words.verified), box('studentPrices', words.studentPrices)],
+      items: [
+        box('verified', words.verified),
+        box('studentPrices', words.studentPrices),
+        box('womensHall', words.womensHall),
+      ],
     },
     sheet: {
       open,

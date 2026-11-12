@@ -12,6 +12,7 @@ import {
 } from '@masaha/shared/directory';
 import { gazaClockOf } from '@masaha/shared/core';
 import { FAVORITES_MAX } from '@masaha/shared/favorites';
+import { WOMENS_HALL_KEY } from '@masaha/shared/lookups';
 import type { HoursStatus, LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
 import type { Location, Price } from '@masaha/shared/spaces';
 
@@ -92,6 +93,7 @@ function toDirectorySpace(
     isVerified: space.isVerified,
     days: space.days,
     worksEvenings: space.worksEvenings,
+    womensHall: space.womensHall,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
     // Only a list filtered by a period has a price: the one the filter kept.
     ...(space.priceAgorot !== null && { priceAgorot: space.priceAgorot }),
@@ -120,8 +122,8 @@ function toMapPin(space: ListedPublicSpace, { liveStatus, hoursStatus }: States)
 /**
  * The public directory (conventions §9, Composed reads): what anyone reads without signing in,
  * over the publicly listed spaces. Each filter on another module's value is resolved to ids first,
- * by its owner, in one query: the listed areas and the search's areas by `lookups`, the verified
- * spaces by `space-links`, and, for «مفتوحة الآن», the spaces under a closure in force by
+ * by its owner, in one query: the listed areas, the search's areas and the women's hall's id (by its
+ * key) by `lookups`, the verified spaces by `space-links`, and, for «مفتوحة الآن», the spaces under a closure in force by
  * `announcements` and those closed by hand by `occupancy`; `spaces` then filters by the hours,
  * searches, orders and pages (§5). The areas' and the amenities' names follow, one query each, and
  * the states of the spaces answered, set-based, from `occupancy`. Each answer reads the clock once.
@@ -148,10 +150,11 @@ export function createDirectoryService({
   }
 
   async function filterOf(query: Filters, at: Date): Promise<PublicListingFilter> {
-    const [listedAreaIds, verifiedIds, areaMatches] = await Promise.all([
+    const [listedAreaIds, verifiedIds, areaMatches, womensHallId] = await Promise.all([
       lookups.listedAreaIds(),
       spaceLinks.verifiedSpaceIds(),
       query.q === undefined ? [] : lookups.areaMatches(query.q),
+      lookups.activeAmenityIdOf(WOMENS_HALL_KEY),
     ]);
     const { area } = query;
     return {
@@ -163,6 +166,8 @@ export function createDirectoryService({
       openFriday: query.openFriday,
       openAt: query.openNow ? await openAtOf(verifiedIds, at) : undefined,
       evening: query.evening,
+      womensHallId,
+      womensHall: query.womensHall,
       search: query.q === undefined ? undefined : { q: query.q, areaMatches },
       bounds: query.bounds,
     };
@@ -213,12 +218,13 @@ export function createDirectoryService({
       const saved = await favorites.of(userId);
       if (saved.length === 0) return [];
       const ids = saved.map(({ spaceId }) => spaceId);
-      const [listedAreaIds, verifiedIds] = await Promise.all([
+      const [listedAreaIds, verifiedIds, womensHallId] = await Promise.all([
         lookups.listedAreaIds(),
         spaceLinks.verifiedSpaceIds(),
+        lookups.activeAmenityIdOf(WOMENS_HALL_KEY),
       ]);
       const { rows } = await publicListing.page(
-        { areaIds: listedAreaIds, verifiedIds, onlyIds: ids },
+        { areaIds: listedAreaIds, verifiedIds, womensHallId, onlyIds: ids },
         near ? { by: 'distance', from: near } : { by: 'updated' },
         { page: 1, limit: FAVORITES_MAX },
       );

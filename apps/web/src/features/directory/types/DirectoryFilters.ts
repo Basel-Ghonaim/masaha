@@ -24,6 +24,8 @@ export type DirectoryFilters = {
   openNow: boolean;
   /** «مفتوحة مساءً»: its owner declares the space works in the evening. */
   evening: boolean;
+  /** «قاعة للنساء»: the space has the women's hall (W5). */
+  womensHall: boolean;
   verified: boolean;
   studentPrices: boolean;
   openFriday: boolean;

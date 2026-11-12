@@ -61,6 +61,14 @@ export function createLookupsService({
       return repository.findRetiredAmenitiesNamed(ids, tx);
     },
 
+    /**
+     * The id of the active amenity code refers to by `key` (data-model: "code refers to amenities by
+     * key"), or `null` when it is retired or missing: the directory's women's hall.
+     */
+    activeAmenityIdOf(key: string, tx?: Tx): Promise<number | null> {
+      return repository.findActiveAmenityIdByKey(key, tx);
+    },
+
     /** Of these amenity ids, those a space may gain: the active amenities' (a retired one may not). */
     activeAmenityIds(ids: readonly number[], tx?: Tx): Promise<number[]> {
       return repository.findActiveAmenityIds(ids, tx);

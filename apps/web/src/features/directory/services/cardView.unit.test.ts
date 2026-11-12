@@ -12,6 +12,7 @@ const SPACE: DirectorySpace = {
   isVerified: true,
   days: null,
   worksEvenings: false,
+  womensHall: false,
   cover: '/api/v1/files/spaces/x/card.webp',
   liveStatus: 'AVAILABLE',
   hoursStatus: null,
