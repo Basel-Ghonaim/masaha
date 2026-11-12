@@ -245,7 +245,7 @@ A role "at 10%" is the colour mixed with transparent in OKLab, so it lies over i
 - **Non-text, 3:1:** `input`, `ring`, every `chart-*` and the status fills on `background` and `card`; the `spark` on `background`, `card`, `popover`, `sidebar` and the selected tints; `ring` on `muted`, the tints and `hover`.
 - **Fills seen:** `hover` at 1.2:1 from `card`, `background`, `popover` and `sidebar`; `hover-on-muted` from `muted`, and the `skeleton` from `card` and `background`, at 1.2:1; the selected tints at 1.15:1 from `card` and `sidebar` (a second mark or a word carries the rest).
 - **Apart:** `hover` is not the selected tint (OKLab ΔE ≥ 0.02); the ink and the spark stand ΔE ≥ 0.10 from `destructive`, and ≥ 0.08 under simulated protanopia and deuteranopia; in dark the tints stand ΔE ≥ 0.10 from `destructive-subtle`, and `destructive` keeps a red's hue (OKLCH 15–45°).
-- **The identity's colours** that the logo's files write by hand: light `background` #F7FBFF, `foreground` #1A1F25, `spark` #B55BB3; dark #0D1217, #F7FBFF, #D27ED0.
+- **The identity's colours** that the logo's files and the browser's icons write by hand: light `background` #F7FBFF, `foreground` #1A1F25, `spark` #B55BB3; dark #0D1217, #F7FBFF, #D27ED0.
 
 **Usage rules the values depend on:**
 - **The spark is never text, never on an action, never destructive.** It marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words.
@@ -560,3 +560,9 @@ The identity's mark, drawn with ink + berry ([ADR 0019](../../architecture/decis
 - **Never** mirrored (the same drawing in both directions), cropped, stretched, recoloured, or set on a photo without a plain ground.
 - **Its name** is «مساحة» / "Masaha" in the interface's language. Where the name is written beside it, the logo is decorative, so the name is read once.
 - **The source files**, the owner's: `docs/design/prototype/masaha/logo/` (`*-berry.svg`: the full logo, the mark and the app icon, light and dark).
+- **The browser's icons** (`apps/web/public/`, linked from `index.html`):
+  - `favicon.svg`: the small mark with no background, in the light theme's ink and spark, and in the dark theme's by the browser's own scheme (the tab is the browser's, not the app's toggle).
+  - `favicon.ico`: the app icon (the mark on its white tile) at 16, 32 and 48 px, for a browser that takes no SVG and for a dark tab bar.
+  - `apple-touch-icon.png`: the mark on white at 180 px, full bleed, since iOS rounds the corners itself.
+
+  The rasters are drawn from the source files in headless Chrome at device scale 1, and the `.ico` is packed from them. `theme-color` is each scheme's background. **A stated exception** to §2's *one layer, one place*: the browser draws these outside the page, where no token reaches, so they carry the identity's values as hexes. `apps/web/scripts/browserIcons.unit.test.ts` holds the links, the files, their sizes and those hexes by hand.
