@@ -33,10 +33,21 @@ describe('seed', () => {
     expect(await counts()).toEqual({
       governorates: 5,
       areas: 25,
-      amenities: 8,
+      amenities: 9,
       settings: 5,
       users: 1,
     });
+  });
+
+  it("places the women's hall last among the amenities, by its fixed key", async () => {
+    await seed(prisma, INPUT);
+
+    const amenities = await prisma.amenity.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: { key: true, sortOrder: true },
+    });
+    expect(amenities.at(-1)).toEqual({ key: 'womens_hall', sortOrder: 9 });
+    expect(new Set(amenities.map(({ sortOrder }) => sortOrder)).size).toBe(9);
   });
 
   it('hides the unreachable governorate and areas', async () => {

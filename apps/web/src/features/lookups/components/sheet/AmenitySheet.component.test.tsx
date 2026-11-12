@@ -59,7 +59,7 @@ describe('the amenity’s sheet', () => {
     expect(within(sheet).getByRole('textbox', { name: 'Name in English' })).toHaveValue('Internet');
   });
 
-  it('offers the eight icons as one named group, each option named, the amenity’s own chosen', async () => {
+  it('offers the nine icons as one named group, each option named, the amenity’s own chosen', async () => {
     await renderSection();
 
     const sheet = await editInternet();
@@ -74,6 +74,7 @@ describe('the amenity’s sheet', () => {
       'People',
       'Presentation board',
       'Graduation cap',
+      'Women’s sign',
     ];
     expect(within(icons).getAllByRole('radio')).toEqual(
       names.map((name) => within(icons).getByRole('radio', { name })),

@@ -87,6 +87,7 @@ export const LOOKUPS = {
     users: 'أشخاص',
     presentation: 'لوح عرض',
     'graduation-cap': 'قبعة تخرّج',
+    venus: 'رمز المرأة',
   },
   placeSelect: {
     all: 'كل المناطق',

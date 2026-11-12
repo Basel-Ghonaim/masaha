@@ -43,7 +43,7 @@
 - the card holds its title and "Add amenity", with no line under the title;
 - each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when it is retired;
 - each row has its "Active" switch, named after its amenity with its word beside it, its arrows, and Edit;
-- a sheet adds or edits an amenity: its names and its icon, chosen from a grid of the eight, and, editing one of more than ten amenities, its "Position", as a governorate's; its "Active" switch is its row's alone; its key, which the server derives from its English name, is never shown;
+- a sheet adds or edits an amenity: its names and its icon, chosen from a grid of the nine, and, editing one of more than ten amenities, its "Position", as a governorate's; its "Active" switch is its row's alone; its key, which the server derives from its English name, is never shown;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.

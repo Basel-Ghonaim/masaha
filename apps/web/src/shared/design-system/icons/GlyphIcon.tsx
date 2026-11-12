@@ -7,6 +7,7 @@ import {
   PresentationIcon,
   SunIcon,
   UsersIcon,
+  VenusIcon,
   WifiIcon,
   ZapIcon,
 } from './iconSet';
@@ -22,6 +23,7 @@ const GLYPHS = {
   users: UsersIcon,
   presentation: PresentationIcon,
   'graduation-cap': GraduationCapIcon,
+  venus: VenusIcon,
 } satisfies Record<string, ComponentType<IconProps>>;
 
 /** The names `GlyphIcon` draws: a closed set, so a name it lacks fails the typecheck. */
