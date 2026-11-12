@@ -349,3 +349,15 @@ becomes a change to `foundation.md` (a new spark role) before any production tok
 | **Where it never shows** | Action buttons (the primary is ink; every hover is the neutral hover fill), small text (no spark text anywhere) and destructive. Links in running text are ink like the words around them, so they are underlined | the same stylesheet |
 | **The primary's hover** | The bundle mixes `primary` with `foreground` on hover; with ink they are one colour, so the hover vanished. Under the trial it mixes toward `background` | the same stylesheet |
 | **The covers in dark** | `masaha.css` mixes the drawn covers' tones with the card in OKLCH, whose hue goes the short way round: from the coral spark to the slate-blue card it passes through violet, so the dark covers turned purple. Under the trial they mix in OKLab | the same stylesheet |
+
+## Berry, the default (2026-11-12)
+
+Production takes ink + berry ([ADR 0019](../architecture/decisions/0019-ink-and-spark-brand.md); [foundation](../frontend/design-system/foundation.md) §4, §5 and §16), so the prototype draws it by default, and the design source shows what the site shows. *Sea*, the first identity, and `slate-coral`, the trial's other candidate, stay behind `?identity=` to compare.
+
+| What | What changed | Where |
+|---|---|---|
+| **The default** | No `?identity=`, or an unknown one, is `slate-berry`; `?identity=sea` is *Sea*, the bundle's own tokens, with no `data-identity`; `?identity=slate-coral` is unchanged. A link carries `identity` only when it is not the default. The tab's icon follows the identity as before: berry's small mark by default, *Sea*'s «م» tile under `?identity=sea` | `masaha/i18n.js` |
+| **The stylesheet's header** | Production takes berry (ADR 0019); without `?identity=` the page is berry; *Sea* is `?identity=sea` | `masaha/identity-ink-spark.css` |
+| **The reset email** | Production's colours, ink + berry's neutrals: the page `#f7fbff`, the card `#ffffff`, the borders `#dde5ed`, the brand line, the button and the links in the ink `#1a1f25`, the text `#1a1f25`, the muted lines `#5e646a`; no spark | `Reset email.html` |
+| **The primary's hover** | Mixed toward the page in OKLab, as production's `primary-hover`: in OKLCH Chrome drops the hue of the ink's near-greys, and the hover painted a warm grey (`#463e40` for `#3c4147`) | `masaha/identity-ink-spark.css` |
+| **The documents** | The `?identity=` row; the `Wordmark.html` line: option A superseded by the logo | `INDEX.md`, `SCREENS.md` |

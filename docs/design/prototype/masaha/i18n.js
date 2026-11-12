@@ -6,9 +6,13 @@
   const root = document.documentElement;
   root.lang = lang; root.dir = dir;
   if (p.get('theme') === 'dark') root.dataset.theme = 'dark';
-  // Identity trial (ink + spark, 2026-11-11): ?identity= picks a candidate in masaha/identity-ink-spark.css.
-  // None, or an unknown one, is today's identity.
-  const identity = ['slate-coral', 'slate-berry'].includes(p.get('identity')) ? p.get('identity') : null;
+  // The identity (2026-11-12): ink + berry (slate-berry) is the default, as production takes it (ADR 0019).
+  // ?identity=sea gives Sea, the first identity (the bundle's own tokens: no data-identity); ?identity=slate-coral
+  // the trial's other candidate (masaha/identity-ink-spark.css). None, or an unknown one, is berry. A link
+  // carries the identity only when it is not the default.
+  const DEFAULT_IDENTITY = 'slate-berry';
+  const chosen = ['sea', 'slate-coral', 'slate-berry'].includes(p.get('identity')) ? p.get('identity') : DEFAULT_IDENTITY;
+  const identity = chosen === 'sea' ? null : chosen;
   if (identity) root.dataset.identity = identity;
   // The tab's icon is the identity's small mark, light or dark as the browser's own scheme (the tab is the
   // browser's, not the page's theme).
@@ -24,7 +28,7 @@
     const q = new URLSearchParams(qs || '');
     if (lang === 'en' && !q.has('lang')) q.set('lang', 'en');
     if (root.dataset.theme === 'dark' && !q.has('theme')) q.set('theme', 'dark');
-    if (identity && !q.has('identity')) q.set('identity', identity);
+    if (chosen !== DEFAULT_IDENTITY && !q.has('identity')) q.set('identity', chosen);
     const s = q.toString();
     return base + (s ? '?' + s : '') + (hash ? '#' + hash : '');
   };

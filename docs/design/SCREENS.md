@@ -57,5 +57,5 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 
 ## Also in the archive
 
-- `Wordmark.html`: the three wordmark options; **option A (plain word, «م» favicon) was chosen**.
+- `Wordmark.html`: the three wordmark options; option A (plain word, «م» favicon) was chosen, then **superseded by the logo** ([foundation §16](../frontend/design-system/foundation.md#16-the-logo); its files in `prototype/masaha/logo/`).
 - `prototype/BRIEF.md`: the product brief the designs were made against (roles, scope, product rules, sample data).
