@@ -30,7 +30,7 @@ export function DataReportsPage() {
 
 function Reports({ spaceId }: { spaceId: number }) {
   const fieldLink = useCallback(
-    (field: DataReportField, reportId: number) => ownerFieldLink(spaceId, field, reportId),
+    (_field: DataReportField, reportId: number) => ownerFieldLink(spaceId, reportId),
     [spaceId],
   );
 

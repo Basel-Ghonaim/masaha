@@ -6,7 +6,7 @@ import { useLanguage } from '@shared/localisation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { createDataReportsRepository } from '../../repository/dataReportsRepository';
-import { NOTICE_GROUPS } from '../../services/noticeGroup';
+import { NOTICE_SECTIONS } from '../../services/noticeSection';
 import { fieldLabel, messageView, reportDay } from '../../services/reportView';
 import type { ReportNoticeView } from '../../types/ReportNoticeView';
 import { dataReportsKeys } from '../queryKeys';
@@ -81,7 +81,7 @@ export function useReportNotice(
   const day = reportDay(report.createdAt, language, new Date());
   const who = 'reporter' in report ? report.reporter.name : words.notice.visitor;
   const base = {
-    group: NOTICE_GROUPS[report.field],
+    section: NOTICE_SECTIONS[report.field],
     title: words.notice.title({ field: fieldLabel(report.field, words.fields) }),
     said: {
       text: words.notice.said({

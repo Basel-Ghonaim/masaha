@@ -1,3 +1,4 @@
+import type { SortableWords } from '@shared/design-system/sortable';
 import type { FormFailureView } from '@shared/forms';
 import type { PhotoTileView, PhotoUploadTileView } from './PhotoTileView';
 
@@ -24,9 +25,10 @@ export type PhotoUploadView = {
     choose: (files: FileList | null) => void;
   };
   label: string;
-  disabled: boolean;
-  /** Why nothing more may be chosen, beside the disabled button. */
-  reason: string | null;
+  /** The limits beside the button: how many, which types, how large. */
+  limits: string;
+  /** At ten photos, the line that stands in for the button. */
+  full: string | null;
   /** What went up of what was chosen, when some of it could not. */
   summary: string | null;
   /** The files that are not on the server yet, each with its own state. */
@@ -35,24 +37,36 @@ export type PhotoUploadView = {
 
 /**
  * «الصور», the section, ready to render: the gallery's own state — loading, failed with its retry, or
- * the photos as the server has them — its title and intro, the empty state, the line that says what
- * a move or a cover did, the files on their way up, and the dialog a removal asks in. A verified
- * space's copy carries the same photos with no actions and no picker.
+ * the photos as the server has them — its count, the view's words, the empty state, the files on
+ * their way up, and the dialog a removal asks in.
  */
 export type PhotoGalleryView = {
   state: 'loading' | 'failed' | 'ready';
   title: string;
-  /** What the section is for; a verified space's copy carries none, for it changes nothing. */
-  intro: string | null;
+  /** «6 من 10 صور». */
+  count: string;
   /** Why the gallery could not be read. */
   failure: FormFailureView | null;
   retry: { label: string; run: () => void };
   tiles: PhotoTileView[];
-  empty: { title: string; text: string } | null;
-  /** A move or a cover that landed, read aloud once by a live region. */
-  said: string | null;
-  /** Why the gallery was fetched again under the admin, shown for all to read. */
+  /** The view's words: the cover's badge, the count on a phone, and «+N» past five. */
+  view: {
+    cover: string;
+    total: string;
+    others: string;
+    more: { text: string; label: string } | null;
+  };
+  /** Why the gallery was read again under the user, for everyone to read. */
   changed: string | null;
+  /** The order by dragging, once two photos can be ordered: the sortable's words, held while a move travels. */
+  order: {
+    label: string;
+    hint: string;
+    held: boolean;
+    words: SortableWords;
+    move: (ids: number[], moved: number) => void;
+  } | null;
+  empty: { text: string; hint: string; action: string } | null;
   remove: PhotoRemoveDialogView;
   uploads: PhotoUploadView;
 };

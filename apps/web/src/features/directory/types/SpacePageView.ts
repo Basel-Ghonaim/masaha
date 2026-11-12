@@ -1,9 +1,8 @@
 import type { AmenityIconKey } from '@masaha/shared/lookups';
 import type { Location } from '@masaha/shared/spaces';
-import type { ContactLink, SpaceNameView } from '@shared/lib';
+import type { ContactLink, SpaceNameView, WeekRow } from '@shared/lib';
 import type { LocalText } from '../services/localText';
 import type { PriceTab } from '../services/priceGroups';
-import type { WeekRow } from '../services/weekRows';
 import type { ListFailureView } from './DirectoryListView';
 import type { PriceGroupView } from './PriceGroupView';
 import type { PhotoUrls } from '@masaha/shared/spaces';

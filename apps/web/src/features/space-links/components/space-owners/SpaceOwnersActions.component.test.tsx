@@ -22,7 +22,7 @@ const SAMI: Owner = { id: 6, name: 'Sami' };
 const OWNERS = [RIMA, SAMI];
 
 /** The actions as the editor of Focus Hub shows them, for a space verified or not. */
-function renderActions(space: { isVerified: boolean; unsaved?: boolean }) {
+function renderActions(space: { isVerified: boolean }) {
   fakeTransport((request) =>
     request.url === '/admin/spaces/7'
       ? ok({ id: 7, isVerified: true, owners: OWNERS })
@@ -37,7 +37,6 @@ function renderActions(space: { isVerified: boolean; unsaved?: boolean }) {
             name: { text: 'Focus Hub' },
             isVerified: space.isVerified,
             owners: space.isVerified ? OWNERS : [],
-            unsaved: space.unsaved ?? false,
             focusFallback: createRef(),
           }}
           addOwnerLink="/dashboard/admin/owners"
@@ -91,7 +90,6 @@ function Editor() {
         name: { text: 'Focus Hub' },
         isVerified: space.data.isVerified,
         owners: space.data.owners,
-        unsaved: false,
         focusFallback: notice,
       }}
       addOwnerLink="/dashboard/admin/owners"
@@ -176,21 +174,6 @@ describe('SpaceOwnersActions', () => {
     expect(
       await screen.findByRole('dialog', { name: 'Link an owner to Focus Hub' }),
     ).toBeInTheDocument();
-  });
-
-  it('holds the link while the editor has unsaved changes, saying why, and keeps it in reach', async () => {
-    renderActions({ isVerified: false, unsaved: true });
-
-    const link = screen.getByRole('button', { name: 'Link an owner' });
-    // Marked, not disabled: the keyboard still reaches it, and hears why it waits.
-    expect(link).toHaveAttribute('aria-disabled', 'true');
-    expect(link).toHaveAccessibleDescription('Save or discard your changes first');
-    await userEvent.tab();
-    expect(link).toHaveFocus();
-
-    await userEvent.click(link);
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
 

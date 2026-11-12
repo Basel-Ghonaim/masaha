@@ -1,14 +1,16 @@
-import { Badge, Button, Checkbox, Field } from '@shared/design-system';
+import { Badge, Button, Checkbox, CircleCheckIcon, Field } from '@shared/design-system';
 import { useAmenityChecklist } from '../../hooks/amenities/useAmenityChecklist';
 import type { LookupsSource } from '../../types/LookupsSource';
 import type { RetiredAmenity } from '../../types/RetiredAmenity';
+import { AmenityIcon } from '../AmenityIcon';
 
 /**
  * A space's amenities to tick, from the platform's list, as a group named by `label`: the active
- * ones, and a retired one the space still has (`linked`), marked. It hands back the amenities
+ * ones, each with its icon, in two columns from 768 px, the whole row its checkbox's label, and a
+ * retired one the space still has (`linked`), marked. It hands back the amenities
  * chosen. While the list loads, or once it has failed, it says so, with a way to try again. Read
  * from the public catalogue (`source`), a retired one the space holds is named from the space's read
- * (`retired`), marked «لم يعد في قائمة المنصة», and left out once unticked.
+ * (`retired`), marked «أُزيل من القائمة», and left out once unticked.
  */
 export function AmenityChecklist({
   source,
@@ -54,6 +56,13 @@ export function AmenityChecklist({
                 orientation="horizontal"
                 label={
                   <span className="inline-flex flex-wrap items-center gap-2">
+                    {item.icon === null ? (
+                      <CircleCheckIcon aria-hidden className="text-primary" />
+                    ) : (
+                      <span className="inline-flex text-primary">
+                        <AmenityIcon icon={item.icon} />
+                      </span>
+                    )}
                     {item.name}
                     {/* A space, so the name and its mark are heard as two words. */}
                     {item.mark !== null && ' '}

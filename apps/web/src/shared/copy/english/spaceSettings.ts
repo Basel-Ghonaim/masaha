@@ -15,7 +15,7 @@ export const SPACE_SETTINGS = {
   pricing: {
     title: 'Visit pricing',
     description: 'How a visit’s price is worked out from the hour and day prices.',
-    pricesLink: 'Packages & prices',
+    pricesLink: 'Edit the hour and day prices in the space profile',
     rounding: 'Rounding',
     upAfter: 'Round up after',
     minutesLabel: 'Rounding minutes',

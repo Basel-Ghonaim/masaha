@@ -1,180 +1,19 @@
-import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
-import {
-  Button,
-  Field,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  XIcon,
-} from '@shared/design-system';
-import { Link } from 'react-router';
 import { usePricesSection } from '../../hooks/prices/usePricesSection';
-import type { EditorPlace } from '../../types/EditorPlace';
+import type { SectionHost } from '../../types/SectionHost';
 import { SectionCard } from '../editor/SectionCard';
-import { OptionalMark } from '../profile/OptionalMark';
+import { PricesSheet } from './PricesSheet';
+import { PricesView } from './PricesView';
 
-type Row = ReturnType<typeof usePricesSection>['rows'][number];
-
-/** A row's label: seen on a card below 1024 px, said by a screen reader at every width. */
-function RowLabel({ text }: { text: string }) {
-  return <span className="lg:sr-only">{text}</span>;
-}
-
-/** A select of a price's row, its options each in its own language; `ref` reaches its trigger. */
-function RowSelect({
-  label,
-  value,
-  options,
-  disabled,
-  choose,
-  error,
-  ref,
-  className,
-}: Row['period'] & { className: string }) {
+/** «الأسعار المعلنة»: the prices as a visitor reads them, and their Sheet, the only place they are edited (R1). */
+export function PricesSection({ host }: { host: SectionHost }) {
+  const view = usePricesSection(host);
   return (
-    <Field label={<RowLabel text={label} />} error={error} className={className}>
-      <Select value={value} onValueChange={choose} disabled={disabled}>
-        <SelectTrigger ref={ref}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value} lang={option.lang}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
-  );
-}
-
-/**
- * «الأسعار»: the prices, for display only; from 1024 px a small table, its columns named once in its
- * header, and below it a card per price; each a period, an audience, a shift of the space's saved
- * ones, a custom label in Arabic then English, and an amount in shekels; added up to the limit and
- * removed; saved, dated and confirmed as one group. Its lines above the rows may lead to the opening
- * hours (`hoursLink`), where the page has them elsewhere.
- */
-export function PricesSection({
-  place,
-  space,
-  hoursUnsaved,
-  hoursLink,
-  onDirtyChange,
-}: {
-  place: EditorPlace;
-  space: AdminSpace;
-  hoursUnsaved: boolean;
-  hoursLink: string | null;
-  onDirtyChange: (group: FactGroup, dirty: boolean) => void;
-}) {
-  const view = usePricesSection({ place, space, hoursUnsaved, hoursLink, onDirtyChange });
-  const optional = (
-    <span className="lg:hidden">
-      <OptionalMark label={view.columns.optional} />
-    </span>
-  );
-
-  return (
-    <SectionCard frame={view.frame}>
-      <p className="text-caption text-muted-foreground">{view.intro}</p>
-      {view.notes.map((note) => (
-        <p key={note.text} className="text-caption text-muted-foreground">
-          {note.text}
-          {note.link && (
-            <>
-              {' '}
-              <Link to={note.link.href} className="text-primary underline underline-offset-4">
-                {note.link.label}
-              </Link>
-            </>
-          )}
-        </p>
-      ))}
-      {view.rows.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <div
-            aria-hidden="true"
-            className="hidden text-label text-muted-foreground lg:grid lg:grid-cols-12 lg:gap-3"
-          >
-            <span className="lg:col-span-2">{view.columns.period}</span>
-            <span className="lg:col-span-2">{view.columns.audience}</span>
-            <span className="lg:col-span-2">{view.columns.shift}</span>
-            <span className="flex flex-col lg:col-span-3">
-              {view.columns.label}
-              <OptionalMark label={view.columns.optional} />
-            </span>
-            <span className="lg:col-span-2">{view.columns.amount}</span>
-            <span className="lg:col-span-1" />
-          </div>
-          <ul className="flex flex-col gap-4 lg:gap-2">
-            {view.rows.map((row) => (
-              <li
-                key={row.key}
-                role="group"
-                aria-label={row.label}
-                className="grid gap-3 rounded-lg border p-4 lg:grid-cols-12 lg:items-start lg:gap-3 lg:rounded-none lg:border-0 lg:p-0"
-              >
-                <RowSelect {...row.period} className="lg:col-span-2" />
-                <RowSelect {...row.audience} className="lg:col-span-2" />
-                <RowSelect {...row.shift} className="lg:col-span-2" />
-                <div className="flex flex-col gap-2 lg:col-span-3">
-                  <Field
-                    label={<RowLabel text={row.labelAr.label} />}
-                    labelEnd={optional}
-                    error={row.labelAr.error}
-                  >
-                    <Input dir="rtl" autoComplete="off" {...row.labelAr.binding} />
-                  </Field>
-                  <Field
-                    label={<RowLabel text={row.labelEn.label} />}
-                    labelEnd={optional}
-                    error={row.labelEn.error}
-                  >
-                    <Input
-                      dir="ltr"
-                      autoComplete="off"
-                      placeholder={row.labelEn.placeholder}
-                      {...row.labelEn.binding}
-                    />
-                  </Field>
-                </div>
-                <Field
-                  label={<RowLabel text={row.amount.label} />}
-                  error={row.amount.error}
-                  className="lg:col-span-2"
-                >
-                  <Input dir="ltr" inputMode="decimal" autoComplete="off" {...row.amount.binding} />
-                </Field>
-                <div className="flex justify-end lg:col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={row.remove.label}
-                    disabled={row.remove.disabled}
-                    onClick={row.remove.run}
-                  >
-                    <XIcon aria-hidden />
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" disabled={view.add.disabled} onClick={view.add.run}>
-          {view.add.label}
-        </Button>
-        {view.add.reason && (
-          <span className="text-caption text-muted-foreground">{view.add.reason}</span>
-        )}
-      </div>
-    </SectionCard>
+    <>
+      <SectionCard frame={view.frame} notice={host.notice} empty={view.empty}>
+        <PricesView table={view.table} />
+        <p className="text-caption text-muted-foreground">{view.note}</p>
+      </SectionCard>
+      {host.editable && <PricesSheet host={host} />}
+    </>
   );
 }

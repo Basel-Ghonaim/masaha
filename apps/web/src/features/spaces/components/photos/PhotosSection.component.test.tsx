@@ -1,63 +1,35 @@
 import type { SpacePhoto } from '@masaha/shared/spaces';
-import { createQueryClient } from '@shared/api';
-import { Toaster, toast } from '@shared/design-system';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { toast } from '@shared/design-system';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { fakeCanvas, fakeFile } from '../../../../test/fakeCanvas';
+import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
 import { deferred } from '../../../../test/fakeSession';
+import { bodyOf, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { findToast } from '../../../../test/findToast';
+import { stubScreenWidth } from '../../../../test/screenWidth';
+import { NOW, PHOTOS, SPACE, renderProfile, sectionOf } from '../../../../test/spaceProfile';
 import { startPreferences } from '../../../../test/startPreferences';
-import { PhotosSection } from './PhotosSection';
-import { ReadOnlyPhotos } from './ReadOnlyPhotos';
 
-type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
-
-const PHOTOS: SpacePhoto[] = [
-  { id: 3, urls: { card: '/files/3-card.webp', page: '/files/3-page.webp' } },
-  { id: 4, urls: { card: '/files/4-card.webp', page: '/files/4-page.webp' } },
-  { id: 5, urls: { card: '/files/5-card.webp', page: '/files/5-page.webp' } },
-];
-
-const photo = (id: number) => ({ id, urls: { card: `/files/${String(id)}-card.webp`, page: '' } });
-
-/** The gallery of space 7 as the section draws it; the server answers each request with `answer`. */
-function renderSection(
-  photos: SpacePhoto[] = PHOTOS,
-  answer: (request: Request) => FakeAnswer | Promise<FakeAnswer> = () => ({ status: 204 }),
-  draw: 'editable' | 'verified' = 'editable',
-) {
-  const requests = fakeTransport((request) =>
-    request.method === 'get' ? ok(photos) : answer(request),
-  );
-  const rendered = render(
-    <QueryClientProvider client={createQueryClient()}>
-      {draw === 'editable' ? (
-        <PhotosSection place="admin" spaceId={7} onUploadingChange={vi.fn()} />
-      ) : (
-        <ReadOnlyPhotos place="admin" spaceId={7} />
-      )}
-      <Toaster label="Notifications" closeLabel="Close notification" />
-    </QueryClientProvider>,
-  );
-  return { ...rendered, requests };
-}
-
-/** The section's tiles, each one a list item. */
-const tiles = async () =>
-  within(await screen.findByRole('list', { name: 'Photos' })).getAllByRole('listitem');
+/** `count` photos, ids 1 to `count`. */
+const photos = (count: number): SpacePhoto[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    urls: {
+      card: `/files/${String(index + 1)}-card.webp`,
+      page: `/files/${String(index + 1)}.webp`,
+    },
+  }));
 
 /** Hands the picker files as the browser's own file chooser would. */
 function chooseFiles(input: HTMLElement, ...files: File[]) {
   const list = Object.create(FileList.prototype) as FileList;
   Object.defineProperties(list, {
     length: { value: files.length },
-    item: {
-      value: (index: number) => files[index] ?? null,
-    },
+    item: { value: (index: number) => files[index] ?? null },
     [Symbol.iterator]: {
       value: function* iterate() {
         yield* files;
@@ -69,7 +41,10 @@ function chooseFiles(input: HTMLElement, ...files: File[]) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
   startPreferences('en');
+  fakeIntersectionObserver();
   fakeCanvas({ width: 4000, height: 3000 });
 });
 
@@ -78,327 +53,239 @@ afterEach(() => {
   act(() => {
     toast.dismiss();
   });
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-describe('the editor’s photos section', () => {
-  it('shows the photos in order with the cover and each tile’s actions', async () => {
-    renderSection();
+async function manage(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Manage photos' }));
+  return sectionOf('Photos');
+}
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Photos' })).toBeInTheDocument();
-    expect(screen.getByText(/Up to 10 photos/)).toBeInTheDocument();
-    const shown = await tiles();
-    expect(shown.map((tile) => tile.querySelector('img')?.getAttribute('src'))).toEqual([
-      '/files/3-card.webp',
-      '/files/4-card.webp',
-      '/files/5-card.webp',
-    ]);
-    // The cover is the first, marked; no tile offers to make the cover itself.
-    expect(within(shown[0] as HTMLElement).getByText('Cover')).toBeInTheDocument();
-    expect(
-      within(shown[0] as HTMLElement).queryByRole('button', { name: 'Make Photo 1 the cover' }),
-    ).toBeNull();
-    expect(
-      within(shown[1] as HTMLElement).getByRole('button', { name: 'Make Photo 2 the cover' }),
-    ).toBeInTheDocument();
-    // Each arrow names the photo it moves, and waits at the gallery's edges without leaving the focus order.
-    for (const [tile, name] of [
-      [shown[0], 'Before: Photo 1'],
-      [shown[2], 'After: Photo 3'],
-    ] as const) {
-      const arrow = within(tile as HTMLElement).getByRole('button', { name });
-      expect(arrow).toHaveAttribute('aria-disabled', 'true');
-      expect(arrow).not.toBeDisabled();
-    }
-    expect(
-      within(shown[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
-    ).toBeInTheDocument();
+describe('the photos, read first', () => {
+  it('shows the cover beside a 2×2 grid from 768 px, «+N» past five, the cover marked', async () => {
+    stubScreenWidth(1440);
+    renderProfile({ photos: () => ok(photos(7)) });
+    await screen.findByRole('img', { name: 'Photo 1' });
+
+    const section = sectionOf('Photos');
+    expect(within(section).getByText('7 of 10 photos')).toBeInTheDocument();
+    expect(within(section).getByText('Cover')).toBeInTheDocument();
+    const grid = within(section).getByRole('list', { name: 'The other photos' });
+    expect(within(grid).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(grid).getByRole('img', { name: 'and 2 more' })).toBeInTheDocument();
   });
 
-  it('shows the empty state while the space has no photos', async () => {
-    renderSection([]);
+  it('shows the cover with its count on a phone, then one row of the others (M1)', async () => {
+    stubScreenWidth(390);
+    renderProfile();
+    await screen.findByRole('img', { name: 'Photo 1' });
 
-    expect(await screen.findByRole('heading', { name: 'No photos yet' })).toBeInTheDocument();
-    expect(screen.getByText('The first photo becomes the cover.')).toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'Photos' })).toBeNull();
+    const section = sectionOf('Photos');
+    expect(within(section).getByText('3 photos')).toBeInTheDocument();
+    const strip = within(section).getByRole('list', { name: 'The other photos' });
+    expect(
+      within(strip)
+        .getAllByRole('img')
+        .map((image) => image.getAttribute('src')),
+    ).toEqual(['/files/4-card.webp', '/files/5-card.webp']);
+    expect(within(section).queryByText(/^\+\d/)).toBeNull();
   });
+});
 
-  it('names each move and cover in a live region', async () => {
+describe('the photos’ edit state', () => {
+  it('turns the section itself into its edit state, and «تم» turns it back (P2)', async () => {
     const user = userEvent.setup();
-    renderSection();
+    renderProfile();
+    const section = await manage(user);
 
-    await user.click(
-      within((await tiles())[2] as HTMLElement).getByRole('button', { name: 'Before: Photo 3' }),
-    );
-
-    expect(await screen.findByText('Photo 3 is now at position 2 of 3')).toHaveAttribute(
-      'role',
-      'status',
-    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(within(section).getByRole('button', { name: 'Choose photos' })).toBeInTheDocument();
+    expect(
+      within(section).getByText('Up to 10 photos · JPEG, PNG or WebP · up to 4 MB each'),
+    ).toBeInTheDocument();
+    await user.click(within(section).getByRole('button', { name: 'Done' }));
+    expect(within(section).queryByRole('button', { name: 'Choose photos' })).toBeNull();
   });
 
-  it('asks before it removes a photo, and its dialog names it', async () => {
+  it('replaces «اختر صورًا» with the limit’s line at ten photos, never a disabled button (P3)', async () => {
     const user = userEvent.setup();
-    renderSection();
+    renderProfile({ photos: () => ok(photos(10)) });
+    const section = await manage(user);
 
+    expect(within(section).queryByRole('button', { name: 'Choose photos' })).toBeNull();
+    expect(
+      within(section).getByText('You’ve reached the limit (10 photos). Delete one to add another.'),
+    ).toBeInTheDocument();
+  });
+
+  it('asks before deleting a photo, «رجوع» sending nothing and «حذف» deleting it (P5)', async () => {
+    const user = userEvent.setup();
+    const { writes } = renderProfile({ write: () => ({ status: 204 }) });
+    const section = await manage(user);
+
+    const remove = within(section).getByRole('button', { name: 'Delete Photo 2' });
+    await user.click(remove);
+    const ask = await screen.findByRole('alertdialog', { name: 'Delete this photo?' });
+    expect(within(ask).getByRole('button', { name: 'Back' })).toHaveFocus();
+    await user.click(within(ask).getByRole('button', { name: 'Back' }));
+    expect(writes()).toEqual([]);
+    expect(remove).toHaveFocus();
+
+    await user.click(remove);
     await user.click(
-      within((await tiles())[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
     );
+    await waitFor(() => {
+      expect(writes().map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+        'delete /admin/spaces/7/photos/4',
+      ]);
+    });
+    expect(await findToast('Photo 2 deleted')).toBeInTheDocument();
+  });
 
-    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Photo 2?' });
-    expect(dialog).toHaveTextContent(
-      'It leaves the space’s page at once and cannot be brought back.',
+  it('says on the cover’s dialog that the next photo becomes the cover', async () => {
+    const user = userEvent.setup();
+    renderProfile();
+    const section = await manage(user);
+
+    await user.click(within(section).getByRole('button', { name: 'Delete Photo 1' }));
+
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(
+      'The next photo becomes the cover.',
     );
-    expect(within(dialog).getByRole('button', { name: 'Back' })).toHaveFocus();
   });
 
-  it('shows the empty state, and the limit beside a disabled add at ten', async () => {
-    renderSection([]);
-
-    expect(await screen.findByRole('heading', { name: 'No photos yet' })).toBeInTheDocument();
-    expect(screen.getByText('The first photo becomes the cover.')).toBeInTheDocument();
-  });
-
-  it('shows why nothing more may be added at ten, beside the disabled button', async () => {
-    renderSection(Array.from({ length: 10 }, (_, index) => photo(index + 1)));
-    await screen.findByText('Cover');
-
-    expect(screen.getByRole('button', { name: 'Add photos' })).toBeDisabled();
-    expect(screen.getByText('Up to 10 photos — remove one to add another')).toBeInTheDocument();
-  });
-
-  it('an uploading tile shows a progressbar with its percentage', async () => {
+  it('gives each chosen file its own tile and bar while it travels, keeping the others', async () => {
     const answering = deferred<FakeAnswer>();
-    const browser = fakeCanvas({ width: 2000, height: 1500 });
-    renderSection(PHOTOS, () => answering.promise);
+    const user = userEvent.setup();
+    renderProfile({ write: () => answering.promise });
+    await manage(user);
 
     await act(async () => {
-      chooseFiles(screen.getByLabelText('Add photos'), fakeFile('portrait.jpg', 'image/jpeg'));
+      chooseFiles(screen.getByLabelText('Choose photos'), fakeFile('portrait.jpg', 'image/jpeg'));
       await Promise.resolve();
     });
 
-    // The browser turned the photo by its EXIF and re-encoded it before anything was sent.
-    expect(browser.decodeOptions()).toMatchObject({ imageOrientation: 'from-image' });
     expect(await screen.findByText('portrait.jpg')).toBeInTheDocument();
-    // The pending upload is the layer's bar, named by the photo's place in the gallery.
     const bar = await screen.findByRole('progressbar', {
       name: `Uploading photo ${String(PHOTOS.length + 1)}`,
     });
     expect(bar).toHaveAttribute('aria-valuemax', '100');
-    expect(bar.getAttribute('aria-valuetext')).toMatch(/^\d+%$/);
-    expect(screen.getByText(/^Uploading \d+%$/)).toBeInTheDocument();
-    expect(screen.queryByRole('status', { name: /Uploading \d+%/ })).not.toBeInTheDocument();
   });
 
-  it('keeps the removal dialog open and says why when the server fails', async () => {
+  it('offers no edit at all on a verified space, on the admin’s page', async () => {
+    renderProfile({ read: () => ok({ ...SPACE, isVerified: true }) });
+    await screen.findByRole('img', { name: 'Photo 1' });
+
+    expect(within(sectionOf('Photos')).queryByRole('button')).toBeNull();
+  });
+
+  it('has no detectable accessibility violations in its edit state, in English and in Arabic', async () => {
     const user = userEvent.setup();
-    renderSection(PHOTOS, (request) =>
-      request.method === 'delete' ? refused(500, { type: 'server' }) : { status: 204 },
-    );
+    const english = renderProfile();
+    await manage(user);
+    expect(await axe(english.container)).toHaveNoViolations();
+    english.unmount();
 
-    await user.click(
-      within((await tiles())[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
-    );
-    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Photo 2?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    startPreferences('ar');
+    const arabic = renderProfile();
+    await user.click(await screen.findByRole('button', { name: 'إدارة الصور' }));
+    await screen.findByRole('button', { name: 'اختر صورًا' });
 
-    expect(await within(dialog).findByText(/went wrong on our side/)).toBeVisible();
-    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-  });
-
-  it('titles a refused removal in its dialog by the removal', async () => {
-    const user = userEvent.setup();
-    renderSection(PHOTOS, (request) =>
-      request.method === 'delete' ? refused(500, { type: 'server' }) : { status: 204 },
-    );
-
-    await user.click(
-      within((await tiles())[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
-    );
-    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Photo 2?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
-
-    expect(await within(dialog).findByText('We couldn’t delete the photo')).toBeVisible();
-    expect(screen.queryByText('We couldn’t load the photos')).toBeNull();
-  });
-
-  it('removes the photo, fetches the gallery again and says so once the server has answered', async () => {
-    const user = userEvent.setup();
-    const { requests } = renderSection();
-
-    await user.click(
-      within((await tiles())[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
-    );
-    await user.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
-
-    expect(await screen.findByText('Photo 2 deleted')).toBeVisible();
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-    await waitFor(() => {
-      expect(requests.filter(({ method }) => method === 'get')).toHaveLength(2);
-    });
-  });
-
-  it('takes a second move only after the first is answered and the gallery fetched again', async () => {
-    const user = userEvent.setup();
-    const answering = deferred<FakeAnswer>();
-    const { requests } = renderSection(PHOTOS, () => answering.promise);
-    const before = within((await tiles())[2] as HTMLElement).getByRole('button', {
-      name: 'Before: Photo 3',
-    });
-
-    await user.click(before);
-    await user.click(before);
-    await act(async () => {
-      answering.resolve({ status: 204 });
-      await answering.promise;
-    });
-
-    await waitFor(() => {
-      expect(requests.filter(({ method }) => method === 'get')).toHaveLength(2);
-    });
-    const orders = requests.filter(({ method }) => method === 'put');
-    expect(orders.map(({ data }) => JSON.parse(String(data)) as unknown)).toEqual([
-      { ids: [3, 5, 4] },
-    ]);
-  });
-
-  it('names each photo on its own cover button', async () => {
-    renderSection();
-
-    expect(await screen.findByRole('button', { name: 'Make Photo 2 the cover' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Make Photo 3 the cover' })).toBeVisible();
-  });
-
-  it('shows a refused order in view, saying the gallery was refreshed', async () => {
-    const user = userEvent.setup();
-    renderSection(PHOTOS, (request) =>
-      request.method === 'put' ? refused(409, { type: 'conflict' }) : { status: 204 },
-    );
-
-    await user.click(
-      within((await tiles())[2] as HTMLElement).getByRole('button', { name: 'Before: Photo 3' }),
-    );
-
-    const notice = await screen.findByText(/photos changed since this page was opened/);
-    expect(notice).not.toHaveClass('sr-only');
-    expect(notice).toHaveTextContent('refreshed');
-    expect(notice).not.toHaveTextContent('Reload');
-  });
-
-  it('titles a refused move by the move, not by a failed load', async () => {
-    const user = userEvent.setup();
-    renderSection(PHOTOS, (request) =>
-      request.method === 'put' ? refused(500, { type: 'server' }) : { status: 204 },
-    );
-
-    await user.click(
-      within((await tiles())[2] as HTMLElement).getByRole('button', { name: 'Before: Photo 3' }),
-    );
-
-    expect(await screen.findByText('We couldn’t change the photos’ order')).toBeVisible();
-    expect(screen.queryByText('We couldn’t load the photos')).toBeNull();
-  });
-
-  it('keeps «Add photos» available while a photo uploads', async () => {
-    const answering = deferred<FakeAnswer>();
-    renderSection(PHOTOS, () => answering.promise);
-
-    await act(async () => {
-      chooseFiles(screen.getByLabelText('Add photos'), fakeFile('portrait.jpg', 'image/jpeg'));
-      await Promise.resolve();
-    });
-    await screen.findByText('portrait.jpg');
-
-    expect(screen.getByRole('button', { name: 'Add photos' })).toBeEnabled();
-  });
-
-  it('says the space is full when an upload is refused as a conflict, and fetches the gallery again', async () => {
-    const { requests } = renderSection(PHOTOS, () => refused(409, { type: 'conflict' }));
-
-    await act(async () => {
-      chooseFiles(screen.getByLabelText('Add photos'), fakeFile('portrait.jpg', 'image/jpeg'));
-      await Promise.resolve();
-    });
-
-    expect(
-      await screen.findByText('The space already has 10 photos. Remove one to add another.'),
-    ).toBeVisible();
-    await waitFor(() => {
-      expect(requests.filter(({ method }) => method === 'get')).toHaveLength(2);
-    });
-  });
-
-  it('says the upload failed, not that the photos could not load, when nothing came back from it', async () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(() => {
-      throw new Error('The encoder broke.');
-    });
-    renderSection();
-
-    await act(async () => {
-      chooseFiles(screen.getByLabelText('Add photos'), fakeFile('portrait.jpg', 'image/jpeg'));
-      await Promise.resolve();
-    });
-
-    expect(await screen.findByText('We couldn’t upload this photo')).toBeVisible();
-    expect(screen.queryByText('We couldn’t load the photos')).toBeNull();
-  });
-
-  it('announces what really went up when part of a choice did not fit', async () => {
-    const nine = Array.from({ length: 9 }, (_, index) => photo(index + 1));
-    renderSection(nine, () => refused(500, { type: 'server' }));
-    await screen.findByText('Cover');
-
-    await act(async () => {
-      chooseFiles(
-        screen.getByLabelText('Add photos'),
-        fakeFile('a.jpg', 'image/jpeg'),
-        fakeFile('b.jpg', 'image/jpeg'),
-      );
-      await Promise.resolve();
-    });
-
-    // The one that fitted failed, so nothing went up: the line says 0, in a live region.
-    const summary = await screen.findByText('Uploaded 0 of 2; the limit is 10 photos');
-    expect(summary.closest('[role="status"]')).not.toBeNull();
-  });
-
-  it('has no accessibility violations', async () => {
-    const { container } = renderSection();
-
-    await screen.findByText('Cover');
-
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(arabic.container)).toHaveNoViolations();
   });
 });
 
-describe('a verified space’s photos', () => {
-  it('shows its photos with no control to change them', async () => {
-    renderSection([photo(3), photo(4)], () => ({ status: 204 }), 'verified');
+describe('ordering the photos (P4)', () => {
+  it('lifts, moves and drops a photo from the keyboard, each step said, then sends the whole order once', async () => {
+    const user = userEvent.setup();
+    const sent = deferred<FakeAnswer>();
+    const { writes } = renderProfile({ write: () => sent.promise });
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
 
-    const shown = await tiles();
-    expect(shown).toHaveLength(2);
-    expect(within(shown[0] as HTMLElement).getByText('Cover')).toBeInTheDocument();
-    for (const tile of shown) {
-      expect(within(tile).queryByRole('button')).toBeNull();
-    }
-    expect(screen.queryByText(/Up to 10 photos/)).toBeNull();
+    const second = within(list).getByRole('button', { name: 'Photo 2' });
+    second.focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('Photo 2 lifted, position 2 of 3.')).toBeInTheDocument();
+    // In English the grid reads left to right: the right arrow moves the photo on.
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByText('Photo 2: position 3 of 3')).toBeInTheDocument();
+    await user.keyboard(' ');
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(writes()[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/photos/order' });
+    expect(bodyOf(writes()[0])).toEqual({ ids: [3, 5, 4] });
+    // The order dropped stays on screen while it is sent (SD2).
+    expect(
+      within(list)
+        .getAllByRole('img')
+        .map((image) => image.getAttribute('src')),
+    ).toEqual(['/files/3-card.webp', '/files/5-card.webp', '/files/4-card.webp']);
+    // A second move waits until the gallery is read again.
+    within(list).getAllByRole('button', { name: /Photo/ })[0]?.focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('Photo 1 can move once the last order is saved.')).toBeInTheDocument();
+    expect(writes()).toHaveLength(1);
   });
 
-  it('names each photo, so a screen reader hears more than an empty list', async () => {
-    renderSection([photo(3), photo(4)], () => ({ status: 204 }), 'verified');
+  it('follows the reading direction in Arabic: the left arrow moves a photo on', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    const { writes } = renderProfile({ write: () => ({ status: 204 }) });
+    await user.click(await screen.findByRole('button', { name: 'إدارة الصور' }));
+    const list = screen.getByRole('list', { name: 'الصور بترتيبها' });
 
-    await tiles();
+    within(list).getByRole('button', { name: 'الصورة 1، الغلاف' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowLeft}');
+    await user.keyboard(' ');
 
-    expect(screen.getByRole('img', { name: 'Photo 1' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Photo 2' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({ ids: [4, 3, 5] });
   });
 
-  it('shows the empty state when it has none', async () => {
-    renderSection([], () => ({ status: 204 }), 'verified');
+  it('puts a photo back on Escape and sends nothing', async () => {
+    const user = userEvent.setup();
+    const { writes } = renderProfile();
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
 
-    expect(await screen.findByRole('heading', { name: 'No photos yet' })).toBeInTheDocument();
+    within(list).getByRole('button', { name: 'Photo 2' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowRight}');
+    await user.keyboard('{Escape}');
+
+    expect(
+      screen.getByText('Move cancelled. Photo 2 is back at position 2 of 3.'),
+    ).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+  });
+
+  it('puts the server’s order back when a move is refused, its reason on the photo', async () => {
+    const user = userEvent.setup();
+    renderProfile({ write: () => refused(500, { type: 'server' }) });
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
+
+    within(list).getByRole('button', { name: 'Photo 2' }).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowRight}');
+    await user.keyboard(' ');
+
+    expect(
+      await within(section).findByText('We couldn’t change the photos’ order'),
+    ).toBeInTheDocument();
+    expect(
+      within(list)
+        .getAllByRole('img')
+        .map((image) => image.getAttribute('src')),
+    ).toEqual(['/files/3-card.webp', '/files/4-card.webp', '/files/5-card.webp']);
   });
 });

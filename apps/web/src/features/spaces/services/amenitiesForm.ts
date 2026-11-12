@@ -51,3 +51,27 @@ export function sameAmenities(
 export function amenityIdsOf(ids: readonly number[]): number[] {
   return byId(ids);
 }
+
+/** A catalogue amenity's two names, as the platform's list gives them. */
+type CatalogueNames = { nameAr: string; nameEn: string };
+
+const folded = (name: string) => name.trim().toLocaleLowerCase();
+
+/**
+ * The own amenities that name one of the platform's (A2), by their place: an Arabic or an English
+ * name equal to either of a catalogue amenity's, trimmed and whatever its case. Checked in the
+ * browser only, where both lists are shown (S4: the server refuses none).
+ */
+export function catalogueClashes(
+  own: readonly { nameAr: string; nameEn: string }[],
+  catalogue: readonly CatalogueNames[],
+): number[] {
+  const names = new Set(
+    catalogue.flatMap(({ nameAr, nameEn }) => [folded(nameAr), folded(nameEn)]),
+  );
+  return own.flatMap((row, index) =>
+    [row.nameAr, row.nameEn].some((name) => name.trim() !== '' && names.has(folded(name)))
+      ? [index]
+      : [],
+  );
+}

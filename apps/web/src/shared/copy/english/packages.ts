@@ -86,7 +86,7 @@ export const PACKAGES = {
     shift: 'Shift',
     noShift: 'No shift',
     noShifts: 'No shifts are saved yet.',
-    addShifts: 'Add shifts in the opening hours',
+    addShifts: 'Add shifts in the space profile',
     shiftsLoading: 'Loading the shifts…',
     summary: 'Summary',
     unnamed: 'Unnamed package',

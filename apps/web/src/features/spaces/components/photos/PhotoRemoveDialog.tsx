@@ -12,11 +12,18 @@ import { FormFailure } from '@shared/forms';
 import type { PhotoRemoveDialogView } from '../../types/PhotoGalleryView';
 
 /**
- * Asks before a photo is deleted: its title names the photo, its line says that it leaves the space's
- * page at once. It opens on Cancel, so a stray Enter never deletes; Escape cancels, and either way
- * the focus returns to the button that opened it.
+ * Asks before a photo is deleted (P5), «حذف هذه الصورة؟», its line saying it leaves the space's page
+ * at once, and on the cover that the next photo becomes it; «حذف» is destructive and «رجوع» dismisses
+ * it. It opens on «رجوع», so a stray Enter never deletes; Escape dismisses it. Either way the focus
+ * goes back (`returnFocus`): to the photo's removal, or, once the photo is gone, to the gallery.
  */
-export function PhotoRemoveDialog({ dialog }: { dialog: PhotoRemoveDialogView }) {
+export function PhotoRemoveDialog({
+  dialog,
+  returnFocus,
+}: {
+  dialog: PhotoRemoveDialogView;
+  returnFocus: () => void;
+}) {
   return (
     <AlertDialog
       open={dialog.open}
@@ -24,7 +31,12 @@ export function PhotoRemoveDialog({ dialog }: { dialog: PhotoRemoveDialogView })
         if (!open) dialog.cancel();
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocus();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{dialog.title}</AlertDialogTitle>
           <AlertDialogDescription>{dialog.description}</AlertDialogDescription>

@@ -5,13 +5,13 @@ import { renderHookInRouter } from '../../../../test/renderHookInRouter';
 import { startPreferences } from '../../../../test/startPreferences';
 import { useLeaveGuard } from './useLeaveGuard';
 
-/** What the editor hands the guard: the unsaved sections' names, and whether a save or an upload is
- *  pending. */
-type Inputs = { unsaved: string[]; saving: boolean; uploading: boolean };
+/** What the profile hands the guard: the name of the section whose Sheet has changes, if any, and
+ *  whether a save or an upload is pending. */
+type Inputs = { unsaved: string | null; saving: boolean; uploading: boolean };
 
 /** The guard with inputs the test changes as the editor would, each change rendering it again. */
 function renderGuard(initial: Partial<Inputs> = {}) {
-  let inputs: Inputs = { unsaved: [], saving: false, uploading: false, ...initial };
+  let inputs: Inputs = { unsaved: null, saving: false, uploading: false, ...initial };
   const listeners = new Set<() => void>();
   const set = (next: Partial<Inputs>) => {
     inputs = { ...inputs, ...next };
@@ -48,14 +48,14 @@ afterEach(() => {
 });
 
 describe('useLeaveGuard', () => {
-  it('asks before another page while sections are unsaved, naming them, and Stay keeps the page', async () => {
-    const { result, router } = renderGuard({ unsaved: ['The space', 'Contacts'], saving: false });
+  it('asks before another page while a Sheet has changes, naming its section, and Stay keeps the page', async () => {
+    const { result, router } = renderGuard({ unsaved: 'The space', saving: false });
 
     await act(() => router.navigate('/elsewhere'));
 
     expect(result.current.open).toBe(true);
     expect(result.current.description).toBe(
-      'Unsaved changes in The space and Contacts will be lost.',
+      'Your changes to The space aren’t saved, and will be lost.',
     );
     act(() => {
       result.current.stay.run();
@@ -65,7 +65,7 @@ describe('useLeaveGuard', () => {
   });
 
   it('goes on to the page asked for on Leave', async () => {
-    const { result, router } = renderGuard({ unsaved: ['The space'], saving: false });
+    const { result, router } = renderGuard({ unsaved: 'The space', saving: false });
     await act(() => router.navigate('/elsewhere'));
 
     act(() => {
@@ -78,7 +78,7 @@ describe('useLeaveGuard', () => {
   });
 
   it('never asks for a move within the page, to a section', async () => {
-    const { result, router } = renderGuard({ unsaved: ['The space'], saving: false });
+    const { result, router } = renderGuard({ unsaved: 'The space', saving: false });
 
     await act(() => router.navigate({ hash: '#contacts' }));
 
@@ -87,10 +87,10 @@ describe('useLeaveGuard', () => {
   });
 
   it('stops asking once nothing is unsaved: neither a navigation nor the browser', async () => {
-    const { result, router, set } = renderGuard({ unsaved: ['The space'], saving: false });
+    const { result, router, set } = renderGuard({ unsaved: 'The space', saving: false });
     expect(unloadAsks()).toBe(true);
 
-    set({ unsaved: [] });
+    set({ unsaved: null });
 
     expect(unloadAsks()).toBe(false);
     await act(() => router.navigate('/elsewhere'));
@@ -99,10 +99,10 @@ describe('useLeaveGuard', () => {
   });
 
   it('goes on to the page asked for once the changes are saved while it asks', async () => {
-    const { router, set } = renderGuard({ unsaved: ['The space'], saving: true });
+    const { router, set } = renderGuard({ unsaved: 'The space', saving: true });
     await act(() => router.navigate('/elsewhere'));
 
-    set({ unsaved: [], saving: false });
+    set({ unsaved: null, saving: false });
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/elsewhere');
@@ -110,15 +110,15 @@ describe('useLeaveGuard', () => {
   });
 
   it('says the changes are being saved, not lost, while a save is pending', async () => {
-    const { result, router } = renderGuard({ unsaved: ['The space'], saving: true });
+    const { result, router } = renderGuard({ unsaved: 'The space', saving: true });
 
     await act(() => router.navigate('/elsewhere'));
 
-    expect(result.current.description).toBe('The changes in The space are being saved.');
+    expect(result.current.description).toBe('The changes to The space are being saved.');
   });
 
-  it('asks the browser before the tab closes or reloads only while sections are unsaved', () => {
-    renderGuard({ unsaved: [], saving: false });
+  it('asks the browser before the tab closes or reloads only while a Sheet has changes', () => {
+    renderGuard({ unsaved: null, saving: false });
     expect(unloadAsks()).toBe(false);
   });
 
@@ -154,12 +154,14 @@ describe('useLeaveGuard', () => {
     });
   });
 
-  it('still names the sections while one is unsaved and an upload runs too', async () => {
-    const { result, router } = renderGuard({ unsaved: ['The space'], uploading: true });
+  it('still names the section while its Sheet has changes and an upload runs too', async () => {
+    const { result, router } = renderGuard({ unsaved: 'The space', uploading: true });
 
     await act(() => router.navigate('/elsewhere'));
 
     expect(result.current.title).toBe('Leave with unsaved changes?');
-    expect(result.current.description).toBe('Unsaved changes in The space will be lost.');
+    expect(result.current.description).toBe(
+      'Your changes to The space aren’t saved, and will be lost.',
+    );
   });
 });

@@ -1,33 +1,23 @@
-import type { FactGroup } from '@masaha/shared/spaces';
 import type { FormFailureView } from '@shared/forms';
-import type { BaseSyntheticEvent } from 'react';
+import type { SectionId } from './SectionId';
 
 /**
- * A fact group's section, ready to render around its fields: its title, its date or that it is
- * missing, whether it is stale or has unsaved changes, and its actions.
+ * A section of the profile, ready to render around what it shows (G3): its title, its date line, its
+ * staleness with the way to confirm it, and its «تعديل», named for the section.
  */
 export type SectionFrameView = {
-  id: FactGroup;
+  id: SectionId;
   title: string;
-  /** "Updated 3 days ago", or "Not added yet" while the group is missing. */
-  date: string;
-  /** The badge of a group older than its threshold. */
-  stale: string | null;
-  /** The badge of a section with unsaved changes. */
-  unsaved: string | null;
-  /** A line after a save that changed nothing. */
-  note: string | null;
-  save: {
-    label: string;
-    pending: boolean;
-    /** Waits out too many attempts. */
-    blocked: boolean;
-    submit: (event?: BaseSyntheticEvent) => void;
-  };
-  /** While the section has unsaved changes. */
-  discard: { label: string; run: () => void } | null;
-  /** While the group is saved and the section unchanged; it waits out a 429 as Save does. */
-  confirm: { label: string; pending: boolean; blocked: boolean; run: () => void } | null;
-  /** Why the last save or confirmation failed. */
-  failure: FormFailureView | null;
+  /** «آخر تحديث قبل 3 أيام», or none while its group was never saved. */
+  date: string | null;
+  /** A filled section whose group is past its threshold. */
+  stale: {
+    badge: string;
+    line: string;
+    /** «ما زالت صحيحة»: renews the group's date; none where the place may not edit. */
+    confirm: { label: string; pending: boolean; blocked: boolean; run: () => void } | null;
+    failure: FormFailureView | null;
+  } | null;
+  /** None where the place may not edit, and on an empty section, whose own action stands instead. */
+  edit: { label: string; name: string; run: () => void } | null;
 };

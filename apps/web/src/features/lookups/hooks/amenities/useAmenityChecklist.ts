@@ -1,3 +1,4 @@
+import { AMENITY_ICON_KEYS, type AmenityIconKey } from '@masaha/shared/lookups';
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
 import type { LookupsSource } from '../../types/LookupsSource';
@@ -14,7 +15,7 @@ import { useAmenitiesQuery } from '../list/useAmenitiesQuery';
  * From the admin's list (`source`) a retired one is named by that list and marked «غير نشط». The
  * public catalogue an owner reads names only the active amenities: the retired ones the space holds
  * come named with the space's read (`retired`, in the platform's order), listed after the others,
- * marked «لم يعد في قائمة المنصة», ticked while the value holds them, and left out of the next
+ * marked «أُزيل من القائمة», ticked while the value holds them, and left out of the next
  * save once unticked (finding 99). On either list, one ticked but not linked that is retired before
  * the save is no longer offered, and the next toggle drops it from the value.
  */
@@ -50,7 +51,13 @@ export function useAmenityChecklist({
             // The space's own retired amenities, which the catalogue no longer names.
             ...retired
               .filter(({ id }) => linked.includes(id) && !active.some((one) => one.id === id))
-              .map((amenity) => ({ ...amenity, isActive: false })),
+              .map(({ id, nameAr, nameEn, iconKey }) => ({
+                id,
+                nameAr,
+                nameEn,
+                icon: iconOf(iconKey),
+                isActive: false,
+              })),
           ];
   const isOffered = (id: number) => offered.some((amenity) => amenity.id === id);
   const retiredMark =
@@ -70,6 +77,8 @@ export function useAmenityChecklist({
     items: offered.map((amenity) => ({
       id: amenity.id,
       name: english ? amenity.nameEn : amenity.nameAr,
+      /** Its glyph, or none for a retired one whose key the web no longer knows. */
+      icon: amenity.icon,
       checked: value.includes(amenity.id),
       /** The badge of a retired amenity, or none. */
       mark: amenity.isActive ? null : retiredMark,
@@ -87,4 +96,9 @@ export function useAmenityChecklist({
       empty: copy.lookups.amenityChecklist.empty,
     },
   };
+}
+
+/** A retired amenity's icon key, as the space's read gives it, when it is one the web draws. */
+function iconOf(key: string | undefined): AmenityIconKey | null {
+  return AMENITY_ICON_KEYS.find((known) => known === key) ?? null;
 }

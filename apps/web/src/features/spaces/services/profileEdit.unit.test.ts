@@ -65,18 +65,30 @@ describe('profileChanges', () => {
   };
 
   it('is nothing for a profile as the space has it, its pin read to the coordinates shown', () => {
-    expect(profileChanges(unchanged, SPACE)).toEqual({});
+    expect(profileChanges(unchanged, SPACE, 'about')).toEqual({});
+    expect(profileChanges(unchanged, SPACE, 'location')).toEqual({});
   });
 
   it('is only the fields that changed, a cleared one as null', () => {
     expect(
-      profileChanges({ ...unchanged, nameEn: 'Focus Hub 2', landmarkAr: null }, SPACE),
-    ).toEqual({ nameEn: 'Focus Hub 2', landmarkAr: null });
+      profileChanges(
+        { ...unchanged, landmarkEn: 'Near the junction', landmarkAr: null },
+        SPACE,
+        'location',
+      ),
+    ).toEqual({ landmarkEn: 'Near the junction', landmarkAr: null });
+  });
+
+  it('is only its own section’s fields: «عن المساحة»’s names and descriptions, «الموقع»’s the rest', () => {
+    const both = { ...unchanged, nameEn: 'Focus Hub 2', landmarkAr: null };
+
+    expect(profileChanges(both, SPACE, 'about')).toEqual({ nameEn: 'Focus Hub 2' });
+    expect(profileChanges(both, SPACE, 'location')).toEqual({ landmarkAr: null });
   });
 
   it('holds the pin once it has moved', () => {
-    expect(profileChanges({ ...unchanged, location: { lat: 31.52, lng: 34.447 } }, SPACE)).toEqual({
-      location: { lat: 31.52, lng: 34.447 },
-    });
+    expect(
+      profileChanges({ ...unchanged, location: { lat: 31.52, lng: 34.447 } }, SPACE, 'location'),
+    ).toEqual({ location: { lat: 31.52, lng: 34.447 } });
   });
 });

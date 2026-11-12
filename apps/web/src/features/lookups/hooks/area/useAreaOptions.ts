@@ -75,6 +75,8 @@ export function useAreaOptions({
       options: governorate.areas.map((area) => ({ value: String(area.id), label: nameOf(area) })),
     })),
     placeholder: copy.lookups.areaSelect.placeholder,
+    /** The words of a searched list (`AreaCombobox`). */
+    search: copy.lookups.areaSelect.search,
     loadingLabel: copy.status.loading,
     failedLabel: copy.lookups.placeSelect.loadFailed,
   };

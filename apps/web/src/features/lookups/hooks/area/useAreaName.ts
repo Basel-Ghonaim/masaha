@@ -5,12 +5,18 @@ import { useGovernoratesQuery } from '../list/useGovernoratesQuery';
 import { useCatalogueQuery } from './useCatalogueQuery';
 
 /**
- * A space's area with its governorate, as one line, in the interface's language. For the admin
- * (`source`) it reads the admin's lists, so a hidden area is named too; for the site, the public
- * catalogue only, the admin's lists never asked for. Empty while they load or once they have failed.
+ * A space's area with its governorate, as one line, in the interface's language: «الرمال · غزة»,
+ * or as the space profile writes it (`line: 'comma'`), «الرمال، غزة». For the admin (`source`) it
+ * reads the admin's lists, so a hidden area is named too; for the site, the public catalogue only,
+ * the admin's lists never asked for. Empty while they load or once they have failed.
  */
-export function useAreaName(areaId: number, source: LookupsSource): string {
+export function useAreaName(
+  areaId: number,
+  source: LookupsSource,
+  line: 'dot' | 'comma' = 'dot',
+): string {
   const copy = useCopy();
+  const format = line === 'comma' ? copy.lookups.areaLine : copy.lookups.areaName;
   const english = useLanguage() === 'en';
   const adminLists = useGovernoratesQuery({ enabled: source === 'admin' });
   const catalogue = useCatalogueQuery({ enabled: source === 'public' });
@@ -18,7 +24,7 @@ export function useAreaName(areaId: number, source: LookupsSource): string {
   for (const governorate of governorates) {
     const area = governorate.areas.find((candidate) => candidate.id === areaId);
     if (area !== undefined) {
-      return copy.lookups.areaName({
+      return format({
         area: english ? area.nameEn : area.nameAr,
         governorate: english ? governorate.nameEn : governorate.nameAr,
       });

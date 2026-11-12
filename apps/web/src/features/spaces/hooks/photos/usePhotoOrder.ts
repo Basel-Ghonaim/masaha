@@ -1,136 +1,81 @@
 import type { SpacePhoto } from '@masaha/shared/spaces';
-import { useCopy } from '@shared/copy';
+import { currentCopy, useCopy } from '@shared/copy';
+import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { staleGallery } from './staleGallery';
 
-/** One move: the whole gallery, every id, first to last, and the photo moved. */
-type Move = { ids: number[]; photoId: number };
-
-/** The order the gallery has, with one photo taken out and put at `to`. */
-function permutation(photos: SpacePhoto[], id: number, to: number): number[] {
-  const ids = photos.map((photo) => photo.id).filter((photoId) => photoId !== id);
-  ids.splice(to, 0, id);
-  return ids;
-}
+/** One move: the whole gallery, every id, first to last, the photo moved and where it stood. */
+type Move = { ids: number[]; photoId: number; from: number };
 
 /**
- * The gallery's order: moving a photo one step before or after another, or making it the cover.
- * Every move sends **every** id, because the contract refuses a partial list, and nothing moves on
- * screen until the server has answered with 204 and the gallery has been fetched again — a move is no
- * guess about what the server will do.
+ * The gallery's order, by dragging (P4): each drop sends **every** id once, the first the cover,
+ * because the contract refuses a partial list. The dropped order stays on screen while it is sent
+ * (SD2): it is the user's act, kept as the section's own state — never written into the cache as a
+ * guess — and it gives way to the gallery as the server has it once that is read again. Until then a
+ * second move is held, so it is never computed from a list the first has changed.
  *
- * A 409 means the gallery changed since it was read: it is fetched again and the user is told so. A
- * 403 or a 404 goes through the space's own answer, so the page shows the space as it is now,
- * whatever changed meanwhile, and the refusal is the tile's, read as any refusal is.
+ * A 409 means the gallery changed since it was read: it is read again and the user told so. A 403 or
+ * a 404 goes through the space's own answer, so the page shows the space as it is now; a refusal
+ * puts the server's order back, with its reason on the photo moved.
  */
 export function usePhotoOrder(place: EditorPlace, spaceId: number, photos: SpacePhoto[]) {
   const scope = EDITOR_SCOPES[place];
-  const copy = useCopy();
-  const words = copy.spaces.editor.photos;
+  const words = useCopy().spaces.editor.photos;
   const client = useQueryClient();
   const answer = useSpaceAnswer(place, spaceId);
-  const [said, setSaid] = useState<string | null>(null);
+  // The order dropped, shown until the gallery is read again.
+  const [pending, setPending] = useState<number[] | null>(null);
   const [changed, setChanged] = useState<string | null>(null);
   const [refusedId, setRefusedId] = useState<number | null>(null);
-  // One write at a time, from the click to the refetched gallery: a second would be computed from the
-  // list the first has already changed. A ref, because two clicks can land before a render.
-  const sending = useRef(false);
 
   const move = useMutation<undefined, AppError, Move>({
     mutationFn: ({ ids }) => scope.repository.orderPhotos(spaceId, ids),
-    // Returned, so the move is pending until the gallery is fetched again.
-    onSuccess: () => {
+    // Returned, so the move is pending until the gallery is read again.
+    onSuccess: async (_answer, { ids, photoId, from }) => {
       setRefusedId(null);
-      return client.invalidateQueries({ queryKey: scope.photosKey(spaceId) });
+      await client.invalidateQueries({ queryKey: scope.photosKey(spaceId) });
+      setPending(null);
+      const copy = currentCopy().spaces.editor.photos;
+      toast(
+        ids[0] === photoId
+          ? copy.covered({ photo: copy.photo({ position: from }) })
+          : copy.orderSaved,
+      );
     },
     onError: (refusal, { photoId }) => {
+      setPending(null);
       setRefusedId(photoId);
       if (refusal.type === 'conflict') setChanged(words.orderChanged);
       else answer.refused(refusal);
       return staleGallery(client, place, spaceId, refusal);
     },
-    onSettled: () => {
-      sending.current = false;
-    },
   });
 
-  /** Sends the whole order, and says where the photo stands once the server has taken it. */
-  const send = (move_: Move, line: string) => {
-    if (sending.current) return;
-    sending.current = true;
-    setSaid(null);
-    setChanged(null);
-    move.mutate(move_, {
-      onSuccess: () => {
-        setSaid(line);
-      },
-    });
-  };
-
-  const at = (id: number) => photos.findIndex((photo) => photo.id === id);
-  /** The photo as the admin reads it, by its place in the order shown. */
-  const label = (id: number) => words.photo({ position: at(id) + 1 });
-  const total = photos.length;
+  // Once the gallery is read again, the order kept for it gives way to the server's.
+  const shown =
+    pending === null ? photos : pending.flatMap((id) => photos.filter((photo) => photo.id === id));
 
   return {
-    /** One step before the photo above it; unavailable on the first, which is the cover. */
-    moveBefore: (id: number) => {
-      const index = at(id);
-      return {
-        label: words.beforeNamed({ photo: label(id) }),
-        disabled: index <= 0,
-        busy: move.isPending,
-        run: () => {
-          if (index <= 0) return;
-          send(
-            { ids: permutation(photos, id, index - 1), photoId: id },
-            words.moved({ photo: label(id), position: index, total }),
-          );
-        },
-      };
+    /** The photos in the order shown: the one dropped while it is sent. */
+    photos: shown,
+    /** Sends the order dropped, every id once; held while the last one is on its way. */
+    move: (ids: number[], photoId: number) => {
+      if (move.isPending || pending !== null) return;
+      setChanged(null);
+      setPending(ids);
+      move.mutate({ ids, photoId, from: photos.findIndex(({ id }) => id === photoId) + 1 });
     },
-    /** One step after the photo below it; unavailable on the last. */
-    moveAfter: (id: number) => {
-      const index = at(id);
-      return {
-        label: words.afterNamed({ photo: label(id) }),
-        disabled: index < 0 || index >= total - 1,
-        busy: move.isPending,
-        run: () => {
-          if (index < 0 || index >= total - 1) return;
-          send(
-            { ids: permutation(photos, id, index + 1), photoId: id },
-            words.moved({ photo: label(id), position: index + 2, total }),
-          );
-        },
-      };
-    },
-    /** The cover is the first photo, so there is nothing to offer on the cover itself. */
-    makeCover: (id: number) =>
-      at(id) === 0
-        ? null
-        : {
-            label: words.makeCoverNamed({ photo: label(id) }),
-            run: () => {
-              send(
-                { ids: permutation(photos, id, 0), photoId: id },
-                words.covered({ photo: label(id) }),
-              );
-            },
-          },
-    busy: move.isPending,
-    /** The refusal of the last write, for the tile it was for; a 409 is the gallery's own news. */
+    /** A move is on its way, or its gallery not yet read again: a second waits. */
+    held: move.isPending || pending !== null,
+    /** The refusal of the last move, for the photo it moved; a 409 is the gallery's own news. */
     refusal: move.isError && move.error.type !== 'conflict' ? move.error : null,
-    /** Why the gallery was refreshed under the admin, for everyone to read. */
-    changed,
     refusedId,
-    /** What the last accepted move or cover did, for the gallery's live region. */
-    said,
-    announce: setSaid,
+    /** Why the gallery was read again under the user, for everyone to read. */
+    changed,
   };
 }

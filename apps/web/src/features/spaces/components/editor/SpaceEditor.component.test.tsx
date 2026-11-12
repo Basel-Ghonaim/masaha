@@ -1,212 +1,32 @@
-import { stubScreenWidth } from '../../../../test/screenWidth';
-import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
-import { createQueryClient } from '@shared/api';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Toaster,
-  toast,
-} from '@shared/design-system';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { toast } from '@shared/design-system';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { axe } from 'vitest-axe';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
-import { deferred } from '../../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { bodyOf, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { findToast } from '../../../../test/findToast';
+import { stubScreenWidth } from '../../../../test/screenWidth';
+import { NEW_SPACE, NOW, SPACE, renderProfile, sectionOf } from '../../../../test/spaceProfile';
 import { startPreferences } from '../../../../test/startPreferences';
-import type { AmenitiesField } from '../../types/AmenitiesField';
-import type { AreaField } from '../../types/AreaField';
-import type { OwnedSpace } from '../../types/OwnersSlot';
-import { SpaceEditor } from './SpaceEditor';
 
-type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
-
-// 10:00 in Gaza.
-const NOW = new Date('2026-10-13T07:00:00Z');
-
-/** The marks that isolate a name inside a line, so it never reorders the words around it. */
-const FSI = String.fromCodePoint(0x2068);
-const PDI = String.fromCodePoint(0x2069);
-
-/** A space just added: unverified, shown, its profile dated three days ago, its facts missing. */
-const SPACE: AdminSpace = {
-  id: 7,
-  slug: 'focus-hub',
-  nameEn: 'Focus Hub',
-  nameAr: 'فوكس هب',
-  descriptionAr: null,
-  descriptionEn: null,
-  areaId: 11,
-  addressAr: 'شارع النصر',
-  addressEn: null,
-  landmarkAr: 'قرب المفترق',
-  landmarkEn: null,
-  location: { lat: 31.5195, lng: 34.447 },
-  isHidden: false,
-  isVerified: false,
-  owners: [],
-  updatedAt: {
-    profile: '2026-10-10T08:00:00Z',
-    hours: null,
-    prices: null,
-    amenities: null,
-    contacts: null,
-  },
-  staleGroups: [],
-  missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
-  hours: null,
-  prices: [],
-  amenityIds: [],
-  retiredAmenities: [],
-  ownAmenities: [],
-  contacts: [],
-};
-
-/** The space as the server holds it after the next write: dated now. */
-const savedNow = (space: AdminSpace): AdminSpace => ({
-  ...space,
-  updatedAt: { ...space.updatedAt, profile: NOW.toISOString() },
-});
-
-// The page fills the area field from another capability; this one stands in for it.
-const areaField: AreaField = ({ value, onValueChange, disabled, ref }) => (
-  <Select
-    value={value === null ? '' : String(value)}
-    onValueChange={(option) => {
-      onValueChange(Number(option));
-    }}
-    disabled={disabled}
-  >
-    <SelectTrigger ref={ref}>
-      <SelectValue placeholder="Choose" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="11">Al-Rimal</SelectItem>
-    </SelectContent>
-  </Select>
-);
-
-// The page fills the amenities' checklist from another capability; this one stands in for it, with
-// two amenities, 1 and 3, to tick.
-const amenitiesField: AmenitiesField = ({ label, value, onValueChange, disabled }) => (
-  <fieldset aria-label={label}>
-    {[1, 3].map((id) => (
-      <label key={id}>
-        <input
-          type="checkbox"
-          checked={value.includes(id)}
-          disabled={disabled}
-          onChange={(event) => {
-            onValueChange(
-              event.target.checked ? [...value, id] : value.filter((other) => other !== id),
-            );
-          }}
-        />
-        {`Amenity ${String(id)}`}
-      </label>
-    ))}
-  </fieldset>
-);
-
-/** The gallery the editor's photos section reads; three photos, the first the cover. */
-const PHOTOS = [
-  { id: 3, urls: { card: '/files/3-card.webp', page: '/files/3-page.webp' } },
-  { id: 4, urls: { card: '/files/4-card.webp', page: '/files/4-page.webp' } },
+/** The eight sections, in the public page's order (G2). */
+const SECTIONS = [
+  'Photos',
+  'Published prices',
+  'Opening hours',
+  'Shifts',
+  'Amenities',
+  'About the space',
+  'Location',
+  'Contacts',
 ];
-
-/**
- * The editor of space 7 at `/spaces/7`, beside another page, `/elsewhere`: the admin's, or an
- * owner's (`owner`), whose prices lead to `/packages`. The server answers the space's read with
- * `read` (the space as it is), the gallery's read with its photos, and every write with `write`.
- */
-function renderEditor({
-  read = () => ok(SPACE),
-  photos = () => ok(PHOTOS),
-  write = () => ok(savedNow(SPACE)),
-  owner = false,
-  noticeFor,
-  entry = '/spaces/7',
-}: {
-  read?: () => FakeAnswer | Promise<FakeAnswer>;
-  photos?: () => FakeAnswer | Promise<FakeAnswer>;
-  write?: (request: Request) => FakeAnswer | Promise<FakeAnswer>;
-  owner?: boolean;
-  noticeFor?: (group: FactGroup) => ReactNode;
-  entry?: string;
-} = {}) {
-  const requests = fakeTransport((request) => {
-    if (request.method !== 'get') return write(request);
-    return request.url?.endsWith('/photos') === true ? photos() : read();
-  });
-  // The owners' actions the page would put in the notice: here a button, and what the editor gave it.
-  const owned: OwnedSpace[] = [];
-  const ownerActions = (space: OwnedSpace) => {
-    owned.push(space);
-    return <button type="button">Owners’ actions</button>;
-  };
-  const router = createMemoryRouter(
-    [
-      {
-        path: '/spaces/7',
-        element: (
-          <SpaceEditor
-            spaceId={7}
-            place={
-              owner
-                ? { kind: 'owner', pricesLink: '/packages' }
-                : {
-                    kind: 'admin',
-                    ownerActions,
-                    amenitiesListLink: '/lookups?tab=amenities',
-                    reportsLink: (id: number) => `/reports?space=${String(id)}`,
-                    areaName: (areaId) => `Area ${String(areaId)}`,
-                    amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
-                  }
-            }
-            areaField={areaField}
-            amenitiesField={amenitiesField}
-            publicLink={(slug) => `/spaces/${slug}`}
-            noticeFor={noticeFor}
-          />
-        ),
-      },
-      { path: '/elsewhere', element: <p>Elsewhere</p> },
-    ],
-    { initialEntries: [entry] },
-  );
-  render(
-    <QueryClientProvider client={createQueryClient()}>
-      <Toaster label="Notifications" closeLabel="Close notification" />
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
-  );
-  const writes = () => requests.filter((request) => request.method !== 'get');
-  return { requests, writes, router, owned };
-}
-
-/** The notice whose title is `title`, with what it holds. */
-const notice = (title: string) =>
-  screen.getByText(title).closest('[data-slot=alert]') as HTMLElement;
-
-/** The section whose title is `name`. */
-const section = (name: string) =>
-  screen.getByRole('heading', { level: 2, name }).closest('[data-slot=card]') as HTMLElement;
-
-let observer: ReturnType<typeof fakeIntersectionObserver>;
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
   startPreferences('en');
-  observer = fakeIntersectionObserver();
+  fakeIntersectionObserver();
 });
 
 afterEach(() => {
@@ -219,621 +39,465 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the space editor', () => {
-  it('shows it is loading, then the space’s sections', async () => {
-    renderEditor();
+describe('the space profile, view first', () => {
+  it('shows it is loading, then the eight sections in the public page’s order', async () => {
+    renderProfile();
 
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+    await screen.findByRole('heading', { level: 2, name: 'Photos' });
+    const headings = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(headings.slice(1)).toEqual(SECTIONS);
   });
 
-  it('says the space could not be loaded, and loads it again on "Try again"', async () => {
-    const user = userEvent.setup();
-    let fail = true;
-    renderEditor({ read: () => (fail ? refused(403, { type: 'forbidden' }) : ok(SPACE)) });
+  it('shows each section’s facts as a visitor sees them, with no field to edit', async () => {
+    renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
 
-    expect(await screen.findByText('We couldn’t load the space')).toBeInTheDocument();
-    fail = false;
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
-
-    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+    expect(screen.queryAllByRole('textbox')).toEqual([]);
+    expect(screen.queryAllByRole('combobox')).toEqual([]);
+    expect(within(sectionOf('Published prices')).getByRole('table')).toHaveTextContent('Daily');
+    expect(within(sectionOf('Opening hours')).getByText('Saturday – Thursday')).toBeInTheDocument();
+    expect(within(sectionOf('Shifts')).getByText('Morning')).toBeInTheDocument();
+    expect(within(sectionOf('Amenities')).getByText('Internet')).toBeInTheDocument();
+    expect(within(sectionOf('Amenities')).getByText('Library')).toBeInTheDocument();
+    expect(within(sectionOf('About the space')).getByText('فوكس هب')).toHaveAttribute('lang', 'ar');
+    expect(within(sectionOf('Location')).getByText('Al-Nasr Street')).toBeInTheDocument();
+    expect(within(sectionOf('Contacts')).getByRole('link', { name: /ديسكورد/ })).toHaveAttribute(
+      'href',
+      'https://discord.gg/focushub',
+    );
   });
 
-  it('shows the 404 for a space that does not exist or was deleted', async () => {
-    renderEditor({ read: () => refused(404, { type: 'not_found' }) });
+  it('names each section’s «تعديل» for the section, and gives no section its own Save', async () => {
+    renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
 
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-  });
-
-  it('shows the 404 once a save finds the space deleted, and leaving no longer asks', async () => {
-    const user = userEvent.setup();
-    let deleted = false;
-    const { router } = renderEditor({
-      read: () => (deleted ? refused(404, { type: 'not_found' }) : ok(SPACE)),
-      write: () => {
-        deleted = true;
-        return refused(404, { type: 'not_found' });
-      },
-    });
-    await user.type(await screen.findByRole('textbox', { name: 'Name in English' }), ' Gaza');
-
-    await user.click(within(section('The space')).getByRole('button', { name: 'Save' }));
-
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    await act(() => router.navigate('/elsewhere'));
-    expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
-  });
-
-  it('shows an unverified space’s state, whether it is hidden, and that each section saves alone', async () => {
-    renderEditor({ read: () => ok({ ...SPACE, isHidden: true }) });
-
-    expect(await screen.findByText('You’re editing an unverified space')).toBeInTheDocument();
-    expect(screen.getByText('Unverified')).toBeInTheDocument();
-    expect(screen.getByText('Hidden')).toBeInTheDocument();
-  });
-
-  it('heads a space with missing groups with the five, each line a link to its section', async () => {
-    renderEditor();
-
-    const checklist = await screen.findByRole('region', { name: 'Still missing' });
+    for (const name of SECTIONS.slice(1)) {
+      expect(
+        within(sectionOf(name)).getByRole('button', { name: `Edit ${name}` }),
+      ).toHaveTextContent('Edit');
+    }
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(
-      within(checklist)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual([
-      'The spaceDone',
-      'Opening hoursNot added yet',
-      'PricesNot added yet',
-      'AmenitiesNot added yet',
-      'ContactsNot added yet',
-    ]);
-    expect(within(checklist).getByRole('link', { name: 'The space' })).toHaveAttribute(
-      'href',
-      '/spaces/7#profile',
-    );
-    expect(within(checklist).getByRole('link', { name: 'Opening hours' })).toHaveAttribute(
-      'href',
-      '/spaces/7#hours',
-    );
-    expect(within(checklist).getByRole('link', { name: 'Prices' })).toHaveAttribute(
-      'href',
-      '/spaces/7#prices',
-    );
+      within(sectionOf('Photos')).getByRole('button', { name: 'Manage photos' }),
+    ).toBeVisible();
   });
 
-  it('places the owners’ actions in an unverified space’s notice', async () => {
-    const user = userEvent.setup();
-    const { owned } = renderEditor();
-
-    await screen.findByText('You’re editing an unverified space');
-    const unverified = notice('You’re editing an unverified space');
-    expect(within(unverified).getByRole('button', { name: 'Owners’ actions' })).toBeInTheDocument();
-    expect(owned.at(-1)).toMatchObject({
-      id: 7,
-      name: { text: 'Focus Hub' },
-      isVerified: false,
-      owners: [],
-      unsaved: false,
+  it('says what each empty section lacks, with the action that adds it', async () => {
+    renderProfile({
+      owner: true,
+      read: () => ok({ ...NEW_SPACE, isVerified: true }),
+      photos: () => ok([]),
     });
-    // The element around the notice, which stays while its content is swapped, takes the focus a
-    // link or an unlink leaves.
-    const fallback = owned.at(-1)?.focusFallback.current;
-    expect(fallback).toHaveAttribute('tabindex', '-1');
-    expect(fallback).toContainElement(unverified);
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
 
-    // Unsaved changes would be dropped by a link, which turns the editor read-only: the slot knows.
-    await user.type(screen.getByRole('textbox', { name: 'Name in English' }), ' Gaza');
-    expect(owned.at(-1)).toMatchObject({ unsaved: true });
+    const empty: [string, string, string][] = [
+      ['Photos', 'No photos yet.', 'Add photos'],
+      ['Published prices', 'No prices yet.', 'Add a price'],
+      ['Opening hours', 'Opening hours aren’t available.', 'Add the opening hours'],
+      ['Shifts', 'Add the opening hours first, then the shifts.', 'Add the opening hours'],
+      ['Amenities', 'No amenities yet.', 'Add the amenities'],
+      ['Contacts', 'No contacts yet. Visitors won’t find a way to reach you.', 'Add a contact'],
+    ];
+    for (const [name, text, action] of empty) {
+      const section = sectionOf(name);
+      expect(within(section).getByText(text)).toBeInTheDocument();
+      expect(within(section).getByRole('button', { name: action })).toBeInTheDocument();
+      expect(within(section).queryByRole('button', { name: `Edit ${name}` })).toBeNull();
+    }
+    // «عن المساحة» without its Arabic description says what that costs, and offers its Sheet.
+    expect(
+      within(sectionOf('About the space')).getByText(/No Arabic description yet\./),
+    ).toBeInTheDocument();
   });
 
-  it('lists its sections in a navigation, the one in view marked', async () => {
-    renderEditor();
+  it('says the shifts are optional once the hours are saved, with «إضافة وردية»', async () => {
+    renderProfile({
+      read: () => ok({ ...SPACE, hours: { days: SPACE.hours?.days ?? [], shifts: [] } }),
+    });
+    const shifts = await screen.findByRole('heading', { level: 2, name: 'Shifts' });
 
-    const navigation = await screen.findByRole('navigation', { name: 'Profile sections' });
+    const section = shifts.closest('[data-slot=card]') as HTMLElement;
+    expect(within(section).getByText('No shifts.')).toBeInTheDocument();
+    expect(within(section).getByRole('button', { name: 'Add a shift' })).toBeInTheDocument();
+  });
+
+  it('keeps an empty-saved group’s date, so «none» reads as a choice (DI-8)', async () => {
+    renderProfile({ read: () => ok({ ...SPACE, prices: [] }) });
+    await screen.findByRole('heading', { level: 2, name: 'Published prices' });
+
+    const prices = sectionOf('Published prices');
+    expect(within(prices).getByText('Updated 3 days ago')).toBeInTheDocument();
+    expect(within(prices).getByText('No prices yet.')).toBeInTheDocument();
+  });
+
+  it('marks today on the week, on Gaza’s calendar', async () => {
+    renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+
+    const row = within(sectionOf('Opening hours')).getByText('Today').closest('div');
+    expect(row).toHaveTextContent('Saturday – Thursday');
+  });
+
+  it('leads the owner to a closure announcement from the hours (DI-5)', async () => {
+    renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+
     expect(
-      within(navigation)
+      within(sectionOf('Opening hours')).getByRole('link', {
+        name: 'Add a closure announcement in Announcements',
+      }),
+    ).toHaveAttribute('href', '/announcements');
+  });
+
+  it('shows a page’s notice inside its section', async () => {
+    renderProfile({
+      noticeFor: (section) => (section === 'location' ? <p>A report on the place</p> : null),
+    });
+    await screen.findByRole('heading', { level: 2, name: 'Location' });
+
+    expect(within(sectionOf('Location')).getByText('A report on the place')).toBeInTheDocument();
+    expect(screen.getAllByText('A report on the place')).toHaveLength(1);
+  });
+
+  it('has no detectable accessibility violations, in Arabic and in English', async () => {
+    const { container, unmount } = renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
+    expect(await axe(container)).toHaveNoViolations();
+    unmount();
+
+    startPreferences('ar');
+    const arabic = renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'التواصل' });
+    expect(await axe(arabic.container)).toHaveNoViolations();
+  });
+});
+
+describe('the header', () => {
+  it('names the space, its area and that it is verified, with the public page and its link', async () => {
+    renderProfile({ owner: true });
+    const name = await screen.findByRole('heading', { level: 2, name: 'Focus Hub' });
+
+    const header = name.closest('[data-slot=card]') as HTMLElement;
+    expect(within(header).getByText('Area 11, Gaza')).toBeInTheDocument();
+    expect(within(header).getByText('Verified')).toBeInTheDocument();
+    expect(within(header).getByRole('link', { name: 'View public page' })).toHaveAttribute(
+      'href',
+      '/spaces/focus-hub',
+    );
+    expect(within(header).queryByRole('button', { name: /Edit/ })).toBeNull();
+  });
+
+  it('counts the sections filled on its meter, and links what is still to do', async () => {
+    renderProfile({ read: () => ok({ ...NEW_SPACE, descriptionAr: 'وصف' }), photos: () => ok([]) });
+    const meter = await screen.findByRole('meter', { name: 'Profile completeness' });
+
+    expect(meter).toHaveAttribute('aria-valuetext', '2 of 7 sections');
+    const todo = screen.getByRole('navigation', { name: 'Still to do' });
+    expect(within(todo).getByRole('link', { name: 'Photos: not added yet' })).toHaveAttribute(
+      'href',
+      '/spaces/7#photos',
+    );
+    expect(
+      within(todo)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['The space', 'Opening hours', 'Prices', 'Amenities', 'Contacts', 'Photos']);
-    act(() => {
-      observer.intersect(['amenities', 'contacts']);
-    });
-    expect(within(navigation).getByRole('link', { name: 'Amenities' })).toHaveAttribute(
-      'aria-current',
-      'location',
-    );
+    ).toEqual([
+      'Photos: not added yet',
+      'Published prices: not added yet',
+      'Opening hours: not added yet',
+      'Amenities: not added yet',
+      'Contacts: not added yet',
+    ]);
   });
 
-  it('draws the photos section last, editable for an unverified space', async () => {
-    renderEditor();
+  it('counts «عن المساحة» only once it has an Arabic description (X2)', async () => {
+    renderProfile({
+      read: () => ok({ ...SPACE, descriptionAr: null, descriptionEn: 'A quiet place.' }),
+    });
+    const meter = await screen.findByRole('meter', { name: 'Profile completeness' });
 
-    const photos = await waitFor(() => section('Photos'));
-    expect(await within(photos).findByText('Cover')).toBeInTheDocument();
+    expect(meter).toHaveAttribute('aria-valuetext', '6 of 7 sections');
     expect(
-      within(photos).getByRole('button', { name: 'Make Photo 2 the cover' }),
+      screen.getByRole('link', { name: 'About the space: not added yet' }),
     ).toBeInTheDocument();
-    // Photos are no fact group: the section carries no date and nothing to save.
-    expect(within(photos).queryByRole('button', { name: 'Save' })).toBeNull();
-    expect(within(photos).queryByText('Not added yet')).toBeNull();
   });
 
-  it('moves to a section from its chip or its checklist line, with unsaved changes and no question', async () => {
-    const user = userEvent.setup();
-    const { router } = renderEditor();
-    await user.type(await screen.findByRole('textbox', { name: 'Name in English' }), ' Gaza');
-    const navigation = screen.getByRole('navigation', { name: 'Profile sections' });
-
-    await user.click(within(navigation).getByRole('link', { name: 'Contacts' }));
-
-    expect(router.state.location).toMatchObject({ pathname: '/spaces/7', hash: '#contacts' });
-    expect(within(navigation).getByRole('link', { name: 'Contacts' })).toHaveAttribute(
-      'aria-current',
-      'location',
-    );
-    await user.click(
-      within(screen.getByRole('region', { name: 'Still missing' })).getByRole('link', {
-        name: 'Amenities',
-      }),
-    );
-    expect(router.state.location.hash).toBe('#amenities');
-    expect(screen.queryByRole('alertdialog')).toBeNull();
+  it('says a stale section may be out of date', async () => {
+    renderProfile({ read: () => ok({ ...SPACE, staleGroups: ['contacts'] }) });
+    expect(
+      await screen.findByRole('link', { name: 'Contacts: may be out of date' }),
+    ).toBeInTheDocument();
   });
-});
 
-describe('the editor’s landing and notices', () => {
-  it('a report in the address shows its notice above its section', async () => {
-    renderEditor({
-      noticeFor: (group) => (group === 'hours' ? <p>The report’s notice</p> : null),
+  it('says a complete and fresh profile is so', async () => {
+    renderProfile();
+
+    expect(await screen.findByText('The profile is complete and up to date')).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'Profile completeness' })).toHaveAttribute(
+      'aria-valuetext',
+      '7 of 7 sections',
+    );
+  });
+
+  it('waits for the gallery before it counts (DI-4)', async () => {
+    let answer: (value: ReturnType<typeof ok>) => void = () => undefined;
+    renderProfile({
+      photos: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
     });
+    await screen.findByRole('heading', { level: 2, name: 'Focus Hub' });
 
-    const hours = (await screen.findByRole('heading', { level: 2, name: 'Opening hours' })).closest(
+    expect(screen.queryByRole('meter', { name: 'Profile completeness' })).toBeNull();
+    answer(ok([]));
+    expect(await screen.findByRole('meter', { name: 'Profile completeness' })).toHaveAttribute(
+      'aria-valuetext',
+      '6 of 7 sections',
+    );
+  });
+
+  it('says it cannot count while the gallery has failed, and counts once «إعادة المحاولة» reads it (DI-4)', async () => {
+    const user = userEvent.setup();
+    let failing = true;
+    renderProfile({ photos: () => (failing ? refused(403, { type: 'forbidden' }) : ok([])) });
+    const header = (await screen.findByRole('heading', { level: 2, name: 'Focus Hub' })).closest(
       '[data-slot=card]',
-    );
-    const marker = screen.getByText('The report’s notice');
-    expect(screen.getAllByText('The report’s notice')).toHaveLength(1);
-    // Drawn just before the section, inside the sections' column.
-    expect(marker.nextElementSibling).toBe(hours);
-  });
-
-  it('the editor scrolls to and focuses the card its hash names once drawn', async () => {
-    const read = deferred<FakeAnswer>();
-    renderEditor({ read: () => read.promise, entry: '/spaces/7?report=5#hours' });
-
-    expect(await screen.findByRole('status')).toBeInTheDocument();
-    read.resolve(ok(SPACE));
-
-    const heading = await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
-    await waitFor(() => {
-      expect(heading).toHaveFocus();
-    });
-  });
-
-  it('lands on a section’s inner part by its heading', async () => {
-    renderEditor({ entry: '/spaces/7#location' });
-
-    const location = await screen.findByRole('heading', { level: 3, name: 'Location' });
-    await waitFor(() => {
-      expect(location).toHaveFocus();
-    });
-  });
-});
-
-describe('a section of the editor', () => {
-  it('shows its date, and the confirmation while it is unchanged', async () => {
-    renderEditor();
-
-    const profile = await waitFor(() => section('The space'));
-    expect(profile).toHaveTextContent('Updated 3 days ago');
-    expect(within(profile).getByRole('button', { name: 'Still correct' })).toBeInTheDocument();
-    expect(within(profile).queryByText('Out of date')).toBeNull();
-  });
-
-  it('shows a group never saved as not added yet, with Save only', async () => {
-    renderEditor();
-
-    const amenities = await waitFor(() => section('Amenities'));
-    expect(amenities).toHaveTextContent('Not added yet');
-    expect(within(amenities).getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    expect(within(amenities).queryByRole('button', { name: 'Still correct' })).toBeNull();
-  });
-
-  it('marks its group out of date once it is stale', async () => {
-    renderEditor({ read: () => ok({ ...SPACE, staleGroups: ['profile'] }) });
-
-    expect(await screen.findByText('Out of date')).toBeInTheDocument();
-  });
-
-  it('says it has unsaved changes and offers to discard them; discarded, the confirmation is back', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-    const name = await screen.findByRole('textbox', { name: 'Name in English' });
-
-    await user.type(name, ' Gaza');
-
-    const profile = section('The space');
-    expect(within(profile).getByText('Unsaved changes')).toBeInTheDocument();
-    expect(within(profile).queryByRole('button', { name: 'Still correct' })).toBeNull();
-    await user.click(within(profile).getByRole('button', { name: 'Discard changes' }));
-    expect(name).toHaveValue('Focus Hub');
-    expect(within(profile).queryByText('Unsaved changes')).toBeNull();
-    expect(within(profile).getByRole('button', { name: 'Still correct' })).toBeInTheDocument();
-  });
-
-  it('shows a save’s answer: its toast, and the date it gave', async () => {
-    const user = userEvent.setup();
-    renderEditor({ write: () => ok(savedNow({ ...SPACE, nameEn: 'Focus Hub Gaza' })) });
-
-    await user.type(await screen.findByRole('textbox', { name: 'Name in English' }), ' Gaza');
-    await user.click(within(section('The space')).getByRole('button', { name: 'Save' }));
-
-    await findToast('The space saved');
-    expect(section('The space')).toHaveTextContent('Updated today');
-  });
-
-  it('puts the server’s refusal on its field, and focuses it', async () => {
-    const user = userEvent.setup();
-    renderEditor({
-      write: () => refused(422, { type: 'validation', errors: { nameEn: ['invalid_format'] } }),
-    });
-    const name = await screen.findByRole('textbox', { name: 'Name in English' });
-
-    await user.type(name, ' Gaza');
-    await user.click(within(section('The space')).getByRole('button', { name: 'Save' }));
+    ) as HTMLElement;
 
     expect(
-      await screen.findByText('Use Latin letters or digits in the English name'),
+      await within(header).findByText('We couldn’t count the profile: the photos didn’t load'),
     ).toBeInTheDocument();
-    await waitFor(() => {
-      expect(name).toHaveFocus();
-    });
-  });
+    expect(screen.queryByRole('meter', { name: 'Profile completeness' })).toBeNull();
+    failing = false;
+    await user.click(within(header).getByRole('button', { name: 'Try again' }));
 
-  it('holds the confirmation and Save while a wait counts down, saying why', async () => {
-    const user = userEvent.setup();
-    renderEditor({ write: () => refused(429, { type: 'rate_limit' }, { 'retry-after': '30' }) });
-    const profile = await waitFor(() => section('The space'));
-
-    await user.click(within(profile).getByRole('button', { name: 'Still correct' }));
-
-    expect(await within(profile).findByText(/Try again in/)).toBeInTheDocument();
-    expect(within(profile).getByRole('button', { name: 'Still correct' })).toBeDisabled();
-    expect(within(profile).getByRole('button', { name: 'Save' })).toBeDisabled();
-  });
-});
-
-describe('the amenities section', () => {
-  it('shows the list’s checklist, the way to the list itself, and the space’s own amenities', async () => {
-    renderEditor({
-      read: () => ok({ ...SPACE, ownAmenities: [{ nameAr: 'خزائن', nameEn: null }] }),
-    });
-    const amenities = await waitFor(() => section('Amenities'));
-
-    expect(
-      within(amenities).getByRole('group', { name: 'The list’s amenities' }),
-    ).toBeInTheDocument();
-    expect(
-      within(amenities).getByRole('link', { name: 'Manage the amenities list' }),
-    ).toHaveAttribute('href', '/lookups?tab=amenities');
-    expect(within(amenities).getByRole('textbox', { name: 'Name in Arabic' })).toHaveValue('خزائن');
-    expect(
-      within(amenities).getByRole('button', { name: 'Remove extra amenity 1' }),
-    ).toBeInTheDocument();
-  });
-
-  it('shows why it adds no more of its own at twenty', async () => {
-    renderEditor({
-      read: () =>
-        ok({
-          ...SPACE,
-          ownAmenities: Array.from({ length: 20 }, (_, index) => ({
-            nameAr: `مرفق ${String(index + 1)}`,
-            nameEn: null,
-          })),
-        }),
-    });
-    const amenities = await waitFor(() => section('Amenities'));
-
-    expect(within(amenities).getByRole('button', { name: 'Add an extra amenity' })).toBeDisabled();
-    expect(within(amenities).getByText('Up to 20 extra amenities')).toBeInTheDocument();
-  });
-});
-
-describe('the contacts section', () => {
-  it('shows each contact’s type, its value with the form it is stored in, and a phone’s carrier', async () => {
-    renderEditor({
-      read: () => ok({ ...SPACE, contacts: [{ type: 'PHONE', value: '+970599123456' }] }),
-    });
-    const contacts = await waitFor(() => section('Contacts'));
-
-    expect(within(contacts).getByRole('combobox', { name: 'Type' })).toHaveTextContent('Phone');
-    const value = within(contacts).getByRole('textbox', { name: 'Value' });
-    expect(value).toHaveValue('+970599123456');
-    expect(value).toHaveAccessibleDescription(/Stored as .\+970599123456./);
-    expect(within(contacts).getByText('Jawwal')).toBeInTheDocument();
-  });
-});
-
-describe('the opening hours section', () => {
-  it('shows each day with its state and switch, its two times when open, and the copy in its header', async () => {
-    stubScreenWidth(768);
-    renderEditor();
-    const hours = await waitFor(() => section('Opening hours'));
-
-    const saturday = within(hours).getByRole('switch', { name: 'Open on Saturday' });
-    expect(saturday).toBeChecked();
-    const saturdayRow = within(saturday.closest('li') as HTMLElement);
-    expect(saturdayRow.getByText('Saturday')).toBeInTheDocument();
-    expect(saturdayRow.getByRole('textbox', { name: 'From' })).toHaveValue('08:00');
-    expect(saturdayRow.getByRole('textbox', { name: 'To' })).toHaveValue('18:00');
-    expect(saturdayRow.getByRole('textbox', { name: 'To' })).toHaveAttribute('dir', 'ltr');
-    const friday = within(hours).getByRole('switch', { name: 'Open on Friday' });
-    expect(friday).not.toBeChecked();
-    expect(within(friday.closest('li') as HTMLElement).queryByRole('textbox')).toBeNull();
-    const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
-    expect(within(header).getByRole('button', { name: 'Copy to all days' })).toBeEnabled();
-  });
-
-  it('a section’s header action leads its content below 768', async () => {
-    stubScreenWidth(390);
-    renderEditor();
-    const hours = await waitFor(() => section('Opening hours'));
-
-    const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
-    expect(within(header).queryByRole('button', { name: 'Copy to all days' })).toBeNull();
-    const content = hours.querySelector('[data-slot=card-content]') as HTMLElement;
-    const copy = within(content).getByRole('button', { name: 'Copy to all days' });
-    // First in the content, before the days.
-    const saturday = within(content).getByRole('switch', { name: 'Open on Saturday' });
-    expect(copy.compareDocumentPosition(saturday) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('a verified space’s notice leads to its reports, to correct a fact', async () => {
-    renderEditor({
-      read: () => ok({ ...SPACE, isVerified: true, owners: [{ id: 6, name: 'Sami' }] }),
-    });
-
-    const link = await screen.findByRole('link', { name: /reports$/ });
-    expect(link).toHaveAttribute('href', '/reports?space=7');
-    expect(link.parentElement?.textContent.replace(/[\u2066-\u2069]/g, '')).toBe(
-      'To correct a fact: Focus Hub’s reports',
+    expect(await screen.findByRole('meter', { name: 'Profile completeness' })).toHaveAttribute(
+      'aria-valuetext',
+      '6 of 7 sections',
     );
   });
 
-  it('shows why a shift cannot be removed beside its Remove', async () => {
-    renderEditor({
-      read: () =>
-        ok({
-          ...SPACE,
-          hours: {
-            days: [null, null, null, null, null, null, { opensMinute: 480, closesMinute: 1080 }],
-            shifts: [{ id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
-          },
-          prices: [
-            {
-              period: 'DAY',
-              audience: 'GENERAL',
-              shiftId: 4,
-              labelAr: null,
-              labelEn: null,
-              amountAgorot: 1500,
-            },
-          ],
-        }),
-    });
-    const shift = await screen.findByRole('group', { name: 'Shift 1' });
+  it('puts the public page’s address on the clipboard on «نسخ الرابط», and says so', async () => {
+    const user = userEvent.setup();
+    renderProfile({ owner: true });
+    await user.click(await screen.findByRole('button', { name: 'Copy link' }));
 
-    expect(within(shift).getByRole('button', { name: 'Remove shift 1' })).toBeDisabled();
-    expect(within(shift).getByText('A price uses it — remove that price first')).toBeVisible();
+    expect(await navigator.clipboard.readText()).toBe(`${window.location.origin}/spaces/focus-hub`);
+    expect(await findToast('Public page link copied')).toBeInTheDocument();
+  });
+
+  it('shows the link to copy by hand when the clipboard refuses', async () => {
+    const user = userEvent.setup();
+    renderProfile({ owner: true });
+    await screen.findByRole('button', { name: 'Copy link' });
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'));
+
+    await user.click(screen.getByRole('button', { name: 'Copy link' }));
+
+    expect(await findToast('We couldn’t copy the link. Copy it from here:')).toBeInTheDocument();
+    expect(screen.getByText(/\/spaces\/focus-hub/)).toBeInTheDocument();
+  });
+
+  it('shows the letter tile without a photo, and «أضف صورة غلاف» opens the photos with the focus on «اختر صورًا»', async () => {
+    const user = userEvent.setup();
+    renderProfile({ owner: true, photos: () => ok([]) });
+    const header = (await screen.findByRole('heading', { level: 2, name: 'Focus Hub' })).closest(
+      '[data-slot=card]',
+    ) as HTMLElement;
+    expect(within(header).getByText('F')).toHaveAttribute('lang', 'en');
+    expect(header.querySelector('img')).toBeNull();
+    await user.click(within(header).getByRole('button', { name: 'Add a cover photo' }));
+
+    expect(
+      within(sectionOf('Photos')).getByRole('button', { name: 'Choose photos' }),
+    ).toHaveFocus();
+    expect(within(sectionOf('Photos')).getByRole('button', { name: 'Done' })).toBeInTheDocument();
   });
 });
 
-describe('the prices section', () => {
-  it('names each price’s controls by its row, and says once why no shift can be chosen', async () => {
-    const day = {
-      period: 'DAY' as const,
-      audience: 'GENERAL' as const,
-      shiftId: null,
-      labelAr: null,
-      labelEn: null,
-      amountAgorot: 1500,
-    };
-    renderEditor({
-      read: () => ok({ ...SPACE, prices: [day, { ...day, period: 'WEEK', amountAgorot: 1250 }] }),
-    });
-    const first = await screen.findByRole('group', { name: 'Price 1' });
+describe('the index', () => {
+  it('lists the sections beside them from 1024 px, each state said and the one in view marked', async () => {
+    stubScreenWidth(1440);
+    renderProfile({ read: () => ok({ ...SPACE, staleGroups: ['hours'], contacts: [] }) });
+    const index = await screen.findByRole('navigation', { name: 'Profile sections' });
 
-    expect(within(first).getByRole('combobox', { name: 'Period' })).toHaveTextContent('Day');
-    expect(within(first).getByRole('combobox', { name: 'For' })).toHaveTextContent('Everyone');
-    expect(within(first).getByRole('combobox', { name: 'Shift' })).toBeDisabled();
-    expect(within(first).getByRole('textbox', { name: 'Amount (₪)' })).toHaveValue('15');
-    expect(within(first).getByRole('button', { name: 'Remove price 1' })).toBeEnabled();
-    const second = screen.getByRole('group', { name: 'Price 2' });
-    expect(within(second).getByRole('textbox', { name: 'Amount (₪)' })).toHaveValue('12.50');
-    expect(screen.getAllByText('No saved shifts — add shifts first.')).toHaveLength(1);
+    const links = within(index).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual([
+      'PhotosComplete',
+      'Published pricesComplete',
+      'Opening hoursMay be out of date',
+      'ShiftsMay be out of date',
+      'AmenitiesComplete',
+      'About the spaceComplete',
+      'LocationComplete',
+      'ContactsNot added yet',
+    ]);
+    expect(links[0]).toHaveAttribute('aria-current', 'location');
+    expect(links[0]).toHaveAttribute('href', '/spaces/7#photos');
+  });
+
+  it('draws no index below 1024 px', async () => {
+    stubScreenWidth(900);
+    renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Photos' });
+
+    expect(screen.queryByRole('navigation', { name: 'Profile sections' })).toBeNull();
   });
 });
 
-describe('a verified space', () => {
-  it('shows its values to read, with the way to its public page, and nothing to save', async () => {
-    renderEditor({
+describe('a stale group', () => {
+  it('says so on both sections of its pair, and «ما زالت صحيحة» confirms the group once', async () => {
+    const user = userEvent.setup();
+    const { writes } = renderProfile({
+      read: () => ok({ ...SPACE, staleGroups: ['profile'] }),
+      write: () => ok(SPACE),
+    });
+    await screen.findByRole('heading', { level: 2, name: 'Location' });
+
+    for (const name of ['About the space', 'Location']) {
+      expect(within(sectionOf(name)).getByText('May be out of date')).toBeInTheDocument();
+    }
+    expect(within(sectionOf('Contacts')).queryByText('May be out of date')).toBeNull();
+    await user.click(within(sectionOf('Location')).getByRole('button', { name: 'Still correct' }));
+
+    await waitFor(() => {
+      expect(within(sectionOf('About the space')).queryByText('May be out of date')).toBeNull();
+    });
+    expect(within(sectionOf('Location')).queryByText('May be out of date')).toBeNull();
+    expect(writes().map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'post /admin/spaces/7/profile/confirm',
+    ]);
+    expect(await findToast('Location confirmed as still correct')).toBeInTheDocument();
+  });
+
+  it('offers no «ما زالت صحيحة» on a fresh group (SD7)', async () => {
+    renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Location' });
+
+    expect(screen.queryByRole('button', { name: 'Still correct' })).toBeNull();
+  });
+});
+
+describe('the admin’s page', () => {
+  it('marks an unverified space so, and a hidden one, with no alert, the owners’ link in the header', async () => {
+    const { owned } = renderProfile({ read: () => ok({ ...SPACE, isHidden: true }) });
+    const name = await screen.findByRole('heading', { level: 2, name: 'Focus Hub' });
+
+    const header = name.closest('[data-slot=card]') as HTMLElement;
+    expect(within(header).getByText('Unverified')).toBeInTheDocument();
+    expect(within(header).getByText('Hidden from visitors')).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: 'Owners’ actions' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(owned.at(-1)).toMatchObject({ id: 7, isVerified: false });
+  });
+
+  it('shows a verified space as a visitor sees it, with no edit, its notice naming its owners', async () => {
+    renderProfile({
       read: () =>
         ok({
           ...SPACE,
           isVerified: true,
-          owners: [{ id: 5, name: 'Rima' }],
-          amenityIds: [1, 3],
-          ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }],
-          contacts: [{ type: 'PHONE', value: '+970569123456' }],
-          hours: {
-            days: [
-              { opensMinute: 480, closesMinute: 1080 },
-              { opensMinute: 480, closesMinute: 1080 },
-              { opensMinute: 480, closesMinute: 1080 },
-              { opensMinute: 480, closesMinute: 1080 },
-              { opensMinute: 480, closesMinute: 1080 },
-              null,
-              { opensMinute: 540, closesMinute: 1440 },
-            ],
-            shifts: [{ id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 }],
-          },
-          prices: [
-            {
-              period: 'DAY',
-              audience: 'GENERAL',
-              shiftId: null,
-              labelAr: null,
-              labelEn: null,
-              amountAgorot: 1500,
-            },
-          ],
+          owners: [{ id: 5, name: 'Lina' }],
+          staleGroups: ['contacts'],
         }),
     });
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
 
-    expect(await screen.findByText(`Edited by ${FSI}Rima${PDI}`)).toBeInTheDocument();
+    expect(screen.queryAllByRole('button', { name: /^Edit / })).toEqual([]);
+    expect(screen.queryByRole('button', { name: 'Still correct' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Manage photos' })).toBeNull();
+    expect(screen.getByText(/Edited by/)).toHaveTextContent('Lina');
+    expect(screen.getByRole('link', { name: /Focus Hub.’s reports/ })).toHaveAttribute(
+      'href',
+      '/reports?space=7',
+    );
     expect(screen.getByText('Verified')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View on the site' })).toHaveAttribute(
-      'href',
-      '/spaces/focus-hub',
-    );
-    const profile = section('The space');
-    expect(within(profile).getByText('Focus Hub')).toHaveAttribute('lang', 'en');
-    expect(within(profile).getByText('Area 11')).toBeInTheDocument();
-    expect(within(profile).getByText('31.51950, 34.44700')).toBeInTheDocument();
-    const amenities = section('Amenities');
-    expect(within(amenities).getByText('Amenity 1, Amenity 3')).toBeInTheDocument();
-    expect(within(amenities).getByText('غرفة صلاة')).toHaveAttribute('lang', 'ar');
-    const contacts = section('Contacts');
-    expect(within(contacts).getByText('+970569123456')).toHaveAttribute('dir', 'ltr');
-    expect(within(contacts).getByText('Ooredoo')).toBeInTheDocument();
-    const hours = section('Opening hours');
-    const saturday = within(hours).getByText('Saturday').closest('div') as HTMLElement;
-    expect(within(saturday).getByText('09:00–24:00')).toHaveAttribute('dir', 'ltr');
-    const friday = within(hours).getByText('Friday').closest('div') as HTMLElement;
-    expect(within(friday).getByText('Closed')).toBeInTheDocument();
-    expect(within(hours).getByText('صباحية')).toHaveAttribute('lang', 'ar');
-    expect(within(hours).getByText('09:00–13:00')).toHaveAttribute('dir', 'ltr');
-    const prices = section('Prices');
-    const day = within(prices).getByText('Day · Everyone').closest('div') as HTMLElement;
-    expect(within(day).getByText('₪15')).toHaveAttribute('dir', 'ltr');
-    expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
-    expect(screen.queryByRole('region', { name: 'Still missing' })).toBeNull();
-    // Its photos are read, with no control to change them: the server's can() refuses every write.
-    const photos = section('Photos');
-    expect(await within(photos).findByText('Cover')).toBeInTheDocument();
-    expect(within(photos).queryByRole('button')).toBeNull();
+    expect(screen.getByText(/A space’s operating data is private/)).toBeInTheDocument();
   });
 
-  it('names a verified space’s owners, and places the owners’ actions in its notice', async () => {
-    const owners = [
-      { id: 5, name: 'Rima' },
-      { id: 6, name: 'Sami' },
-    ];
-    const { owned } = renderEditor({ read: () => ok({ ...SPACE, isVerified: true, owners }) });
+  it('refuses an owner a space they may not edit', async () => {
+    renderProfile({ owner: true, read: () => ok(SPACE) });
 
-    // Each name isolated, so a name in one direction never reorders its neighbours.
-    const title = `Edited by ${FSI}Rima${PDI}, ${FSI}Sami${PDI}`;
-    expect(await screen.findByText(title)).toBeInTheDocument();
     expect(
-      within(notice(title)).getByRole('button', { name: 'Owners’ actions' }),
+      await screen.findByRole('heading', { level: 1, name: 'You don’t have access to this page' }),
     ).toBeInTheDocument();
-    expect(owned.at(-1)).toMatchObject({
-      id: 7,
-      name: { text: 'Focus Hub' },
-      isVerified: true,
-      owners,
-      unsaved: false,
-    });
-    expect(owned.at(-1)?.focusFallback.current).toContainElement(notice(title));
+    expect(screen.queryByRole('heading', { level: 2, name: 'Photos' })).toBeNull();
+  });
+
+  it('shows the 404 for a space that is gone', async () => {
+    renderProfile({ read: () => refused(404, { type: 'not_found' }) });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Page not found' }),
+    ).toBeInTheDocument();
   });
 });
 
-describe('an owner’s editor', () => {
-  /** The owner's space: verified, with its owner, its prices never added. */
-  const OWNED: AdminSpace = {
-    ...SPACE,
-    isVerified: true,
-    owners: [{ id: 5, name: 'Rima' }],
-  };
+describe('the requests', () => {
+  it('reads the admin’s space and gallery on the admin’s routes, an owner’s on the managed ones', async () => {
+    const admin = renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Photos' });
+    expect(admin.requests.map(({ url }) => url)).toEqual([
+      '/admin/spaces/7',
+      '/admin/spaces/7/photos',
+    ]);
+    admin.unmount();
 
-  it('shows the owner «الباقات والأسعار» in place of the prices’ fields, and no «يعدّلها»', async () => {
-    startPreferences('ar');
-    const { requests } = renderEditor({ read: () => ok(OWNED), owner: true });
-    const prices = await waitFor(() => section('الأسعار'));
-
-    expect(within(prices).getByRole('link', { name: 'الباقات والأسعار' })).toHaveAttribute(
-      'href',
-      '/packages',
-    );
-    expect(within(prices).getByText('لم تُضف بعد')).toBeInTheDocument();
-    // The dot between the line and the date is no word: never read aloud.
-    expect(within(prices).getByText('·')).toHaveAttribute('aria-hidden');
-    expect(within(prices).queryByRole('combobox')).toBeNull();
-    expect(within(prices).queryByRole('button')).toBeNull();
-    expect(screen.queryByText(/يعدّلها/)).toBeNull();
-    expect(screen.getByRole('link', { name: 'عرض الصفحة العامة' })).toHaveAttribute(
-      'href',
-      '/spaces/focus-hub',
-    );
-    // The other sections are the owner's to save, and the calls are the managed routes.
-    expect(section('المساحة')).toBeInTheDocument();
-    expect(requests.every(({ url }) => url?.startsWith('/manage/spaces/7') === true)).toBe(true);
-  });
-
-  it('shows the owner «مخفية عن الزوار» only while hidden', async () => {
-    startPreferences('ar');
-    renderEditor({ read: () => ok(OWNED), owner: true });
-    await waitFor(() => section('المساحة'));
-    expect(screen.queryByText('مخفية عن الزوار')).toBeNull();
-    expect(screen.queryByText('موثّقة')).toBeNull();
-  });
-
-  it('shows the owner «مخفية عن الزوار» while the space is hidden', async () => {
-    startPreferences('ar');
-    renderEditor({ read: () => ok({ ...OWNED, isHidden: true }), owner: true });
-    expect(await screen.findByText('مخفية عن الزوار')).toBeInTheDocument();
-    expect(screen.queryByText('موثّقة')).toBeNull();
-  });
-
-  it('offers the owner no way to the platform’s amenities list', async () => {
-    renderEditor({ read: () => ok(OWNED), owner: true });
-    const amenities = await waitFor(() => section('Amenities'));
-
-    expect(
-      within(amenities).getByRole('group', { name: 'The list’s amenities' }),
-    ).toBeInTheDocument();
-    expect(within(amenities).queryByRole('link')).toBeNull();
+    const owner = renderProfile({ owner: true });
+    await screen.findByRole('heading', { level: 2, name: 'Photos' });
+    expect(owner.requests.map(({ url }) => url)).toEqual([
+      '/manage/spaces/7',
+      '/manage/spaces/7/photos',
+    ]);
+    expect(bodyOf(owner.requests[0])).toBeUndefined();
   });
 });
 
-describe('leaving the editor', () => {
-  it('asks first while a section has unsaved changes, naming it; Stay, which has the focus, keeps the page', async () => {
-    const user = userEvent.setup();
-    const { router } = renderEditor();
-    await user.type(await screen.findByRole('textbox', { name: 'Name in English' }), ' Gaza');
+describe('every Sheet', () => {
+  /** Each section's «تعديل» and its Sheet's title, in a language. */
+  const SHEETS = {
+    en: [
+      ['Edit Published prices', 'Edit the published prices'],
+      ['Edit Opening hours', 'Edit the opening hours'],
+      ['Edit Shifts', 'Edit the shifts'],
+      ['Edit Amenities', 'Edit the amenities'],
+      ['Edit About the space', 'Edit: about the space'],
+      ['Edit Location', 'Edit the location'],
+      ['Edit Contacts', 'Edit the contacts'],
+    ],
+    ar: [
+      ['تعديل الأسعار المعلنة', 'تعديل الأسعار المعلنة'],
+      ['تعديل ساعات العمل', 'تعديل ساعات العمل'],
+      ['تعديل الورديات', 'تعديل الورديات'],
+      ['تعديل المرافق', 'تعديل المرافق'],
+      ['تعديل عن المساحة', 'تعديل: عن المساحة'],
+      ['تعديل الموقع', 'تعديل الموقع'],
+      ['تعديل التواصل', 'تعديل التواصل'],
+    ],
+  } as const;
 
-    await act(() => router.navigate('/elsewhere'));
-
-    const dialog = await screen.findByRole('alertdialog', { name: 'Leave with unsaved changes?' });
-    expect(dialog).toHaveTextContent('Unsaved changes in The space will be lost.');
-    expect(within(dialog).getByRole('button', { name: 'Stay' })).toHaveFocus();
-    await user.click(within(dialog).getByRole('button', { name: 'Stay' }));
-    expect(router.state.location.pathname).toBe('/spaces/7');
-    expect(screen.getByRole('textbox', { name: 'Name in English' })).toHaveValue('Focus Hub Gaza');
-  });
-
-  it('keeps the page on Escape, and leaves on "Leave"', async () => {
-    const user = userEvent.setup();
-    const { router } = renderEditor();
-    await user.type(await screen.findByRole('textbox', { name: 'Name in English' }), ' Gaza');
-    await act(() => router.navigate('/elsewhere'));
-    await screen.findByRole('alertdialog');
-
-    await user.keyboard('{Escape}');
-    expect(router.state.location.pathname).toBe('/spaces/7');
-    await act(() => router.navigate('/elsewhere'));
-    await user.click(await screen.findByRole('button', { name: 'Leave' }));
-
-    expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
-  });
+  for (const language of ['en', 'ar'] as const) {
+    it(`has no detectable accessibility violations open, each in turn (${language})`, async () => {
+      startPreferences(language);
+      const user = userEvent.setup({ delay: null });
+      renderProfile();
+      for (const [edit, title] of SHEETS[language]) {
+        await user.click(await screen.findByRole('button', { name: edit }));
+        const sheet = await screen.findByRole('dialog', { name: title });
+        expect(await axe(document.body)).toHaveNoViolations();
+        await user.click(
+          within(sheet).getAllByRole('button', {
+            name: language === 'en' ? 'Back' : 'رجوع',
+          })[1] as HTMLElement,
+        );
+        await waitFor(() => {
+          expect(screen.queryByRole('dialog')).toBeNull();
+        });
+      }
+    }, 60_000); // Seven Sheets, each drawn and checked whole: longer than one test's 5 s.
+  }
 });

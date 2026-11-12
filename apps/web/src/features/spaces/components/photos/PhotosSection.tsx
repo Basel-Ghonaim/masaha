@@ -1,103 +1,93 @@
-import { useRef } from 'react';
-import { Button, EmptyState, Skeleton } from '@shared/design-system';
+import { Button, Skeleton } from '@shared/design-system';
 import { useCopy } from '@shared/copy';
-import { meanwhileLines } from '../../hooks/editor/meanwhileLines';
+import { useEffect, useRef } from 'react';
 import { usePhotoGallery } from '../../hooks/photos/usePhotoGallery';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EditorFailure } from '../editor/EditorFailure';
-import { PhotoRemoveDialog } from './PhotoRemoveDialog';
-import { PhotoTile } from './PhotoTile';
-import { PhotoUploadTile } from './PhotoUploadTile';
-import { PhotosCard } from './PhotosCard';
+import { SectionCard } from '../editor/SectionCard';
+import { PhotosEdit } from './PhotosEdit';
+import { PhotosView } from './PhotosView';
 
 /**
- * «الصور»: the space's photos in the server's order, the first as the cover, each with its arrows, its
- * «اجعلها الغلاف» and its removal — which asks first — and below them «إضافة صور», the picker the
- * section's own button opens, and each chosen file's own tile while it travels. Photos are immediate
- * actions, so this section carries no date and nothing to save; its loading, failure and empty shapes
- * are the editor's own, reused.
+ * «الصور» (P1–P7): read as a visitor sees it, its head «N من 10 صور» and «إدارة الصور», which turns
+ * the section itself into its edit state — no Sheet — and «تم», which turns it back. No date and no
+ * staleness: photos are no fact group. With none, «لم تُضف صور بعد» and «أضف صورًا». The header's
+ * «أضف صورة غلاف» opens the edit state too, the focus on «اختر صورًا» (`focusRequest`).
  */
 export function PhotosSection({
   place,
   spaceId,
+  editable,
+  editing,
+  focusRequest,
   onUploadingChange,
 }: {
   place: EditorPlace;
   spaceId: number;
+  editable: boolean;
+  editing: { on: boolean; set: (on: boolean) => void };
+  /** Changes each time «اختر صورًا» is to take the focus. */
+  focusRequest: number;
   /** The editor's leave guard: only an unfinished upload is lost by leaving. */
   onUploadingChange: (uploading: boolean) => void;
 }) {
-  const gallery = usePhotoGallery(place, spaceId, onUploadingChange);
-  const meanwhile = meanwhileLines(place, useCopy(), 'photos');
-  const picker = useRef<HTMLInputElement>(null);
+  const words = useCopy().spaces.editor.photos;
+  const gallery = usePhotoGallery(place, spaceId, editable, onUploadingChange);
+  const choose = useRef<HTMLButtonElement>(null);
+  const on = editable && editing.on;
+
+  useEffect(() => {
+    if (focusRequest === 0) return;
+    choose.current?.scrollIntoView({ block: 'center' });
+    choose.current?.focus();
+  }, [focusRequest]);
+
+  const head =
+    !editable || (gallery.tiles.length === 0 && !on) ? undefined : (
+      <Button
+        type="button"
+        size="sm"
+        variant={on ? 'primary' : 'outline'}
+        onClick={() => {
+          editing.set(!on);
+        }}
+      >
+        {on ? words.done : words.manage}
+      </Button>
+    );
 
   return (
-    <PhotosCard id="photos" title={gallery.title} description={gallery.intro ?? undefined}>
-      {/* A move or a cover that landed is said here: a change of order is otherwise silent. */}
-      <p role="status" className="sr-only">
-        {gallery.said}
-      </p>
-      {gallery.changed !== null && (
-        <p role="status" className="text-caption text-muted-foreground">
-          {gallery.changed}
-        </p>
-      )}
+    <SectionCard
+      frame={{ id: 'photos', title: gallery.title, date: null, stale: null, edit: null }}
+      meta={gallery.state === 'ready' ? gallery.count : undefined}
+      action={head}
+      empty={
+        gallery.empty !== null && !on && gallery.uploads.tiles.length === 0
+          ? {
+              text: gallery.empty.text,
+              hint: gallery.empty.hint,
+              action: editable
+                ? {
+                    label: gallery.empty.action,
+                    primary: true,
+                    run: () => {
+                      editing.set(true);
+                    },
+                  }
+                : null,
+            }
+          : null
+      }
+    >
       {gallery.state === 'loading' ? (
         <Skeleton className="h-40 w-full" />
       ) : gallery.state === 'failed' ? (
         <EditorFailure message={gallery.failure?.message ?? gallery.title} retry={gallery.retry} />
-      ) : gallery.empty !== null && gallery.uploads.tiles.length === 0 ? (
-        <EmptyState titleAs="h3" title={gallery.empty.title} description={gallery.empty.text} />
+      ) : on ? (
+        <PhotosEdit place={place} gallery={gallery} choose={choose} />
       ) : (
-        <ul aria-label={gallery.title} className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {gallery.tiles.map((tile) => (
-            <PhotoTile key={tile.key} tile={tile} />
-          ))}
-          {gallery.uploads.tiles.map((tile, index) => (
-            <PhotoUploadTile
-              key={tile.key}
-              tile={tile}
-              // Its place in the gallery, after the photos already on it.
-              number={gallery.tiles.length + index + 1}
-              meanwhile={meanwhile}
-            />
-          ))}
-        </ul>
+        <PhotosView gallery={gallery} />
       )}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* The layer has no file control: the picker is behind the section's own button, and the
-            input keeps the browser's own name for it where it is in the focus order. */}
-        <input
-          ref={picker}
-          type="file"
-          accept={gallery.uploads.input.accept}
-          multiple={gallery.uploads.input.multiple}
-          className="sr-only"
-          tabIndex={-1}
-          aria-label={gallery.uploads.input.label}
-          onChange={(event) => {
-            gallery.uploads.input.choose(event.target.files);
-            event.target.value = '';
-          }}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          disabled={gallery.uploads.disabled}
-          onClick={() => {
-            picker.current?.click();
-          }}
-        >
-          {gallery.uploads.label}
-        </Button>
-        {gallery.uploads.reason && (
-          <span className="text-caption text-muted-foreground">{gallery.uploads.reason}</span>
-        )}
-        <p role="status" className="text-caption text-muted-foreground empty:hidden">
-          {gallery.uploads.summary}
-        </p>
-      </div>
-      <PhotoRemoveDialog dialog={gallery.remove} />
-    </PhotosCard>
+    </SectionCard>
   );
 }

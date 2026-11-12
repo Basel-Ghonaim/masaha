@@ -33,7 +33,7 @@ function renderCards(answer: () => FakeAnswer) {
           <main>
             <SpaceSettingsCards
               spaceId={7}
-              pricesLink="/packages"
+              pricesLink="/profile?sheet=prices#prices"
               spaceName={{ nameAr: null, nameEn: 'Focus Hub' }}
             />
           </main>
@@ -71,10 +71,9 @@ describe('SpaceSettingsCards', () => {
     );
     if (!(reception instanceof HTMLElement)) throw new Error('no card');
     expect(screen.getByRole('heading', { level: 2, name: 'Visit pricing' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Packages & prices' })).toHaveAttribute(
-      'href',
-      '/packages',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Edit the hour and day prices in the space profile' }),
+    ).toHaveAttribute('href', '/profile?sheet=prices#prices');
     expect(within(reception).queryByText('Unsaved changes')).toBeNull();
 
     await user.click(

@@ -1,7 +1,7 @@
 import type { PublicSpace } from '@masaha/shared/directory';
 import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
-import { contactLinkOf, mapsLink, spaceNameOf, updatedAgo } from '@shared/lib';
+import { contactLinkOf, mapsLink, spaceNameOf, updatedAgo, weekRows } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
 import type { PageTitle } from '@shared/routing';
 import { useState } from 'react';
@@ -12,7 +12,6 @@ import { localText } from '../../services/localText';
 import { priceGroups } from '../../services/priceGroups';
 import { straightLine } from '../../services/straightLine';
 import { todayHours } from '../../services/todayHours';
-import { weekRows } from '../../services/weekRows';
 import type { SectionMeta, SpacePageView } from '../../types/SpacePageView';
 import { useFailureView } from '../list/useFailureView';
 import { useNearState } from '../near/nearMeStore';

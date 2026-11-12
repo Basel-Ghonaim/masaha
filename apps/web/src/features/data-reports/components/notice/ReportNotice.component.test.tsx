@@ -11,13 +11,13 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { useReportNotice, type ReportNoticeScope } from '../../hooks/notice/useReportNotice';
 import { ReportNotice } from './ReportNotice';
 
-/** A page that shows the notice of report `reportId` for `scope`, and the group it sits above. */
+/** A page that shows the notice of report `reportId` for `scope`, and the section it sits inside. */
 function Page({ scope, reportId }: { scope: ReportNoticeScope; reportId: number }) {
   const notice = useReportNotice(scope, reportId);
   return notice === null ? (
     <p>No notice</p>
   ) : (
-    <section aria-label={`Above ${notice.group}`}>
+    <section aria-label={`Inside ${notice.section}`}>
       <ReportNotice view={notice} />
     </section>
   );
@@ -58,12 +58,12 @@ afterEach(() => {
 });
 
 describe('ReportNotice', () => {
-  it('reads the report by its id and sits above its field’s section, its words quoted; axe-clean', async () => {
+  it('reads the report by its id and sits inside its field’s section, its words quoted; axe-clean', async () => {
     const { container, requests } = renderNotice(OWNER, () => ok(spaceReport()));
 
-    const above = await screen.findByRole('region', { name: 'Above hours' });
+    const inside = await screen.findByRole('region', { name: 'Inside hours' });
     expect(requests.map(({ url }) => url)).toEqual(['/manage/spaces/7/data-reports/41']);
-    expect(above.querySelector('#report')).toHaveTextContent('An open report on Opening hours');
+    expect(inside.querySelector('#report')).toHaveTextContent('An open report on Opening hours');
     expect(screen.getByRole('link', { name: 'Open the report to reply' })).toHaveAttribute(
       'href',
       '/reports?open=41',
@@ -88,7 +88,7 @@ describe('ReportNotice', () => {
   it('takes no focus when the address’s hash names something else', async () => {
     renderNotice(OWNER, () => ok(spaceReport()), 41, '/space?report=41#hours');
 
-    await screen.findByRole('region', { name: 'Above hours' });
+    await screen.findByRole('region', { name: 'Inside hours' });
     expect(document.getElementById('report')).not.toHaveFocus();
   });
 

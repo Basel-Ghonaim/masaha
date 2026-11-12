@@ -2,7 +2,7 @@ import { useMySpacesQuery } from '@features/space-links';
 import { SpaceSettingsCards } from '@features/space-settings';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useParams } from 'react-router';
-import { spacePagePath } from '../navigation';
+import { ownerPricesLink } from '../fieldSections';
 import { PageHeader } from '../shell/PageHeader';
 import { AccountCard } from './settings/AccountCard';
 import { AttendanceCard } from './settings/AttendanceCard';
@@ -10,7 +10,7 @@ import { AttendanceCard } from './settings/AttendanceCard';
 /**
  * The owner's «الإعدادات»: first the attendance card, composed here from `occupancy`'s capacity and
  * `space-settings`' check-out settings, then the cards of `space-settings` in one column, visit
- * pricing leading to Packages & prices, where the prices it works from are, and the reminder's
+ * pricing leading to the space profile's prices, where the prices it works from are edited, and the reminder's
  * preview naming the space as `space-links` lists it, by its Arabic name when it has one; last,
  * «حسابي», the way to the personal settings. The guard has checked the space's id and the owner's
  * role.
@@ -31,7 +31,7 @@ export function SettingsPage() {
           <AttendanceCard spaceId={spaceId} />
           <SpaceSettingsCards
             spaceId={spaceId}
-            pricesLink={spacePagePath(spaceId, 'packages')}
+            pricesLink={ownerPricesLink(spaceId)}
             spaceName={spaceName}
           />
           <AccountCard />

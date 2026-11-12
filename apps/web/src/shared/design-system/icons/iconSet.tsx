@@ -3,7 +3,10 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  AtSign,
+  Briefcase,
   Calendar,
+  Camera,
   ChartColumn,
   Check,
   ChevronDown,
@@ -16,35 +19,47 @@ import {
   CircleCheck,
   Coffee,
   ConciergeBell,
+  Copy,
   Ellipsis,
   EllipsisVertical,
   Eye,
   EyeOff,
   Flag,
+  Globe,
   GraduationCap,
+  GripVertical,
   Heart,
   IdCard,
   Info,
   Languages,
   LayoutDashboard,
+  Link,
   ListChecks,
   LoaderCircle,
+  LocateFixed,
   Lock,
   LogIn,
   LogOut,
+  Mail,
   Megaphone,
   Menu,
+  MessageCircle,
   Moon,
+  Music,
+  Phone,
+  Play,
   PlugZap,
   Presentation,
   Receipt,
   ScrollText,
   Search,
   SearchX,
+  Send,
   Settings,
   Store,
   Sun,
   Tag,
+  ThumbsUp,
   TriangleAlert,
   UserCog,
   Users,
@@ -271,4 +286,67 @@ export function ListChecksIcon(props: IconProps) {
 
 export function ScrollTextIcon(props: IconProps) {
   return <Icon glyph={ScrollText} {...props} />;
+}
+
+// A space's contacts, by their type (the profile's tiles and its type list): Lucide draws no brand's
+// mark, so each network is a plain glyph. None mirrors.
+
+export function AtSignIcon(props: IconProps) {
+  return <Icon glyph={AtSign} {...props} />;
+}
+
+export function BriefcaseIcon(props: IconProps) {
+  return <Icon glyph={Briefcase} {...props} />;
+}
+
+export function CameraIcon(props: IconProps) {
+  return <Icon glyph={Camera} {...props} />;
+}
+
+export function CopyIcon(props: IconProps) {
+  return <Icon glyph={Copy} {...props} />;
+}
+
+export function GlobeIcon(props: IconProps) {
+  return <Icon glyph={Globe} {...props} />;
+}
+
+export function GripVerticalIcon(props: IconProps) {
+  return <Icon glyph={GripVertical} {...props} />;
+}
+
+export function LinkIcon(props: IconProps) {
+  return <Icon glyph={Link} {...props} />;
+}
+
+export function LocateFixedIcon(props: IconProps) {
+  return <Icon glyph={LocateFixed} {...props} />;
+}
+
+export function MailIcon(props: IconProps) {
+  return <Icon glyph={Mail} {...props} />;
+}
+
+export function MessageCircleIcon(props: IconProps) {
+  return <Icon glyph={MessageCircle} {...props} />;
+}
+
+export function MusicIcon(props: IconProps) {
+  return <Icon glyph={Music} {...props} />;
+}
+
+export function PhoneIcon(props: IconProps) {
+  return <Icon glyph={Phone} {...props} />;
+}
+
+export function PlayIcon(props: IconProps) {
+  return <Icon glyph={Play} {...props} />;
+}
+
+export function SendIcon(props: IconProps) {
+  return <Icon glyph={Send} {...props} />;
+}
+
+export function ThumbsUpIcon(props: IconProps) {
+  return <Icon glyph={ThumbsUp} {...props} />;
 }
