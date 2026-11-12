@@ -15,7 +15,7 @@ import {
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router';
+import { Link, NavLink, matchPath, useLocation } from 'react-router';
 import { ACCOUNT_LINKS, SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteThemeToggle } from './SiteThemeToggle';
 
@@ -28,7 +28,7 @@ export function SiteMenu() {
   const user = useSession((session) => session.user);
   // The sheet is open for the location it was opened at, so any move closes it: a link chosen in
   // it, or the browser's back and forward.
-  const { key } = useLocation();
+  const { key, pathname } = useLocation();
   const [openAt, setOpenAt] = useState<string | null>(null);
 
   return (
@@ -51,18 +51,27 @@ export function SiteMenu() {
         </SheetHeader>
         <SheetBody>
           <nav aria-label={copy.site.navigation} className="flex flex-col gap-1">
-            {SITE_LINKS.map((link) => (
-              <Button
-                key={link.name}
-                asChild
-                variant="ghost"
-                className="w-full justify-start aria-[current=page]:bg-secondary aria-[current=page]:text-secondary-foreground"
-              >
-                <NavLink to={link.to} end={link.end}>
-                  {copy.site.links[link.name]}
-                </NavLink>
-              </Button>
-            ))}
+            {SITE_LINKS.map((link) => {
+              // The current page is selected: the spark's tint, kept under the pointer, so it takes
+              // no ghost hover at all. NavLink marks it aria-current by the same match.
+              const current = matchPath({ path: link.to, end: link.end ?? false }, pathname);
+              return (
+                <Button
+                  key={link.name}
+                  asChild
+                  variant={current ? null : 'ghost'}
+                  className={
+                    current
+                      ? 'w-full justify-start bg-accent text-accent-foreground'
+                      : 'w-full justify-start'
+                  }
+                >
+                  <NavLink to={link.to} end={link.end}>
+                    {copy.site.links[link.name]}
+                  </NavLink>
+                </Button>
+              );
+            })}
             {!user && (
               <Button asChild variant="ghost" className="w-full justify-start">
                 <Link to={SITE_PATHS.signIn}>

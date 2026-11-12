@@ -55,7 +55,7 @@ export function SpaceCard({
       aria-describedby={details.join(' ')}
       className="block h-full rounded-lg text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
-      <Card className="h-full overflow-hidden pt-0 hover:bg-accent">
+      <Card className="h-full overflow-hidden pt-0 hover:bg-hover">
         <SpaceCover cover={card.cover} mark={card.mark} />
         <CardHeader>
           <CardTitle>

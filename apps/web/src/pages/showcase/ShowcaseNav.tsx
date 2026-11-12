@@ -28,9 +28,11 @@ function ShowcaseLink({ to, search, onNavigate, className, children }: ShowcaseL
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'block rounded-md px-3 py-1.5 text-body-sm text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+          'block rounded-md px-3 py-1.5 text-body-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
           className,
-          isActive && 'bg-accent text-accent-foreground',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'hover:bg-hover hover:text-hover-foreground',
         )
       }
     >

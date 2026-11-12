@@ -69,7 +69,7 @@ export function SegmentedControlItem({
         target.click();
       }}
       className={cn(
-        'inline-flex h-8 min-w-0 flex-1 items-center justify-center truncate rounded-(--radius-control) border border-transparent px-2 text-label whitespace-nowrap text-muted-foreground transition-colors select-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-(--control-height) data-checked:border-(--card-border) data-checked:bg-card data-checked:text-card-foreground data-checked:shadow-raised',
+        'inline-flex h-8 min-w-0 flex-1 items-center justify-center truncate rounded-(--radius-control) border border-transparent px-2 text-label whitespace-nowrap text-muted-foreground transition-colors select-none hover:text-foreground data-unchecked:hover:bg-hover-on-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-(--control-height) data-checked:border-(--card-border) data-checked:bg-card data-checked:text-card-foreground data-checked:shadow-raised',
         className,
       )}
       {...props}

@@ -4,24 +4,25 @@ import type { ComponentProps } from 'react';
 import { LoaderIcon } from '../../../icons';
 import { cn } from '../../../lib/cn';
 
-// A filled variant's hover mixes its fill toward the foreground rather than fading it: fading
-// primary to 90% leaves its label below AA in the light theme, while mixing toward the foreground
-// raises the contrast with the label in both themes. The outline variant is edged like a card,
-// so the edge stays visible in the dark theme, where the plain border is faint. A button marked
-// `aria-disabled`, which waits but keeps its place in the focus order, looks disabled too.
+// A hover never fades a fill: fading primary to 90% would leave its label below AA. The ink's
+// hover is a role of its own (`primary-hover`); secondary and destructive mix their fill toward
+// the foreground, which raises the contrast with the label in both themes. Outline and ghost
+// hover, and mark their open menu, with the neutral `hover` fill, never the selected tint. The
+// outline variant is edged like a card, so the edge stays visible in the dark theme, where the
+// plain border is faint. A button marked `aria-disabled`, which waits but keeps its place in the
+// focus order, looks disabled too.
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-(--radius-control) border border-transparent text-label whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        primary:
-          'bg-primary text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)]',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)]',
+          'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklab,var(--secondary),var(--foreground)_8%)]',
         outline:
-          'border-(--card-border) bg-card text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground',
+          'border-(--card-border) bg-card text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground',
         ghost:
-          'text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground',
+          'text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]',
         link: 'text-primary underline-offset-4 hover:underline',

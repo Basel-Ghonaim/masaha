@@ -44,8 +44,8 @@
 }
 
 .leaflet-bar a:hover {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
+  background-color: var(--hover);
+  color: var(--hover-foreground);
 }
 
 .leaflet-bar a:last-child {

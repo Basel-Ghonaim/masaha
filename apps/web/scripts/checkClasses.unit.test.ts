@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findArbitraryValueClasses, findPhysicalClasses } from './checkClasses';
+import {
+  findArbitraryValueClasses,
+  findPhysicalClasses,
+  findSelectedTintHoverClasses,
+} from './checkClasses';
 
 const classesIn = (source: string) => findPhysicalClasses(source).map((hit) => hit.className);
 
@@ -146,5 +150,66 @@ describe('findArbitraryValueClasses', () => {
     expect(findArbitraryValueClasses("const a = 'p-2';\nconst b = 'mt-1 w-[3px]';")).toEqual([
       { line: 2, column: 17, className: 'w-[3px]' },
     ]);
+  });
+});
+
+const tintHoversIn = (source: string) =>
+  findSelectedTintHoverClasses(source).map((hit) => hit.className);
+
+describe('findSelectedTintHoverClasses', () => {
+  it.each([
+    'hover:bg-accent',
+    'hover:text-accent-foreground',
+    'hover:bg-sidebar-accent',
+    'hover:text-sidebar-accent-foreground',
+    'focus:bg-accent',
+    'focus-visible:text-accent-foreground',
+    'aria-expanded:bg-accent',
+    'data-open:text-accent-foreground',
+    'has-data-open:bg-accent',
+    'data-[selected=true]:bg-accent',
+    'data-highlighted:bg-sidebar-accent',
+  ])('flags the selected tint under a hover or highlight variant: %s', (className) => {
+    expect(tintHoversIn(`<div className="flex ${className} gap-2" />`)).toEqual([className]);
+  });
+
+  it.each([
+    'md:hover:bg-accent',
+    'dark:focus:text-accent-foreground',
+    'not-data-active:hover:bg-accent',
+    'not-data-[active=true]:hover:bg-sidebar-accent',
+    'focus:[&_svg]:text-accent-foreground',
+    'group-hover:bg-accent',
+    'peer-hover/menu-button:text-sidebar-accent-foreground',
+    'hover:bg-accent/50',
+    'hover:bg-accent!',
+    'hover:!bg-accent',
+  ])('flags the tint when the hover is compounded or modified: %s', (className) => {
+    expect(tintHoversIn(`cn('${className}')`)).toEqual([className]);
+  });
+
+  it('flags the tint as a hover in a CSS @apply', () => {
+    expect(tintHoversIn('.x { @apply bg-card hover:bg-accent; }')).toEqual(['hover:bg-accent']);
+  });
+
+  it.each([
+    'bg-accent',
+    'text-accent-foreground',
+    'bg-sidebar-accent',
+    'data-on:bg-accent',
+    'data-[active=true]:bg-sidebar-accent',
+    'data-range-middle:text-accent-foreground',
+    'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground',
+    'hover:bg-hover',
+    'not-data-on:hover:text-hover-foreground',
+    'hover:bg-hover-on-muted',
+  ])('does not flag %s, the tint at rest or selected, or the hover role', (className) => {
+    expect(tintHoversIn(`<div className="${className}" />`)).toEqual([]);
+  });
+
+  it('reports the line and column of each hit', () => {
+    expect(
+      findSelectedTintHoverClasses("const a = 'bg-accent';\nconst b = 'p-2 focus:bg-accent';"),
+    ).toEqual([{ line: 2, column: 16, className: 'focus:bg-accent' }]);
   });
 });

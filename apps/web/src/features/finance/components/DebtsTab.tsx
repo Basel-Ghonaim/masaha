@@ -91,7 +91,7 @@ export function DebtsTab({
               label={tile.label}
               value={tile.ltr ? <span dir="ltr">{tile.value}</span> : tile.value}
               helper={tile.helper}
-              className={tile.href === null ? 'h-full' : 'h-full hover:bg-accent'}
+              className={tile.href === null ? 'h-full' : 'h-full hover:bg-hover'}
             />
           );
           return tile.href === null ? (

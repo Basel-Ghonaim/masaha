@@ -38,7 +38,7 @@ const tabsTriggerVariants = cva(
     variants: {
       variant: {
         default:
-          'h-9 rounded-full border border-(--card-border) bg-card px-3 text-foreground pointer-coarse:h-(--control-height) not-data-active:hover:bg-accent not-data-active:hover:text-accent-foreground data-active:border-primary data-active:bg-primary data-active:text-primary-foreground md:h-8 md:rounded-md md:border-transparent md:bg-transparent md:text-muted-foreground md:not-data-active:hover:bg-transparent md:not-data-active:hover:text-foreground md:data-active:border-transparent md:data-active:bg-card md:data-active:text-foreground md:data-active:shadow-raised',
+          'h-9 rounded-full border border-(--card-border) bg-card px-3 text-foreground pointer-coarse:h-(--control-height) not-data-active:hover:bg-hover not-data-active:hover:text-hover-foreground data-active:border-primary data-active:bg-primary data-active:text-primary-foreground md:h-8 md:rounded-md md:border-transparent md:bg-transparent md:text-muted-foreground md:not-data-active:hover:bg-hover-on-muted md:not-data-active:hover:text-foreground md:data-active:border-transparent md:data-active:bg-card md:data-active:text-foreground md:data-active:shadow-raised',
         line: 'h-10 px-1 text-muted-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-primary after:opacity-0 hover:text-foreground data-active:text-foreground data-active:after:opacity-100',
       },
     },

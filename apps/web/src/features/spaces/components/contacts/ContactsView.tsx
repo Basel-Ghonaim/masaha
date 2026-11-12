@@ -3,7 +3,8 @@ import type { ContactsSectionView } from '../../hooks/contacts/useContactsSectio
 
 /**
  * The contacts as a visitor reaches them: tiles, three columns, two on a phone, each the whole tile
- * a working link, its value isolated left to right, a contact's own name in no known direction.
+ * a working link, its value isolated left to right, a contact's own name in no known direction. The
+ * tile's muted fill is the list item's, so the link's hover lays the ink's wash over it.
  */
 export function ContactsView({ view }: { view: ContactsSectionView }) {
   return (
@@ -11,12 +12,12 @@ export function ContactsView({ view }: { view: ContactsSectionView }) {
       {view.tiles.map((tile) => {
         const Icon = CONTACT_ICONS[tile.type];
         return (
-          <li key={tile.key} className="min-w-0">
+          <li key={tile.key} className="min-w-0 rounded-lg bg-muted">
             <a
               href={tile.href}
               target={tile.external ? '_blank' : undefined}
               rel={tile.external ? 'noreferrer' : undefined}
-              className="flex min-w-0 items-center gap-3 rounded-lg bg-muted px-3 py-2 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 hover:bg-hover-on-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-primary">
                 <Icon aria-hidden />

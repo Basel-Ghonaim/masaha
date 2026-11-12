@@ -22,7 +22,7 @@ export function PlatformTiles({ tiles }: { tiles: TilesView }) {
                 label={tile.label}
                 value={tile.value}
                 helper={tile.helper}
-                className="flex-1 hover:bg-accent"
+                className="flex-1 hover:bg-hover"
               />
             </Link>
           </li>

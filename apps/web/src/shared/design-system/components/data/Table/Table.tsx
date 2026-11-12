@@ -3,9 +3,9 @@ import { cn } from '../../../lib/cn';
 
 /**
  * A table of records, as in the Owner › Members stress test: a muted header row, dense rows with a
- * divider, and a row that takes the accent while hovered or while its row menu is open. It scrolls
- * sideways when it is wider than its place. It has no frame of its own: DataTable frames it as a
- * card with its toolbar and pagination, and a table on its own sits in a Card.
+ * divider, and a row that takes the hover fill while hovered or while its row menu is open. It
+ * scrolls sideways when it is wider than its place. It has no frame of its own: DataTable frames it
+ * as a card with its toolbar and pagination, and a table on its own sits in a Card.
  */
 export function Table({ className, ...props }: ComponentProps<'table'>) {
   return (
@@ -51,16 +51,17 @@ export function TableFooter({ className, ...props }: ComponentProps<'tfoot'>) {
 }
 
 /**
- * One row. It takes the accent under the pointer, and while a menu opened from it is open, so the
- * row an action applies to stays marked (the Data reports stress test). Text on the accent keeps
- * its colour: `foreground` and `muted-foreground` are verified on it (foundation §5).
+ * One row. It takes the neutral `hover` fill under the pointer, and while a menu opened from it is
+ * open, so the row an action applies to stays marked (the Data reports stress test); never the
+ * selected tint. Text on it keeps its colour: `muted-foreground` is verified on it, and
+ * `foreground` is its `-foreground`'s value (foundation §5).
  */
 export function TableRow({ className, ...props }: ComponentProps<'tr'>) {
   return (
     <tr
       data-slot="table-row"
       className={cn(
-        'border-b border-border transition-colors hover:bg-accent has-data-open:bg-accent',
+        'border-b border-border transition-colors hover:bg-hover has-data-open:bg-hover',
         className,
       )}
       {...props}

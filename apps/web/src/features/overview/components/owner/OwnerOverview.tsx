@@ -45,7 +45,7 @@ export function OwnerOverview({ spaceId, links }: { spaceId: number; links: Owne
             label={announcements.label}
             value={announcements.value}
             helper={announcements.helper}
-            className="h-full hover:bg-accent"
+            className="h-full hover:bg-hover"
           />
         </Link>
       </div>

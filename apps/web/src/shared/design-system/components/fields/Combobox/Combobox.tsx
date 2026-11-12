@@ -292,7 +292,7 @@ export function ComboboxItem({
       }}
       aria-checked={chosen}
       className={cn(
-        "relative flex min-h-(--control-height) w-full cursor-default items-center gap-2 rounded-sm py-1.5 ps-2 pe-8 text-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative flex min-h-(--control-height) w-full cursor-default items-center gap-2 rounded-sm py-1.5 ps-2 pe-8 text-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-hover data-[selected=true]:text-hover-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
