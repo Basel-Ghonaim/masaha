@@ -56,10 +56,16 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-hover: var(--hover);
+  --color-hover-foreground: var(--hover-foreground);
+  --color-hover-on-muted: var(--hover-on-muted);
+  --color-scrim: var(--scrim);
+  --color-scrim-foreground: var(--scrim-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-subtle: var(--destructive-subtle);
@@ -152,4 +158,25 @@
  */
 @utility z-sticky {
   z-index: var(--z-sticky);
+}
+
+/*
+ * The spark (foundation §5) marks what matters now as a fill, an edge, an outline or a mark, never
+ * as text. It has no theme colour, so these four are its only utilities and text-spark does not
+ * exist (semantic.unit.test.ts holds it).
+ */
+@utility bg-spark {
+  background-color: var(--spark);
+}
+
+@utility border-spark {
+  border-color: var(--spark);
+}
+
+@utility outline-spark {
+  outline-color: var(--spark);
+}
+
+@utility fill-spark {
+  fill: var(--spark);
 }

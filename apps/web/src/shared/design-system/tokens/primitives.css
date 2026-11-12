@@ -4,30 +4,33 @@
  * semantic.css binds a primitive; components and pages bind the semantic roles.
  */
 :root {
-  /* Palette (Sea). brand-600 is the brand colour; the neutrals carry a slight teal cast. */
-  --brand-50: #eafbfc;
-  --brand-100: #d5f4f5;
-  --brand-200: #b3e6e8;
-  --brand-300: #85d0d4;
-  --brand-400: #50b3b8;
-  --brand-500: #15959b;
-  --brand-600: #02787d;
-  --brand-700: #096165;
-  --brand-800: #05494c;
-  --brand-900: #023235;
-  --brand-950: #001d1f;
+  /*
+   * Palette (ink + berry, ADR 0019). The brand has two roles: the ink, neutral-900 / neutral-50, the
+   * neutrals drawn in its hue; and the spark, spark-500 / spark-400, a berry.
+   */
+  --neutral-50: #f7fbff;
+  --neutral-100: #ecf4fc;
+  --neutral-200: #dde5ed;
+  --neutral-300: #c9d0d7;
+  --neutral-400: #9fa6ad;
+  --neutral-500: #767d84;
+  --neutral-600: #5e646a;
+  --neutral-700: #484e54;
+  --neutral-800: #2c3137;
+  --neutral-900: #1a1f25;
+  --neutral-950: #0d1217;
 
-  --neutral-50: #f4fcfe;
-  --neutral-100: #eaf5f7;
-  --neutral-200: #dbe6e9;
-  --neutral-300: #c7d1d4;
-  --neutral-400: #9da7a9;
-  --neutral-500: #747e80;
-  --neutral-600: #5c6567;
-  --neutral-700: #464f51;
-  --neutral-800: #2a3234;
-  --neutral-900: #182022;
-  --neutral-950: #0c1315;
+  --spark-50: #fef3fe;
+  --spark-100: #ffe3fd;
+  --spark-200: #fac8f7;
+  --spark-300: #eba5e8;
+  --spark-400: #d27ed0;
+  --spark-500: #b55bb3;
+  --spark-600: #934791;
+  --spark-700: #773a75;
+  --spark-800: #5a2a59;
+  --spark-900: #3f1b3e;
+  --spark-950: #260d25;
 
   --green-50: #ecfcef;
   --green-100: #d9f5df;

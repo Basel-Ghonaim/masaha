@@ -2,12 +2,12 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked**: the colours are *ink + berry* ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md), 2026-11-12, #144); the type, radius, shadow and density are the Claude Design direction *1a Sea*'s (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-11-11
+> **Last Updated:** 2026-11-12
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
-This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
+This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus), its colours then replaced by *ink + berry* after a measured trial ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)), and are written here as the single source the layer is built from. A value changes here first, then in code.
 
 ---
 
@@ -113,7 +113,7 @@ A navigation grouped by category leads to all three; on a phone it is a drawer. 
 
 | Tier | What it holds | Who binds it |
 |---|---|---|
-| **Primitive** | Raw scales with no meaning: palette ramps (`brand-50…950`, `neutral-50…950`, `green-*`, `amber-*`, `red-*`, `blue-*`), radius scale, shadow scale | Only `semantic.css` |
+| **Primitive** | Raw scales with no meaning: palette ramps (`neutral-50…950`, `spark-50…950`, `green-*`, `amber-*`, `red-*`, `blue-*`), radius scale, shadow scale | Only `semantic.css` |
 | **Semantic** | Roles with meaning, resolved per theme | Components, and pages/features for colour needs |
 | **Component** | Optional, derived from semantic; only when a component needs a value no role covers | That component only |
 
@@ -121,20 +121,20 @@ A navigation grouped by category leads to all three; on a phone it is a drawer. 
 
 **Coincidence is not identity:** two roles that happen to share a value in one theme stay separate if they mean different things.
 
-### Primitive palette (locked — *Sea*)
+### Primitive palette (locked — *ink + berry*, [ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md))
 
-Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short names used in the tables below: `b` brand, `n` neutral, `g` green, `a` amber, `r` red, `i` blue.
+The brand has two roles: the **ink**, `neutral-900` / `neutral-50`, and the **spark**, a berry, `spark-500` / `spark-400`. The neutrals are drawn in the ink's hue (OKLCH h 250, chroma 0.014); the spark's seed is #A149A0 (h 328). Short names used in the tables below: `n` neutral, `s` spark, `g` green, `a` amber, `r` red, `i` blue.
 
 | Ramp | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `brand` | #EAFBFC | #D5F4F5 | #B3E6E8 | #85D0D4 | #50B3B8 | #15959B | **#02787D** | #096165 | #05494C | #023235 | #001D1F |
-| `neutral` | #F4FCFE | #EAF5F7 | #DBE6E9 | #C7D1D4 | #9DA7A9 | #747E80 | #5C6567 | #464F51 | #2A3234 | #182022 | #0C1315 |
+| `neutral` | #F7FBFF | #ECF4FC | #DDE5ED | #C9D0D7 | #9FA6AD | #767D84 | #5E646A | #484E54 | #2C3137 | **#1A1F25** | #0D1217 |
+| `spark` | #FEF3FE | #FFE3FD | #FAC8F7 | #EBA5E8 | **#D27ED0** | **#B55BB3** | #934791 | #773A75 | #5A2A59 | #3F1B3E | #260D25 |
 | `green` | #ECFCEF | #D9F5DF | #BAE8C5 | #90D3A2 | #63B77C | #39995B | #137D41 | #026732 | #034D25 | #013517 | #001F0A |
 | `amber` | #FFF5EA | #FFE9CF | #FBD3A2 | #EEB56C | #D6912B | #B27406 | #905C01 | #754B04 | #593700 | #3E2500 | #261400 |
 | `red` | #FEF4F3 | #FDE7E4 | #FFCDC8 | #FEA69E | #FC6E68 | #DE4544 | #BE222A | #A20419 | #7C0110 | #580007 | #370003 |
 | `blue` | #F1F8FE | #E0EFFF | #C0DEFF | #90C6FE | #64A6E9 | #3E87CE | #1F6CB0 | #075796 | #004174 | #002C52 | #001934 |
 
-`brand-600` is the brand colour. Plus `white` (#FFFFFF).
+Plus `white` (#FFFFFF). There is no `brand` ramp: the brand is the ink and the spark, each with its own role (§5). The status ramps are unchanged from *Sea*.
 
 ### Component tokens (locked)
 
@@ -149,6 +149,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `table-row-padding-block` | 14px | Table |
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
+| `skeleton` | light `n-200` · dark `n-800`: the `hover` fill's steps, a different meaning | Skeleton's fill: a loading placeholder seen on `card` and `background` (§5, *Verified*) |
 | `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
 | `chart-height-md` · `chart-height-sm` | 200px · 120px | BarChart's two sizes: a chart of its own, and one beside others |
 | `refreshing` | opacity 0.6 | Refreshing and DataTable's `refreshing`: the rows or cards shown while the next page or filter loads over them |
@@ -160,7 +161,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 
 ## 5. Semantic roles
 
-Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`.
+Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`. A state takes its surface's text: `primary-hover` (its text `primary-foreground`) and `hover-on-muted` (over a muted ground, the control's `foreground`) have none, and `spark` carries no text (a count on it is `sidebar-primary`, whose `-foreground` is verified).
 
 ### Surfaces and text
 | Role | Purpose |
@@ -172,13 +173,18 @@ Names follow shadcn/ui's convention so copied components work unchanged, plus Ma
 | `border` | Default borders and dividers |
 | `input` | Form control borders |
 | `ring` | Focus indicator (one focus style for the whole system) |
+| `scrim` / `scrim-foreground` | Text laid over a photo, such as the photo grid's «+N»: the ink at 70% (light) or its light end at 70% (dark) |
 
 ### Actions
 | Role | Purpose |
 |---|---|
-| `primary` / `primary-foreground` | Main action, links, selected state, the brand accent |
+| `primary` / `primary-foreground` | The **ink**: main action, links, checked and active controls |
+| `primary-hover` | The ink's hover: `primary` mixed 18% toward the page, as the ink and the text are one colour |
 | `secondary` / `secondary-foreground` | Secondary actions |
-| `accent` / `accent-foreground` | Hover and highlighted rows or items |
+| `accent` / `accent-foreground` | **Selected**, the spark's tint: a chip that is on, the current item, today's row, the inside of a range |
+| `hover` / `hover-foreground` | **Hover**, a neutral fill of its own: a hovered row, item, card or outline and ghost control; never the spark |
+| `hover-on-muted` | The hover of a control drawn on a `muted` or `secondary` ground: an ink wash, where an opaque fill would vanish |
+| `spark` | **What matters now**, sparingly: a fill, an edge, an outline or a mark. It has no text utility: only `bg-spark`, `border-spark`, `outline-spark` and `fill-spark` exist |
 | `destructive` / `destructive-foreground` | Delete, deactivate, errors |
 
 ### Status (Masaha additions)
@@ -199,7 +205,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 ### Data visualisation
 `chart-1` … `chart-5` — for finance and statistics (income by month, visits and subscriptions; occupancy by hour and by day).
 
-### Values (locked — *Sea*)
+### Values (locked — *ink + berry*)
 
 | Role | Light | Dark |
 |---|---|---|
@@ -209,10 +215,15 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `muted` / `muted-foreground` | n-100 / n-600 | n-800 / n-400 |
 | `border` | n-200 | n-800 |
 | `input` | n-500 | n-500 |
-| `ring` | b-500 | b-400 |
-| `primary` / `primary-foreground` | b-600 / white | b-400 / b-950 |
+| `ring` | n-900 | n-50 |
+| `primary` / `primary-foreground` | n-900 / white | n-50 / n-950 |
+| `primary-hover` | n-900 mixed 18% toward n-50 (OKLab) | n-50 mixed 18% toward n-950 (OKLab) |
 | `secondary` / `secondary-foreground` | n-100 / n-900 | n-800 / n-100 |
-| `accent` / `accent-foreground` | b-50 / b-800 | b-900 / b-100 |
+| `accent` / `accent-foreground` | s-100 / n-900 | s-900 mixed 30% toward s-800 (OKLab) / n-50 |
+| `hover` / `hover-foreground` | n-200 / n-900 | n-800 / n-50 |
+| `hover-on-muted` | n-900 at 10% | n-50 at 8% |
+| `spark` | s-500 | s-400 |
+| `scrim` / `scrim-foreground` | n-900 at 70% / n-50 | n-50 at 70% / n-950 |
 | `destructive` / `-foreground` | r-600 / white | r-400 / r-950 |
 | `destructive-subtle` / `-foreground` | r-50 / r-800 | r-950 / r-200 |
 | `success` / `-foreground` | g-600 / white | g-400 / g-950 |
@@ -222,14 +233,23 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `info` / `-foreground` | i-600 / white | i-400 / i-950 |
 | `info-subtle` / `-foreground` | i-50 / i-800 | i-950 / i-200 |
 | `sidebar` / `sidebar-foreground` | white / n-700 | n-900 / n-300 |
-| `sidebar-primary` / `-foreground` | b-600 / white | b-400 / b-950 |
-| `sidebar-accent` / `-foreground` | b-50 / b-800 | n-800 / n-50 |
-| `sidebar-border` / `sidebar-ring` | n-200 / b-500 | n-800 / b-400 |
-| `chart-1` … `chart-5` | b-600 · i-600 · a-500 · g-500 · n-500 | b-400 · i-400 · a-400 · g-400 · n-500 |
+| `sidebar-primary` / `-foreground` | s-500 / n-950 | s-400 / n-950 |
+| `sidebar-accent` / `-foreground` | s-100 / n-900 | as `accent` / n-50 |
+| `sidebar-border` / `sidebar-ring` | n-200 / n-900 | n-800 / n-50 |
+| `chart-1` … `chart-5` | s-500 · i-600 · a-500 · g-500 · n-500 | s-400 · i-400 · a-400 · g-400 · n-500 |
 
-**Verified:** every `-foreground` on its surface, and `muted-foreground`, `primary`, `destructive`, `success` and `info` as text on `background`, `card` and `muted`, and `foreground` and `muted-foreground` on `accent` (a highlighted table row), meet 4.5:1 in both themes. `input`, `ring`, every `chart-*` and the status fills meet 3:1 against `background` and `card`. The layer's contrast test re-checks these pairs.
+A role "at 10%" is the colour mixed with transparent in OKLab, so it lies over its ground. Every mix of the tokens is written in OKLab: in OKLCH Chrome treats a near-grey's hue as missing, so a mix of the ink's neutrals would paint a warm grey (2026-11-12, #144).
+
+**Verified** by the layer's token test, in both themes, translucent roles composited over their ground as painted:
+- **Text, 4.5:1:** every `-foreground` on its surface; `muted-foreground`, `primary`, `destructive`, `success` and `info` on `background`, `card` and `muted`; `foreground` and `muted-foreground` on the selected tints (`accent`, `sidebar-accent`); `muted-foreground` and `sidebar-foreground` on `hover`; `primary-foreground` on `primary-hover`; `foreground` on `hover-on-muted` over `muted`; `scrim-foreground` on `scrim` over a photo's white and its black.
+- **Non-text, 3:1:** `input`, `ring`, every `chart-*` and the status fills on `background` and `card`; the `spark` on `background`, `card`, `popover`, `sidebar` and the selected tints; `ring` on `muted`, the tints and `hover`.
+- **Fills seen:** `hover` at 1.2:1 from `card`, `background`, `popover` and `sidebar`; `hover-on-muted` from `muted`, and the `skeleton` from `card` and `background`, at 1.2:1; the selected tints at 1.15:1 from `card` and `sidebar` (a second mark or a word carries the rest).
+- **Apart:** `hover` is not the selected tint (OKLab ΔE ≥ 0.02); the ink and the spark stand ΔE ≥ 0.10 from `destructive`, and ≥ 0.08 under simulated protanopia and deuteranopia; in dark the tints stand ΔE ≥ 0.10 from `destructive-subtle`, and `destructive` keeps a red's hue (OKLCH 15–45°).
+- **The identity's colours** that the logo's files write by hand: light `background` #F7FBFF, `foreground` #1A1F25, `spark` #B55BB3; dark #0D1217, #F7FBFF, #D27ED0.
 
 **Usage rules the values depend on:**
+- **The spark is never text, never on an action, never destructive.** It marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words.
+- **Text over a photo** sits on `scrim` with `scrim-foreground`, never on an opacity of another role.
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
 - **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
@@ -516,10 +536,10 @@ Steps 3–4 make the design and the code share one design system, so what is des
 
 | # | Decision | Status |
 |---|---|---|
-| 1 | Brand colour and full palette | **Settled** — *Sea*, petrol teal `brand-600` (§4, §5) |
+| 1 | Brand colour and full palette | **Settled** — *ink + berry spark* ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)): the ink `neutral-900` / `neutral-50`, the spark `spark-500` / `spark-400` (§4, §5) |
 | 2 | Font family | **Settled** — IBM Plex Sans Arabic (§7) |
 | 3 | Radius style and density | **Settled** — soft (8px base) and comfortable (40px controls) (§4, §5) |
 | 4 | Icon library | **Settled** — Lucide |
 | 5 | Logo / wordmark for «مساحة» / Masaha | **Open** — the directions used a placeholder mark; decided during Step 5 |
 
-The other directions explored (*1b Dusk*: compact indigo; *1c Ink*: warm monochrome, round) are not carried forward.
+*1a Sea*, the first direction, set the type, the radius and the density; its petrol teal gave way to ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)). The other directions explored (*1b Dusk*: compact indigo; *1c Ink*: warm monochrome, round) are not carried forward.
