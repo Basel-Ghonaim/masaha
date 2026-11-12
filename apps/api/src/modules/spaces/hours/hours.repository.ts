@@ -48,6 +48,24 @@ export function createHoursRepository() {
       return new Map([...bySpace].map(([spaceId, days]) => [spaceId, toWeek(days)]));
     },
 
+    /** Whether the owner declares the space works in the evening (E4). */
+    async worksEveningsOf(spaceId: number, tx: Tx = prisma): Promise<boolean> {
+      const space = await tx.space.findUniqueOrThrow({
+        where: { id: spaceId },
+        select: { worksEvenings: true },
+      });
+      return space.worksEvenings;
+    },
+
+    /** Sets the evening switch, part of the hours group. */
+    async setWorksEvenings(spaceId: number, worksEvenings: boolean, tx: Tx): Promise<void> {
+      await tx.space.update({
+        where: { id: spaceId },
+        data: { worksEvenings },
+        select: { id: true },
+      });
+    },
+
     /** Replaces the week, one statement at a time (finding 11). */
     async replace(spaceId: number, days: readonly (OpeningRange | null)[], tx: Tx): Promise<void> {
       await tx.spaceHours.deleteMany({ where: { spaceId } });

@@ -1,8 +1,9 @@
-import type { OpeningRange } from '@masaha/shared/spaces';
+import type { OpeningRange, SpaceHours } from '@masaha/shared/spaces';
 import { toast } from '@shared/design-system';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
 import { bodyOf, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { findToast } from '../../../../test/findToast';
@@ -18,6 +19,9 @@ import { startPreferences } from '../../../../test/startPreferences';
 
 const DAY: OpeningRange = { opensMinute: 480, closesMinute: 1080 };
 const SHIFTS = SPACE.hours?.shifts ?? [];
+const HOURS = SPACE.hours as SpaceHours;
+/** The space with its evening switch on, its days as saved (08:00–18:00, no evening). */
+const EVENING = { ...SPACE, hours: { ...HOURS, worksEvenings: true } };
 
 // A Sheet's lists draw every option each time one opens (the time lists hold 48 half hours), which
 // jsdom is slow at: a test that chooses several times outlasts 5 s on a busy machine, so this file
@@ -91,6 +95,7 @@ describe('the opening hours’ Sheet', () => {
     ]);
     expect(bodyOf(writes()[0])).toEqual({
       days: [late, late, late, late, late, { opensMinute: 780, closesMinute: 1200 }, late],
+      worksEvenings: false,
       shifts: SHIFTS,
     });
     await waitFor(() => {
@@ -116,7 +121,7 @@ describe('the opening hours’ Sheet', () => {
     const user = userEvent.setup({ delay: null });
     const shortThursday = [DAY, DAY, DAY, DAY, { opensMinute: 480, closesMinute: 840 }, null, DAY];
     renderProfile({
-      read: () => ok({ ...SPACE, hours: { days: shortThursday, shifts: SHIFTS } }),
+      read: () => ok({ ...SPACE, hours: { ...HOURS, days: shortThursday, shifts: SHIFTS } }),
     });
     const sheet = await openHours(user);
 
@@ -176,7 +181,10 @@ describe('the opening hours’ Sheet', () => {
     const user = userEvent.setup({ delay: null });
     const { writes } = renderProfile({
       read: () =>
-        ok({ ...SPACE, hours: { days: [DAY, DAY, DAY, DAY, DAY, null, DAY], shifts: [] } }),
+        ok({
+          ...SPACE,
+          hours: { ...HOURS, days: [DAY, DAY, DAY, DAY, DAY, null, DAY], shifts: [] },
+        }),
     });
     const sheet = await openHours(user);
     await user.click(within(sheet).getByRole('button', { name: 'Set each day' }));
@@ -205,7 +213,9 @@ describe('the opening hours’ Sheet', () => {
         reads += 1;
         const days = SPACE.hours?.days ?? [];
         return ok(
-          reads === 1 ? SPACE : { ...SPACE, hours: { days, shifts: [...SHIFTS, evening] } },
+          reads === 1
+            ? SPACE
+            : { ...SPACE, hours: { ...HOURS, days, shifts: [...SHIFTS, evening] } },
         );
       },
       write: () => ok(SPACE),
@@ -261,7 +271,141 @@ describe('the opening hours’ Sheet', () => {
     await waitFor(() => {
       expect(writes()).toHaveLength(1);
     });
-    expect(bodyOf(writes()[0])).toEqual({ days: [DAY, DAY, DAY, DAY, DAY, null, DAY], shifts: [] });
+    expect(bodyOf(writes()[0])).toEqual({
+      days: [DAY, DAY, DAY, DAY, DAY, null, DAY],
+      worksEvenings: false,
+      shifts: [],
+    });
+  });
+});
+
+describe('the evening box (E6) and its hint (E9)', () => {
+  const box = (sheet: HTMLElement) =>
+    within(sheet).getByRole('checkbox', { name: 'The space works in the evening' });
+  const HINT = 'Evening hours are on, but the opening hours don’t go past 18:00 on any day.';
+
+  it('opens on the saved switch, and sends the switch alone as a change, the week and shifts as saved', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ write: () => ok(EVENING) });
+    const sheet = await openHours(user);
+    expect(box(sheet)).not.toBeChecked();
+    expect(box(sheet)).toHaveAccessibleDescription(
+      'Visitors see “Evening hours”; the opening hours above set until when the space stays open.',
+    );
+
+    await user.click(box(sheet));
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    expect(await findToast('Opening hours saved — visitors see it now')).toBeInTheDocument();
+    expect(bodyOf(writes()[0])).toEqual({ days: HOURS.days, worksEvenings: true, shifts: SHIFTS });
+  });
+
+  it('opens ticked on a saved switch, and unticked sends it off', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ read: () => ok(EVENING), write: () => ok(SPACE) });
+    const sheet = await openHours(user);
+    expect(box(sheet)).toBeChecked();
+
+    await user.click(box(sheet));
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toMatchObject({ worksEvenings: false });
+  });
+
+  it('says the hint while ticked and no day closes after 18:00, never holding the save', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ write: () => ok(EVENING) });
+    const sheet = await openHours(user);
+    const status = within(sheet).getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+
+    await user.click(box(sheet));
+    expect(status).toHaveTextContent(HINT);
+    await choose(user, sheet, 'To', '18:30');
+    expect(status).toBeEmptyDOMElement();
+    await choose(user, sheet, 'To', '18:00');
+    expect(status).toHaveTextContent(HINT);
+
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+  });
+
+  it('says the box and the hint in Arabic, with no detectable accessibility violations', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup({ delay: null });
+    renderProfile();
+    await user.click(await screen.findByRole('button', { name: 'تعديل ساعات العمل' }));
+    const sheet = sheetOf('تعديل ساعات العمل');
+
+    await user.click(within(sheet).getByRole('checkbox', { name: 'المساحة تعمل مساءً' }));
+
+    expect(within(sheet).getByRole('status')).toHaveTextContent(
+      'شغّلت الدوام المسائي، لكن ساعات العمل لا تمتد بعد 18:00 في أي يوم.',
+    );
+    expect(await axe(document.body)).toHaveNoViolations();
+  });
+});
+
+describe('the evening in the hours’ view', () => {
+  it('says «دوام مسائي» and the hint while the switch is on and the days end early', async () => {
+    renderProfile({ read: () => ok(EVENING) });
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    const hours = sectionOf('Opening hours');
+
+    expect(within(hours).getByText('Evening hours')).toBeInTheDocument();
+    expect(
+      within(hours).getByText(
+        'Evening hours are on, but the opening hours don’t go past 18:00 on any day.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says only «دوام مسائي» once a day closes after 18:00, and nothing with the switch off', async () => {
+    const late = { opensMinute: 480, closesMinute: 1320 };
+    const { unmount } = renderProfile({
+      read: () =>
+        ok({
+          ...SPACE,
+          hours: { ...HOURS, days: [late, DAY, DAY, DAY, DAY, null, DAY], worksEvenings: true },
+        }),
+    });
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    expect(within(sectionOf('Opening hours')).getByText('Evening hours')).toBeInTheDocument();
+    expect(within(sectionOf('Opening hours')).queryByText(/past 18:00/)).toBeNull();
+    unmount();
+
+    renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    expect(within(sectionOf('Opening hours')).queryByText('Evening hours')).toBeNull();
+  });
+
+  it('says «دوام مسائي» but no hint on the admin’s page of a verified space, which it cannot edit (X5)', async () => {
+    renderProfile({ read: () => ok({ ...EVENING, isVerified: true }) });
+    await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    const hours = sectionOf('Opening hours');
+
+    expect(within(hours).queryByRole('button', { name: 'Edit Opening hours' })).toBeNull();
+    expect(within(hours).getByText('Evening hours')).toBeInTheDocument();
+    expect(within(hours).queryByText(/past 18:00/)).toBeNull();
+  });
+
+  it('says it in Arabic, with no detectable accessibility violations', async () => {
+    startPreferences('ar');
+    const { container } = renderProfile({ read: () => ok(EVENING) });
+    await screen.findByRole('heading', { level: 2, name: 'ساعات العمل' });
+
+    expect(within(sectionOf('ساعات العمل')).getByText('دوام مسائي')).toBeInTheDocument();
+    expect(
+      within(sectionOf('ساعات العمل')).getByText(
+        'شغّلت الدوام المسائي، لكن ساعات العمل لا تمتد بعد 18:00 في أي يوم.',
+      ),
+    ).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
 
@@ -271,9 +415,9 @@ describe('the shifts’ Sheet', () => {
     return sheetOf('Edit the shifts');
   }
 
-  it('sends the saved week unchanged with the shifts, ids kept and English names (X1)', async () => {
+  it('sends the saved week and evening switch unchanged with the shifts, ids kept and English names (X1)', async () => {
     const user = userEvent.setup({ delay: null });
-    const { writes } = renderProfile({ write: () => ok(SPACE) });
+    const { writes } = renderProfile({ read: () => ok(EVENING), write: () => ok(EVENING) });
     const sheet = await openShifts(user);
 
     await user.click(within(sheet).getByRole('button', { name: 'Add a shift' }));
@@ -286,6 +430,7 @@ describe('the shifts’ Sheet', () => {
     expect(await findToast('Shifts saved — visitors see it now')).toBeInTheDocument();
     expect(bodyOf(writes()[0])).toEqual({
       days: SPACE.hours?.days,
+      worksEvenings: true,
       shifts: [
         { id: 21, nameAr: 'الصباحية', nameEn: 'Morning', startsMinute: 480, endsMinute: 780 },
         { nameAr: 'المسائية', nameEn: 'Evening', startsMinute: 780, endsMinute: 1080 },
@@ -302,7 +447,7 @@ describe('the shifts’ Sheet', () => {
     const { writes } = renderProfile({
       read: () => {
         reads += 1;
-        return ok(reads === 1 ? SPACE : { ...SPACE, hours: { days, shifts: SHIFTS } });
+        return ok(reads === 1 ? SPACE : { ...SPACE, hours: { ...HOURS, days, shifts: SHIFTS } });
       },
       write: () => ok(SPACE),
     });
@@ -385,7 +530,7 @@ describe('the shifts’ Sheet', () => {
   it('opens with one row to fill when there is none', async () => {
     const user = userEvent.setup({ delay: null });
     renderProfile({
-      read: () => ok({ ...SPACE, hours: { days: SPACE.hours?.days ?? [], shifts: [] } }),
+      read: () => ok({ ...SPACE, hours: { ...HOURS, days: SPACE.hours?.days ?? [], shifts: [] } }),
     });
     await user.click(await screen.findByRole('button', { name: 'Add a shift' }));
 

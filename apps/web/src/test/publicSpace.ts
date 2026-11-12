@@ -17,6 +17,7 @@ export function publicSpace(change: Partial<PublicSpace> = {}): PublicSpace {
     location: { lat: 31.52, lng: 34.45 },
     isVerified: true,
     hours: {
+      worksEvenings: false,
       days: [
         { opensMinute: 480, closesMinute: 1320 },
         { opensMinute: 480, closesMinute: 1320 },

@@ -166,6 +166,7 @@ describe('SpaceDetails', () => {
       1440,
       publicSpace({
         hours: {
+          worksEvenings: false,
           days: [
             { opensMinute: 480, closesMinute: 1320 },
             { opensMinute: 480, closesMinute: 1320 },

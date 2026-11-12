@@ -43,7 +43,11 @@ function manage(
   return body ? call.send(body) : call;
 }
 
-const hours = { days: [null, null, null, null, null, null, null], shifts: [] };
+const hours = {
+  days: [null, null, null, null, null, null, null],
+  shifts: [],
+  worksEvenings: false,
+};
 const factRoutes = [
   { suffix: '/hours', body: hours },
   { suffix: '/prices', body: { prices: [] } },
@@ -219,6 +223,7 @@ describe('the managed read and its races', () => {
       hours: {
         days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
         shifts: [],
+        worksEvenings: false,
       },
       prices: [],
       amenityIds: [],

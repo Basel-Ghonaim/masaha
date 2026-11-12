@@ -1366,7 +1366,8 @@ OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after 
 Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: number, endsMinute: number }
 SpaceHours = {
   days: (OpeningRange | null)[],   // 7: Sunday (0) … Saturday (6); null = closed
-  shifts: Shift[]
+  shifts: Shift[],
+  worksEvenings: boolean           // the owner's evening switch; `days` say until when (2026-11-12, #145)
 }
 Price = {
   period: "HOUR" | "DAY" | "WEEK" | "MONTH",    // PRICE_PERIODS
@@ -1436,10 +1437,11 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/hours` · 🛡
-- **Body:** `{ days, shifts }`, the hours and the shifts, saved together:
+- **Body:** `{ days, shifts, worksEvenings }`, the hours, the shifts and the evening switch, saved together:
   - `days`: exactly 7, Sunday first; each `null` (closed) or `{ opensMinute, closesMinute }`, integers with `0 ≤ opensMinute < closesMinute ≤ 1440` (`out_of_range` on `closesMinute`). A day open around the clock is `0`–`1440`; no range runs past midnight;
-  - `shifts`: at most 10, each `{ id?, nameAr, nameEn?, startsMinute, endsMinute }`: `nameAr` required and `nameEn` optional, 1–40 characters each, as the profile's texts; `startsMinute < endsMinute` within the day (`out_of_range` on `endsMinute`); inside the range of at least one open day (`errors["shifts.<i>"] = ["out_of_range"]`); an Arabic name or an `id` repeated is `not_unique`.
-- **200:** `AdminSpace`. A shift with an `id` is that shift, updated and keeping its id; one without is new; a shift left out is removed. Audited `space.hoursEdited` (`before` and `after`: `{ days, shifts }`).
+  - `shifts`: at most 10, each `{ id?, nameAr, nameEn?, startsMinute, endsMinute }`: `nameAr` required and `nameEn` optional, 1–40 characters each, as the profile's texts; `startsMinute < endsMinute` within the day (`out_of_range` on `endsMinute`); inside the range of at least one open day (`errors["shifts.<i>"] = ["out_of_range"]`); an Arabic name or an `id` repeated is `not_unique`;
+  - `worksEvenings`: a boolean, required (`required`, `invalid_format`), so a client that leaves it out never turns it off (2026-11-12, #145).
+- **200:** `AdminSpace`. A shift with an `id` is that shift, updated and keeping its id; one without is new; a shift left out is removed. The switch alone changed is a change. Audited `space.hoursEdited` (`before` and `after`: `{ days, shifts, worksEvenings }`).
 - **Errors:** `validation` (422), with `invalid_choice` on `shifts.<i>.id` for an id that is not one of the space's shifts; `conflict` (409), with no code, when a shift left out is still used by a price, a package, a subscription or a visit: nothing is written, and the price is changed first; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/prices` · 🛡

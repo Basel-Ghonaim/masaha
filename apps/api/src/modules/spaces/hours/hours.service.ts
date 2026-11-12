@@ -11,8 +11,8 @@ import { createHoursRepository } from './hours.repository.ts';
 import { shiftChanges } from './shiftChanges.ts';
 import { createShiftsRepository } from './shifts.repository.ts';
 
-/** The hours as an audit entry records them: the whole week and every shift. */
-function hoursValues({ days, shifts }: SpaceHours): AuditValues {
+/** The hours as an audit entry records them: the whole week, every shift and the evening switch. */
+function hoursValues({ days, shifts, worksEvenings }: SpaceHours): AuditValues {
   return {
     days: days.map(
       (day) => day && { opensMinute: day.opensMinute, closesMinute: day.closesMinute },
@@ -24,11 +24,12 @@ function hoursValues({ days, shifts }: SpaceHours): AuditValues {
       startsMinute: shift.startsMinute,
       endsMinute: shift.endsMinute,
     })),
+    worksEvenings,
   };
 }
 
 /** The request in the hours' own shape, to compare with what is stored. */
-function asStored({ days, shifts }: UpdateSpaceHoursRequest) {
+function asStored({ days, shifts, worksEvenings }: UpdateSpaceHoursRequest) {
   return {
     days,
     shifts: shifts.map((shift) => ({
@@ -38,12 +39,14 @@ function asStored({ days, shifts }: UpdateSpaceHoursRequest) {
       startsMinute: shift.startsMinute,
       endsMinute: shift.endsMinute,
     })),
+    worksEvenings,
   };
 }
 
 /**
- * The opening hours with the shifts, saved together and whole (decisions F1, F3). Each shift the
- * request names keeps its id; a shift it leaves out is removed, unless something uses it (F5).
+ * The opening hours with the shifts and the evening switch, saved together and whole (decisions F1,
+ * F3, E4). Each shift the request names keeps its id; a shift it leaves out is removed, unless
+ * something uses it (F5).
  */
 export function createHoursService(dependencies: GroupEditDependencies) {
   const editGroup = createGroupEdit(dependencies);
@@ -52,13 +55,17 @@ export function createHoursService(dependencies: GroupEditDependencies) {
 
   async function read(spaceId: number, tx: Tx): Promise<SpaceHours> {
     const days = await hours.listFor(spaceId, tx);
-    return { days: days ?? [], shifts: await shifts.listFor(spaceId, tx) };
+    return {
+      days: days ?? [],
+      shifts: await shifts.listFor(spaceId, tx),
+      worksEvenings: await hours.worksEveningsOf(spaceId, tx),
+    };
   }
 
   return {
     /**
-     * Replaces the week and the shifts. A save that changes nothing writes nothing, unless the hours
-     * were never saved: their first save dates them.
+     * Replaces the week, the shifts and the evening switch. A save that changes nothing writes
+     * nothing, unless the hours were never saved: their first save dates them.
      */
     update(
       actor: Actor,
@@ -80,6 +87,7 @@ export function createHoursService(dependencies: GroupEditDependencies) {
         // One statement at a time (finding 11). A shift still in use refuses its removal after the
         // week is written: the transaction takes both back.
         await hours.replace(space.id, request.days, tx);
+        await hours.setWorksEvenings(space.id, request.worksEvenings, tx);
         if ((await shifts.remove(space.id, changes.remove, tx)) === 'inUse') {
           throw AppError.conflict(undefined, 'A shift the request leaves out is still in use');
         }

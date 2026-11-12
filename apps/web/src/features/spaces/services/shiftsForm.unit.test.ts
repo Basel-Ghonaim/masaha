@@ -13,7 +13,7 @@ const MORNING: Shift = {
   startsMinute: 480,
   endsMinute: 780,
 };
-const HOURS: SpaceHours = { days: WEEK, shifts: [MORNING] };
+const HOURS: SpaceHours = { days: WEEK, shifts: [MORNING], worksEvenings: false };
 
 describe('shiftsValues and newShift', () => {
   it('holds the saved shifts, a missing English name as empty', () => {
@@ -25,7 +25,7 @@ describe('shiftsValues and newShift', () => {
   it('opens on one new shift with no saved one, the first open day’s hours, Saturday first', () => {
     const saturdayLate = [DAY, DAY, DAY, DAY, DAY, null, { opensMinute: 600, closesMinute: 1200 }];
 
-    expect(shiftsValues({ days: saturdayLate, shifts: [] })).toEqual({
+    expect(shiftsValues({ days: saturdayLate, shifts: [], worksEvenings: false })).toEqual({
       shifts: [{ id: null, nameAr: '', nameEn: '', startsMinute: 600, endsMinute: 1200 }],
     });
     expect(newShift(HOURS)).toMatchObject({ id: null, startsMinute: 480, endsMinute: 1080 });
@@ -33,7 +33,7 @@ describe('shiftsValues and newShift', () => {
 });
 
 describe('shiftsInput', () => {
-  it('sends the week as saved, a saved shift by its id, a blank English name as none (X1)', () => {
+  it('sends the week and the evening switch as saved, a saved shift by its id, a blank English name as none (X1)', () => {
     expect(
       shiftsInput(
         {
@@ -42,10 +42,11 @@ describe('shiftsInput', () => {
             { id: null, nameAr: 'المسائية', nameEn: ' ', startsMinute: 780, endsMinute: 1080 },
           ],
         },
-        WEEK,
+        { days: WEEK, worksEvenings: true },
       ),
     ).toEqual({
       days: WEEK,
+      worksEvenings: true,
       shifts: [
         { id: 21, nameAr: 'الصباحية', nameEn: 'Morning', startsMinute: 480, endsMinute: 780 },
         { nameAr: 'المسائية', nameEn: null, startsMinute: 780, endsMinute: 1080 },

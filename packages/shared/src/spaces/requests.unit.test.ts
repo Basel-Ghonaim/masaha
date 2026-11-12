@@ -79,9 +79,11 @@ describe('updateSpaceHoursSchema', () => {
   const DAYS = [OPEN, OPEN, OPEN, OPEN, OPEN, null, { opensMinute: 0, closesMinute: 1440 }];
   const MORNING = { nameAr: 'صباحية', nameEn: 'Morning', startsMinute: 480, endsMinute: 780 };
 
+  /** The field errors of an hours body, the evening switch off unless the body says. */
   function hoursErrors(body: object) {
-    const result = updateSpaceHoursSchema.safeParse(body);
-    return result.success ? null : toFieldErrors(result.error.issues, body);
+    const request = { worksEvenings: false, ...body };
+    const result = updateSpaceHoursSchema.safeParse(request);
+    return result.success ? null : toFieldErrors(result.error.issues, request);
   }
 
   it('takes seven days, each closed or one range, a day around the clock among them, and its shifts', () => {
@@ -91,10 +93,21 @@ describe('updateSpaceHoursSchema', () => {
         { ...MORNING, id: 4 },
         { ...MORNING, nameAr: 'مسائية', nameEn: null, startsMinute: 780, endsMinute: 1080 },
       ],
+      worksEvenings: true,
     };
 
     expect(updateSpaceHoursSchema.parse(body)).toEqual(body);
     expect(hoursErrors({ days: DAYS, shifts: [] })).toBeNull();
+  });
+
+  it('wants the evening switch, a boolean, whatever the week', () => {
+    expect(hoursErrors({ days: DAYS, shifts: [], worksEvenings: undefined })).toEqual({
+      worksEvenings: ['required'],
+    });
+    expect(hoursErrors({ days: DAYS, shifts: [], worksEvenings: 'yes' })).toEqual({
+      worksEvenings: ['invalid_format'],
+    });
+    expect(hoursErrors({ days: DAYS, shifts: [], worksEvenings: true })).toBeNull();
   });
 
   it('wants exactly seven days', () => {

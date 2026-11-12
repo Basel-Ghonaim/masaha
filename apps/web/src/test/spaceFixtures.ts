@@ -37,6 +37,7 @@ export const SPACE: AdminSpace = {
   staleGroups: [],
   missingGroups: [],
   hours: {
+    worksEvenings: false,
     days: [
       { opensMinute: 480, closesMinute: 1080 },
       { opensMinute: 480, closesMinute: 1080 },

@@ -20,7 +20,8 @@ import { TimeSelect } from './TimeSelect';
 /**
  * «ساعات العمل»'s Sheet (W2–W5): the simple view — Saturday to Thursday, Friday's box and its own
  * range, «تخصيص الأيام» — or every day a block, its switch and its two times, with the way back to
- * the simple view, which asks first when the days differ.
+ * the simple view, which asks first when the days differ; under either, the evening's box and its
+ * hint (E6, E9).
  */
 export function HoursSheet({ host }: { host: SectionHost }) {
   const view = useHoursSheet(host);
@@ -127,6 +128,23 @@ export function HoursSheet({ host }: { host: SectionHost }) {
           </div>
         </>
       )}
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <Field label={view.evening.label} helper={view.evening.help} orientation="horizontal">
+          <Checkbox
+            checked={view.evening.checked}
+            onCheckedChange={(checked) => {
+              view.evening.toggle(checked === true);
+            }}
+          />
+        </Field>
+        <div role="status">
+          {view.evening.early && (
+            <p className="rounded-lg bg-warning-subtle px-3 py-2 text-body-sm text-warning-subtle-foreground">
+              {view.evening.early}
+            </p>
+          )}
+        </div>
+      </div>
       <AlertDialog
         open={view.unify.open}
         onOpenChange={(open) => {

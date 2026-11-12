@@ -36,8 +36,12 @@ beforeEach(async () => {
   await prisma.space.update({ where: { id: spaceId }, data: DATED });
 });
 
+/** Saves the hours as the admin, the evening switch off unless the body says. */
 function save(body: object, id = spaceId) {
-  return adminRequest(app, admin, 'put', `/spaces/${String(id)}/hours`, body);
+  return adminRequest(app, admin, 'put', `/spaces/${String(id)}/hours`, {
+    worksEvenings: false,
+    ...body,
+  });
 }
 
 function shift(nameAr: string, startsMinute: number, endsMinute: number, sortOrder = 0) {
@@ -46,8 +50,9 @@ function shift(nameAr: string, startsMinute: number, endsMinute: number, sortOrd
   });
 }
 
-/** What the database holds of the hours: the week, the shifts and the hours' date. */
+/** What the database holds of the hours: the week, the shifts, the switch and the hours' date. */
 async function stored() {
+  const space = await prisma.space.findUniqueOrThrow({ where: { id: spaceId } });
   return {
     days: await prisma.spaceHours.findMany({
       where: { spaceId },
@@ -59,8 +64,8 @@ async function stored() {
       orderBy: { id: 'asc' },
       select: { id: true, nameAr: true, startsMinute: true, endsMinute: true },
     }),
-    hoursUpdatedAt: (await prisma.space.findUniqueOrThrow({ where: { id: spaceId } }))
-      .hoursUpdatedAt,
+    worksEvenings: space.worksEvenings,
+    hoursUpdatedAt: space.hoursUpdatedAt,
   };
 }
 
@@ -94,6 +99,7 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
           endsMinute: 1080,
         },
       ],
+      worksEvenings: false,
     });
     expect(data.updatedAt).toEqual({
       profile: BEFORE.toISOString(),
@@ -114,12 +120,54 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
     ]);
   });
 
-  it('answers the hours in the space’s read', async () => {
-    await save({ days: WEEK, shifts: [] });
+  it('answers the hours in the space’s read, the evening switch with them', async () => {
+    await save({ days: WEEK, shifts: [], worksEvenings: true });
 
     const response = await adminRequest(app, admin, 'get', `/spaces/${String(spaceId)}`);
 
-    expect((dataOf(response) as { hours: unknown }).hours).toEqual({ days: WEEK, shifts: [] });
+    expect((dataOf(response) as { hours: unknown }).hours).toEqual({
+      days: WEEK,
+      shifts: [],
+      worksEvenings: true,
+    });
+  });
+
+  it('saves the evening switch alone: written, dated and audited, the week and the shifts kept', async () => {
+    const morning = await shift('صباحية', 480, 780);
+    const kept = { id: morning.id, nameAr: 'صباحية', startsMinute: 480, endsMinute: 780 };
+    await save({ days: WEEK, shifts: [kept] });
+    await prisma.space.update({ where: { id: spaceId }, data: { hoursUpdatedAt: BEFORE } });
+    const before = await stored();
+
+    const response = await save({ days: WEEK, shifts: [kept], worksEvenings: true });
+
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { hours: { worksEvenings: boolean } }).hours.worksEvenings).toBe(
+      true,
+    );
+    expect(await stored()).toEqual({
+      ...before,
+      worksEvenings: true,
+      hoursUpdatedAt: NOW,
+    });
+    const entries = await auditEntries();
+    expect(entries).toHaveLength(2);
+    expect(entries[1]).toMatchObject({
+      action: 'space.hoursEdited',
+      before: { days: WEEK, worksEvenings: false },
+      after: { days: WEEK, worksEvenings: true },
+    });
+  });
+
+  it('writes nothing for a week, its shifts and the switch as they are saved', async () => {
+    await save({ days: WEEK, shifts: [], worksEvenings: true });
+    await prisma.space.update({ where: { id: spaceId }, data: { hoursUpdatedAt: BEFORE } });
+
+    const repeat = await save({ days: WEEK, shifts: [], worksEvenings: true });
+
+    expect(repeat.status).toBe(200);
+    expect((await stored()).hoursUpdatedAt).toEqual(BEFORE);
+    expect((await auditEntries()).map(({ action }) => action)).toEqual(['space.hoursEdited']);
   });
 
   it('audits the hours before and after, whole, in one entry', async () => {
@@ -144,6 +192,7 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
           shifts: [
             { id: morning.id, nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 },
           ],
+          worksEvenings: false,
         },
         after: {
           days: WEEK,
@@ -156,6 +205,7 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
               endsMinute: 720,
             },
           ],
+          worksEvenings: false,
         },
       },
     ]);
@@ -246,7 +296,7 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
     const response = await request(app)
       .put(`/api/v1/manage/spaces/${String(spaceId)}/hours`)
       .set('Authorization', owner.authorization)
-      .send({ days: WEEK, shifts: [] });
+      .send({ days: WEEK, shifts: [], worksEvenings: false });
 
     expect(response.status).toBe(409);
     expect(errorOf(response).type).toBe('conflict');
@@ -303,7 +353,12 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
 
     expect(response.status).toBe(403);
     expect(errorOf(response).type).toBe('forbidden');
-    expect(await stored()).toEqual({ days: [], shifts: [], hoursUpdatedAt: BEFORE });
+    expect(await stored()).toEqual({
+      days: [],
+      shifts: [],
+      worksEvenings: false,
+      hoursUpdatedAt: BEFORE,
+    });
     expect(await auditEntries()).toEqual([]);
   });
 
@@ -323,7 +378,12 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
       const response = await pending;
 
       expect(response?.status).toBe(403);
-      expect(await stored()).toEqual({ days: [], shifts: [], hoursUpdatedAt: BEFORE });
+      expect(await stored()).toEqual({
+        days: [],
+        shifts: [],
+        worksEvenings: false,
+        hoursUpdatedAt: BEFORE,
+      });
       expect(await auditEntries()).toEqual([]);
     },
     RACE_TIMEOUT_MS,
