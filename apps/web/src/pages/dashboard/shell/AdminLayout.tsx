@@ -13,22 +13,21 @@ import { DashboardNavigation } from './DashboardNavigation';
 export function AdminLayout() {
   const copy = useCopy();
   const reportsForAdmin = useAdminReportsCount();
+  const tile = (
+    <span
+      aria-hidden
+      className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
+    >
+      {Array.from(copy.site.wordmark)[0]}
+    </span>
+  );
 
   return (
     <DashboardLayout
       label={copy.dashboard.adminNavigation}
       role={copy.users.roles.ADMIN}
       header={
-        <SidebarHeader
-          mark={
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
-            >
-              {Array.from(copy.site.wordmark)[0]}
-            </span>
-          }
-        >
+        <SidebarHeader mark={tile} logo={tile}>
           <span className="truncate text-label">{copy.site.wordmark}</span>
           <span className="truncate text-caption text-muted-foreground">
             {copy.dashboard.platformAdmin}

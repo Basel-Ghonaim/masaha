@@ -115,12 +115,17 @@ export function Sidebar({ label, className, children, ...props }: SidebarProps) 
 }
 
 export type SidebarHeaderProps = ComponentProps<'div'> & {
-  /** Always shown, also on the rail: the logo mark. */
+  /** The rail's: the logo's small mark. */
   mark: ReactNode;
+  /** Expanded and in the phone's drawer: the full logo. */
+  logo: ReactNode;
 };
 
-/** The logo mark and, beside it, the product name and area; on the rail, the mark alone. */
-export function SidebarHeader({ mark, className, children, ...props }: SidebarHeaderProps) {
+/**
+ * The logo and, beside it, the product's name and area; on the rail, the small mark alone, the
+ * name and area kept for assistive technology.
+ */
+export function SidebarHeader({ mark, logo, className, children, ...props }: SidebarHeaderProps) {
   const { mode } = useSidebar();
 
   return (
@@ -133,7 +138,7 @@ export function SidebarHeader({ mark, className, children, ...props }: SidebarHe
       )}
       {...props}
     >
-      {mark}
+      {mode === 'tablet' ? mark : logo}
       <div className={cn('flex min-w-0 flex-col', mode === 'tablet' && 'sr-only')}>{children}</div>
     </div>
   );

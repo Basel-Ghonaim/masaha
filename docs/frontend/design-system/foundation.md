@@ -77,7 +77,7 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker · Sortable |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
@@ -420,6 +420,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
 | FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
+| Logo | hand-built | Masaha's logo (§16), drawn inline on `foreground` and `spark`, so it follows the theme · `form="full"` («مساحة» over "MASAHA") or `"mark"` (the ة with its dots) · named by `label`, in the interface's language, as an image; without one it is decorative, hidden from assistive technology where its name is beside it · sized by its height (`h-10`, `size-9`), its width following the drawing · never mirrored · in the layer as the identity the tokens draw, not a domain concept (§2) |
 | Meter | hand-built | A share of a whole as a bar: a `muted` track 12px high, `radius-pill`, filled from the start side in `primary` or `warning` (`tone`) · `kind="meter"` (a measure, such as occupancy) or `"progress"` (a task on its way, such as a photo's upload), with `aria-valuemin/max/now`, an optional `valueText`, and named by `label` · the value kept inside 0…max; the fill's width is set inside the layer, so no page draws a bar |
 
 ### `data`
@@ -456,7 +457,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 |---|---|---|
 | Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
 | Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
-| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · `SidebarText` holds text beside a mark outside the menu, such as the space switcher's name, kept for assistive technology only on the rail · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
+| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · `SidebarHeader` takes the logo's `mark`, shown on the rail, and its full `logo`, shown expanded and in the drawer · `SidebarText` holds text beside a mark outside the menu, such as the space switcher's name, kept for assistive technology only on the rail · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 
 **Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, CustomerRow, AnnouncementBanner, VerifiedBadge (a Badge usage).
@@ -540,6 +541,19 @@ Steps 3–4 make the design and the code share one design system, so what is des
 | 2 | Font family | **Settled** — IBM Plex Sans Arabic (§7) |
 | 3 | Radius style and density | **Settled** — soft (8px base) and comfortable (40px controls) (§4, §5) |
 | 4 | Icon library | **Settled** — Lucide |
-| 5 | Logo / wordmark for «مساحة» / Masaha | **Open** — the directions used a placeholder mark; decided during Step 5 |
+| 5 | Logo / wordmark for «مساحة» / Masaha | **Settled** — the logo (§16) |
 
 *1a Sea*, the first direction, set the type, the radius and the density; its petrol teal gave way to ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)). The other directions explored (*1b Dusk*: compact indigo; *1c Ink*: warm monochrome, round) are not carried forward.
+
+---
+
+## 16. The logo
+
+The identity's mark, drawn with ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)) and settled with it (§15).
+
+- **Forms.** The full logo: «مساحة» over "MASAHA" in the ink, the ة's two dots in the spark. The small mark: the ة with its dots, square. The layer's `Logo` draws both, on `foreground` and `spark`, so it follows the theme (§12).
+- **Sizes.** Never under 36 px tall, the smallest the owner reviewed; the small mark from 16 px.
+- **Clear space.** 20% of its height on every side: 8 px around the 40 px logo.
+- **Never** mirrored (the same drawing in both directions), cropped, stretched, recoloured, or set on a photo without a plain ground.
+- **Its name** is «مساحة» / "Masaha" in the interface's language. Where the name is written beside it, the logo is decorative, so the name is read once.
+- **The source files**, the owner's: `docs/design/prototype/masaha/logo/` (`*-berry.svg`: the full logo, the mark and the app icon, light and dark).

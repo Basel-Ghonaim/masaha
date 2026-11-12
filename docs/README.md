@@ -73,7 +73,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
 ### `frontend/`
 - [architecture.md](frontend/architecture.md) — the four zones, dependency rule, capability layout, routing and role guards · read it when your task changes the web.
 - [localisation.md](frontend/localisation.md) — languages, direction, catalogues, formatting · read it when your task adds user-facing text, or shows a date, a number or a price.
-- [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens · read it when your task builds or changes UI.
+- [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens, the logo · read it when your task builds or changes UI.
 
 ### `design/` — the final screen designs
 - [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 33 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-33) to it · read it when your task builds a screen.
