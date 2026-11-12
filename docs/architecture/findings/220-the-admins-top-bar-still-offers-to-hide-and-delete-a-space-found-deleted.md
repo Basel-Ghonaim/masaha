@@ -1,0 +1,7 @@
+# 220. The admin's top bar still offers to hide and delete a space found deleted
+
+**Status:** Open · **Date:** 2026-11-12
+
+**Evidence:** seen in #143's fix round, in its run in Chrome: the admin's editor of an unverified space open in one tab, the space deleted from a second tab, then «حفظ» in the first. The page turns to the 404, «الصفحة غير موجودة», and the top bar above it still offers «إخفاء عن الزوار» and «حذف المساحة» (below 768 px, its «إجراءات الصفحة» menu) for the space just found deleted. `SpaceEditorActions` (`apps/web/src/features/spaces/components/editor/SpaceEditorActions.tsx`, in `SpaceEditPage`'s top bar) draws what `useSpaceEditorActions` (`apps/web/src/features/spaces/hooks/editor/useSpaceEditorActions.ts`) returns, and that hook returns the actions whenever the space's query (`useSpaceQuery('admin', spaceId)`) holds data: it returns none only while `query.data` is `undefined`. TanStack Query keeps a query's last data when a later read fails, so once the space answers 404 the query holds the error and the space read before it. The editor (`useSpaceEditor.ts`) and the page's title (`useSpaceName.ts`), in the same folder, read that 404 as the space being gone, whatever was read before; the actions' hook does not.
+
+**Resolves when:** the top bar's actions read a space found deleted as the editor and the title do, offering nothing once the space's read answers 404, with a test that draws them, answers 404 to a later read, and finds no action.
