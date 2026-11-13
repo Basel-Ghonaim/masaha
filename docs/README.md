@@ -58,6 +58,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
   - [0016](architecture/decisions/0016-dashboard-urls.md) dashboard URLs: the selected space is in the URL
   - [0017](architecture/decisions/0017-recovery-session.md) the recovery session: the server holds where a password recovery stands
   - [0018](architecture/decisions/0018-capability-documents.md) capability documents own each capability's application of the platform
+  - [0019](architecture/decisions/0019-ink-and-spark-brand.md) the brand: an ink for actions and a spark for what matters now
 - [documentation.md](architecture/documentation.md) — the documentation rules: one home per fact, what each kind of document owns, the classes, the capability documents' template, link integrity · read it when your task writes, moves or reviews documentation.
 - [shared-package.md](architecture/shared-package.md) — `packages/shared`, the web–API contract in code: its structure by capability and its rules · read it when your task adds or changes a request, a response, or a rule both apps compute.
 - [findings/](architecture/findings/README.md) — recorded divergences from the intended design, one file each, with an index by status · at the start of every Work Item, read the open findings' titles in the index, then open the file of each that may touch it ([workflow §4](development/workflow.md#4-scope-control)).
@@ -72,7 +73,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
 ### `frontend/`
 - [architecture.md](frontend/architecture.md) — the four zones, dependency rule, capability layout, routing and role guards · read it when your task changes the web.
 - [localisation.md](frontend/localisation.md) — languages, direction, catalogues, formatting · read it when your task adds user-facing text, or shows a date, a number or a price.
-- [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens · read it when your task builds or changes UI.
+- [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens, the logo · read it when your task builds or changes UI.
 
 ### `design/` — the final screen designs
 - [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 33 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-33) to it · read it when your task builds a screen.

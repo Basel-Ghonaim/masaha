@@ -844,6 +844,13 @@
           "value": 45
         }
       },
+      "logo": {
+        "title": "الشعار",
+        "name": "مساحة",
+        "fullCaption": "الشعار الكامل بارتفاع 40 بكسل، كما في رأس الموقع، واسمه «مساحة»",
+        "markCaption": "العلامة الصغيرة: 36 بكسل على الشريط المطوي، و16 بكسل كأيقونة المتصفح",
+        "decorativeCaption": "زخرفيّ حين يجاوره اسمه، فلا يُقرأ مرتين"
+      },
       "barChart": {
         "title": "المخطّط العمودي",
         "stackedCaption": "سلسلتان مكدّستان، بمفتاح الألوان",
@@ -1746,6 +1753,13 @@
           "label": "Uploading the space's photo",
           "value": 45
         }
+      },
+      "logo": {
+        "title": "Logo",
+        "name": "Masaha",
+        "fullCaption": "The full logo, 40 px tall as in the site’s header, named “Masaha”",
+        "markCaption": "The small mark: 36 px on the folded rail, and 16 px as the browser’s icon",
+        "decorativeCaption": "Decorative where its name is beside it, so it is not read twice"
       },
       "barChart": {
         "title": "Bar chart",

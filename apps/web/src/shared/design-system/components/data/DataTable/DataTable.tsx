@@ -305,6 +305,8 @@ function DataTableHead<TData extends RowData>({
   }
 
   const direction = column.getIsSorted();
+  // The header row is muted, where the neutral hover would vanish in dark: the sort button hovers
+  // with the ink's wash, its text the foreground.
   return (
     <TableHead
       colSpan={header.colSpan}
@@ -314,7 +316,7 @@ function DataTableHead<TData extends RowData>({
       <button
         type="button"
         onClick={column.getToggleSortingHandler()}
-        className="-mx-2 inline-flex h-7 items-center gap-1 rounded-sm px-2 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:size-3.5 [&_svg]:shrink-0"
+        className="-mx-2 inline-flex h-7 items-center gap-1 rounded-sm px-2 transition-colors hover:bg-hover-on-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:size-3.5 [&_svg]:shrink-0"
       >
         {content}
         <SortIcon direction={direction} />

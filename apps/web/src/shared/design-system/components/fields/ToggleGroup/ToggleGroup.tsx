@@ -39,16 +39,16 @@ export function ToggleGroup({
 export type ToggleGroupItemProps = ComponentProps<typeof ToggleGroupPrimitive.Item>;
 
 /**
- * One chip. When on, it takes the accent pair, a primary edge and a check at its start, so the
- * state never rests on colour alone. The edges are sampled from the stress test: `input` off,
- * `primary` on.
+ * One chip. When on, it takes the selected tint (the accent pair), a spark edge and a check at its
+ * start, so the state never rests on colour alone, and keeps the tint under the pointer: only a
+ * chip that is off hovers, with the neutral fill. Its edge is `input` off, the spark on.
  */
 export function ToggleGroupItem({ className, children, ...props }: ToggleGroupItemProps) {
   return (
     <ToggleGroupPrimitive.Item
       data-slot="toggle-group-item"
       className={cn(
-        "group/chip inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-(--radius-pill) border border-input bg-card px-3 text-label whitespace-nowrap text-foreground transition-colors select-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-(--control-height) data-on:border-primary data-on:bg-accent data-on:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/chip inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-(--radius-pill) border border-input bg-card px-3 text-label whitespace-nowrap text-foreground transition-colors select-none not-data-on:hover:bg-hover not-data-on:hover:text-hover-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-(--control-height) data-on:border-spark data-on:bg-accent data-on:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

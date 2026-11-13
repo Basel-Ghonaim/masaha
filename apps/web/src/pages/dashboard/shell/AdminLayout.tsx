@@ -1,6 +1,6 @@
 import { useAdminReportsCount } from '@features/data-reports';
 import { useCopy } from '@shared/copy';
-import { SidebarHeader } from '@shared/design-system';
+import { Logo, SidebarHeader } from '@shared/design-system';
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { ADMIN_NAV } from '../navigation';
 import { DashboardLayout } from './DashboardLayout';
@@ -20,16 +20,11 @@ export function AdminLayout() {
       role={copy.users.roles.ADMIN}
       header={
         <SidebarHeader
-          mark={
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
-            >
-              {Array.from(copy.site.wordmark)[0]}
-            </span>
-          }
+          mark={<Logo form="mark" className="size-9" />}
+          logo={<Logo className="h-9" />}
         >
-          <span className="truncate text-label">{copy.site.wordmark}</span>
+          {/* The logo is decorative: the name is read here, once, before the area. */}
+          <span className="sr-only">{copy.site.wordmark}</span>
           <span className="truncate text-caption text-muted-foreground">
             {copy.dashboard.platformAdmin}
           </span>

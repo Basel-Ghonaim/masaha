@@ -15,6 +15,7 @@ export type FilterTagProps = Omit<ComponentProps<'span'>, 'children'> & {
  * A filter in force, shown under a list's filters: its label and a button that removes it, as in
  * the Admin › Data reports stress test (finding 8). The pill is the chips' shape on the
  * `secondary` pair; the button is 32px, and the control height on touch, so it stays a 44px target.
+ * It hovers with the ink's wash: on the pill, the neutral hover would vanish in dark.
  */
 export function FilterTag({
   children,
@@ -39,7 +40,7 @@ export function FilterTag({
         size="icon"
         aria-label={removeLabel}
         onClick={onRemove}
-        className="size-8 rounded-(--radius-pill) pointer-coarse:size-(--control-height)"
+        className="size-8 rounded-(--radius-pill) hover:bg-hover-on-muted pointer-coarse:size-(--control-height)"
       >
         <XIcon aria-hidden />
       </Button>

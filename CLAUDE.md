@@ -76,7 +76,7 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 
 - `npm ci` — install every workspace
 - `npm run dev` — web dev server on `http://localhost:5320`, forwarding `/api` to the API on 3320; the design-system showcase is at `/__showcase`
-- `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system)
+- `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system; no selected tint as a hover)
 - `npm run check:links` — every relative link, image path and anchor of the Markdown files, and every `docs/….md` path cited in a source file, resolves
 - `npm run check:conflicts` — fails on a merge-conflict marker (`<<<<<<< `, `>>>>>>> `, or `=======` between them) in any git-tracked file; skips binary files
 - `npm run check:build` — after a build: fails if the development-only showcase reached it, or the site's first download reaches dashboard code or a heavy library (TanStack Table, Leaflet)

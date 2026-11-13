@@ -18,7 +18,9 @@ import { useLiveStatusControl } from '../hooks/status/useLiveStatusControl';
 const TONES = {
   success: 'border-success bg-success-subtle text-success-subtle-foreground',
   warning: 'border-warning bg-warning-subtle text-warning-subtle-foreground',
-  neutral: 'border-border bg-secondary text-secondary-foreground',
+  // Neutral is the secondary surface, with the secondary variant's own hover: the outline's
+  // neutral hover equals that surface in dark and would not show.
+  neutral: 'border-border',
 } as const;
 
 const isLiveStatus = (value: string): value is LiveStatus =>
@@ -43,7 +45,7 @@ export function LiveStatusControl({ spaceId }: { spaceId: number }) {
       <Popover open={control.open} onOpenChange={control.setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            variant={trigger.tone === 'neutral' ? 'secondary' : 'outline'}
             size="sm"
             className={TONES[trigger.tone]}
             aria-label={trigger.name}

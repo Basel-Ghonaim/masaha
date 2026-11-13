@@ -62,10 +62,12 @@ function MonthButton({
   );
 }
 
-// A filled day (chosen, or an end of a range) takes the primary pair, and its hover mixes toward
-// the foreground as the primary Button's does; a day inside a range takes the accent pair.
+// A filled day (chosen, or an end of a range) takes the primary pair and the ink's own hover, as
+// the primary Button does. A day inside a range takes the selected tint (the accent pair) and keeps
+// it under the pointer, so it has no ghost hover. Today's cell is muted, where the neutral hover
+// would vanish in dark: today's day, unless filled, hovers with the ink's wash.
 const FILLED =
-  'bg-primary text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)] hover:text-primary-foreground';
+  'bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground';
 
 function CalendarDayButton({ className, day, modifiers, ...props }: DayButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -77,11 +79,12 @@ function CalendarDayButton({ className, day, modifiers, ...props }: DayButtonPro
 
   const single =
     modifiers.selected && !modifiers.range_start && !modifiers.range_end && !modifiers.range_middle;
+  const filled = single || modifiers.range_start || modifiers.range_end;
 
   return (
     <Button
       ref={ref}
-      variant="ghost"
+      variant={modifiers.range_middle ? null : 'ghost'}
       size="icon"
       data-day={day.isoDate}
       aria-current={modifiers.today ? 'date' : undefined}
@@ -94,7 +97,8 @@ function CalendarDayButton({ className, day, modifiers, ...props }: DayButtonPro
         'data-range-middle:rounded-none data-range-middle:bg-accent data-range-middle:text-accent-foreground',
         // The ghost Button's colour would hide the cell's `outside` style, so the day sets it.
         modifiers.outside && 'text-muted-foreground',
-        (single || modifiers.range_start || modifiers.range_end) && FILLED,
+        filled && FILLED,
+        modifiers.today && !filled && !modifiers.range_middle && 'hover:bg-hover-on-muted',
         className,
       )}
       {...props}

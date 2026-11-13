@@ -44,8 +44,8 @@
 }
 
 .leaflet-bar a:hover {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
+  background-color: var(--hover);
+  color: var(--hover-foreground);
 }
 
 .leaflet-bar a:last-child {
@@ -161,9 +161,12 @@
   background: var(--card);
 }
 
-/* The selected mark: a ring on the primary colour and a floating shadow, never a fill. */
+/*
+ * The selected mark: a ring in the spark and a floating shadow, never a fill. The span keeps the
+ * light theme, so the spark resolves as on the light tiles.
+ */
 .map-mark-selected span {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--spark);
   outline-offset: 2px;
   box-shadow: var(--elevation-floating);
 }

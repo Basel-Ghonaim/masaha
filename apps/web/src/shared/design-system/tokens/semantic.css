@@ -1,7 +1,8 @@
 /*
  * Semantic tokens: roles with meaning, each theme a complete resolution of the same keys
  * (docs/frontend/design-system/foundation.md §4–§6). Names follow shadcn/ui plus Masaha's status
- * roles. semantic.unit.test.ts checks key parity and every contrast pair foundation §5 verifies.
+ * roles. semantic.unit.test.ts checks key parity, every contrast pair foundation §5 verifies, and the
+ * measured criteria of ink + berry (ADR 0019).
  */
 :root {
   --radius: var(--radius-scale-lg);
@@ -47,14 +48,26 @@
   --muted-foreground: var(--neutral-600);
   --border: var(--neutral-200);
   --input: var(--neutral-500);
-  --ring: var(--brand-500);
+  --ring: var(--neutral-900);
 
-  --primary: var(--brand-600);
+  --primary: var(--neutral-900);
   --primary-foreground: var(--white);
+  /* The ink and the text are one colour, so the ink's hover mixes toward the page instead. */
+  --primary-hover: color-mix(in oklab, var(--neutral-900), var(--neutral-50) 18%);
   --secondary: var(--neutral-100);
   --secondary-foreground: var(--neutral-900);
-  --accent: var(--brand-50);
-  --accent-foreground: var(--brand-800);
+  /* Selected: the spark's tint. Hover is a neutral fill of its own, never the tint. */
+  --accent: var(--spark-100);
+  --accent-foreground: var(--neutral-900);
+  --hover: var(--neutral-200);
+  --hover-foreground: var(--neutral-900);
+  /* The hover of a control drawn on a muted ground, where an opaque fill would vanish: an ink wash. */
+  --hover-on-muted: color-mix(in oklab, var(--neutral-900) 10%, transparent);
+  /* What matters now: a fill, an edge, an outline or a mark, never text (tailwind.css). */
+  --spark: var(--spark-500);
+  /* Text laid over a photo. */
+  --scrim: color-mix(in oklab, var(--neutral-900) 70%, transparent);
+  --scrim-foreground: var(--neutral-50);
   --destructive: var(--red-600);
   --destructive-foreground: var(--white);
   --destructive-subtle: var(--red-50);
@@ -75,14 +88,14 @@
 
   --sidebar: var(--white);
   --sidebar-foreground: var(--neutral-700);
-  --sidebar-primary: var(--brand-600);
-  --sidebar-primary-foreground: var(--white);
-  --sidebar-accent: var(--brand-50);
-  --sidebar-accent-foreground: var(--brand-800);
+  --sidebar-primary: var(--spark-500);
+  --sidebar-primary-foreground: var(--neutral-950);
+  --sidebar-accent: var(--spark-100);
+  --sidebar-accent-foreground: var(--neutral-900);
   --sidebar-border: var(--neutral-200);
-  --sidebar-ring: var(--brand-500);
+  --sidebar-ring: var(--neutral-900);
 
-  --chart-1: var(--brand-600);
+  --chart-1: var(--spark-500);
   --chart-2: var(--blue-600);
   --chart-3: var(--amber-500);
   --chart-4: var(--green-500);
@@ -95,8 +108,11 @@
   /* Equal to --border in this theme only; they mean different things (foundation §4). */
   --card-border: var(--neutral-200);
 
+  /* A loading placeholder, at the hover fill's step: the same value, a different meaning. */
+  --skeleton: var(--neutral-200);
+
   /* The scrim dims the page behind a modal overlay (Dialog, AlertDialog, Sheet). */
-  --overlay-scrim: color-mix(in oklch, var(--neutral-950) 50%, transparent);
+  --overlay-scrim: color-mix(in oklab, var(--neutral-950) 50%, transparent);
 }
 
 [data-theme='dark'] {
@@ -112,14 +128,23 @@
   --muted-foreground: var(--neutral-400);
   --border: var(--neutral-800);
   --input: var(--neutral-500);
-  --ring: var(--brand-400);
+  --ring: var(--neutral-50);
 
-  --primary: var(--brand-400);
-  --primary-foreground: var(--brand-950);
+  --primary: var(--neutral-50);
+  --primary-foreground: var(--neutral-950);
+  --primary-hover: color-mix(in oklab, var(--neutral-50), var(--neutral-950) 18%);
   --secondary: var(--neutral-800);
   --secondary-foreground: var(--neutral-100);
-  --accent: var(--brand-900);
-  --accent-foreground: var(--brand-100);
+  /* spark-900 alone is barely seen on a dark card; lifted 30% toward spark-800. */
+  --accent: color-mix(in oklab, var(--spark-800) 30%, var(--spark-900));
+  --accent-foreground: var(--neutral-50);
+  /* Equal to --muted in this theme only, as --card-border and --border are in light. */
+  --hover: var(--neutral-800);
+  --hover-foreground: var(--neutral-50);
+  --hover-on-muted: color-mix(in oklab, var(--neutral-50) 8%, transparent);
+  --spark: var(--spark-400);
+  --scrim: color-mix(in oklab, var(--neutral-50) 70%, transparent);
+  --scrim-foreground: var(--neutral-950);
   --destructive: var(--red-400);
   --destructive-foreground: var(--red-950);
   --destructive-subtle: var(--red-950);
@@ -140,14 +165,14 @@
 
   --sidebar: var(--neutral-900);
   --sidebar-foreground: var(--neutral-300);
-  --sidebar-primary: var(--brand-400);
-  --sidebar-primary-foreground: var(--brand-950);
-  --sidebar-accent: var(--neutral-800);
+  --sidebar-primary: var(--spark-400);
+  --sidebar-primary-foreground: var(--neutral-950);
+  --sidebar-accent: color-mix(in oklab, var(--spark-800) 30%, var(--spark-900));
   --sidebar-accent-foreground: var(--neutral-50);
   --sidebar-border: var(--neutral-800);
-  --sidebar-ring: var(--brand-400);
+  --sidebar-ring: var(--neutral-50);
 
-  --chart-1: var(--brand-400);
+  --chart-1: var(--spark-400);
   --chart-2: var(--blue-400);
   --chart-3: var(--amber-400);
   --chart-4: var(--green-400);
@@ -160,6 +185,8 @@
 
   --card-border: var(--neutral-700);
 
+  --skeleton: var(--neutral-800);
+
   /* Darker than light's: the page is already dark, so a lighter scrim barely shows. */
-  --overlay-scrim: color-mix(in oklch, var(--neutral-950) 70%, transparent);
+  --overlay-scrim: color-mix(in oklab, var(--neutral-950) 70%, transparent);
 }

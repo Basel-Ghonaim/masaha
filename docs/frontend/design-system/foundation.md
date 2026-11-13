@@ -2,12 +2,12 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked**: the colours are *ink + berry* ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md), 2026-11-12, #144); the type, radius, shadow and density are the Claude Design direction *1a Sea*'s (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-11-11
+> **Last Updated:** 2026-11-12
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
-This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
+This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus), its colours then replaced by *ink + berry* after a measured trial ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)), and are written here as the single source the layer is built from. A value changes here first, then in code.
 
 ---
 
@@ -77,7 +77,7 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker · Sortable |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
@@ -94,9 +94,9 @@ A new component goes in the category of its role: the removable filter tag ([fin
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
-- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), the pin (`.map-pin`, on `primary`), the marks of a map of many places (`.map-mark`: a dot filled, barred, hollow or dashed, toned `success`, `warning` or `muted-foreground`, the selected one ringed on `primary`, never filled; each drawn on a span that takes the light theme, as OpenStreetMap's tiles are light in both themes, so the map's marks and a legend's `MapMarkSample` agree in dark ([finding 135](../../architecture/findings/135-in-dark-the-maps-marks-disagree-with-its-legend.md), 2026-10-29, #132)), the visitor's point (`.map-user`), the crosshair at the centre while a point is picked (`.map-crosshair`) and a mark's name beside it (`.map-tooltip`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
+- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), the pin (`.map-pin`, on `primary`), the marks of a map of many places (`.map-mark`: a dot filled, barred, hollow or dashed, toned `success`, `warning` or `muted-foreground`, the selected one ringed in the `spark`, never filled; each drawn on a span that takes the light theme, as OpenStreetMap's tiles are light in both themes, so the map's marks and a legend's `MapMarkSample` agree in dark ([finding 135](../../architecture/findings/135-in-dark-the-maps-marks-disagree-with-its-legend.md), 2026-10-29, #132)), the visitor's point (`.map-user`), the crosshair at the centre while a point is picked (`.map-crosshair`) and a mark's name beside it (`.map-tooltip`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
 
-**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk, react-day-picker, TanStack Table or dnd-kit outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk, react-day-picker, TanStack Table or dnd-kit outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer, and (e) the selected tint as a hover anywhere, the layer included: `bg-accent`, `text-accent-foreground`, `bg-sidebar-accent` or `text-sidebar-accent-foreground` under a hover or highlight variant (`hover:`, `focus:`, `focus-visible:`, `aria-expanded:`, `data-open:`, `has-data-open:`, `data-[selected=true]:`, `data-highlighted:`), alone or compounded (`md:hover:`, `not-data-active:hover:`), read on another element (`group-hover:`, `peer-hover/…:`) or with an opacity or important mark; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 
 **Wrapped libraries:** every third-party UI library the layer wraps is added to (b), the ESLint import restriction, in the same PR that introduces it, so pages and features reach it only through the layer.
 
@@ -113,7 +113,7 @@ A navigation grouped by category leads to all three; on a phone it is a drawer. 
 
 | Tier | What it holds | Who binds it |
 |---|---|---|
-| **Primitive** | Raw scales with no meaning: palette ramps (`brand-50…950`, `neutral-50…950`, `green-*`, `amber-*`, `red-*`, `blue-*`), radius scale, shadow scale | Only `semantic.css` |
+| **Primitive** | Raw scales with no meaning: palette ramps (`neutral-50…950`, `spark-50…950`, `green-*`, `amber-*`, `red-*`, `blue-*`), radius scale, shadow scale | Only `semantic.css` |
 | **Semantic** | Roles with meaning, resolved per theme | Components, and pages/features for colour needs |
 | **Component** | Optional, derived from semantic; only when a component needs a value no role covers | That component only |
 
@@ -121,20 +121,20 @@ A navigation grouped by category leads to all three; on a phone it is a drawer. 
 
 **Coincidence is not identity:** two roles that happen to share a value in one theme stay separate if they mean different things.
 
-### Primitive palette (locked — *Sea*)
+### Primitive palette (locked — *ink + berry*, [ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md))
 
-Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short names used in the tables below: `b` brand, `n` neutral, `g` green, `a` amber, `r` red, `i` blue.
+The brand has two roles: the **ink**, `neutral-900` / `neutral-50`, and the **spark**, a berry, `spark-500` / `spark-400`. The neutrals are drawn in the ink's hue (OKLCH h 250, chroma 0.014); the spark's seed is #A149A0 (h 328). Short names used in the tables below: `n` neutral, `s` spark, `g` green, `a` amber, `r` red, `i` blue.
 
 | Ramp | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `brand` | #EAFBFC | #D5F4F5 | #B3E6E8 | #85D0D4 | #50B3B8 | #15959B | **#02787D** | #096165 | #05494C | #023235 | #001D1F |
-| `neutral` | #F4FCFE | #EAF5F7 | #DBE6E9 | #C7D1D4 | #9DA7A9 | #747E80 | #5C6567 | #464F51 | #2A3234 | #182022 | #0C1315 |
+| `neutral` | #F7FBFF | #ECF4FC | #DDE5ED | #C9D0D7 | #9FA6AD | #767D84 | #5E646A | #484E54 | #2C3137 | **#1A1F25** | #0D1217 |
+| `spark` | #FEF3FE | #FFE3FD | #FAC8F7 | #EBA5E8 | **#D27ED0** | **#B55BB3** | #934791 | #773A75 | #5A2A59 | #3F1B3E | #260D25 |
 | `green` | #ECFCEF | #D9F5DF | #BAE8C5 | #90D3A2 | #63B77C | #39995B | #137D41 | #026732 | #034D25 | #013517 | #001F0A |
 | `amber` | #FFF5EA | #FFE9CF | #FBD3A2 | #EEB56C | #D6912B | #B27406 | #905C01 | #754B04 | #593700 | #3E2500 | #261400 |
 | `red` | #FEF4F3 | #FDE7E4 | #FFCDC8 | #FEA69E | #FC6E68 | #DE4544 | #BE222A | #A20419 | #7C0110 | #580007 | #370003 |
 | `blue` | #F1F8FE | #E0EFFF | #C0DEFF | #90C6FE | #64A6E9 | #3E87CE | #1F6CB0 | #075796 | #004174 | #002C52 | #001934 |
 
-`brand-600` is the brand colour. Plus `white` (#FFFFFF).
+Plus `white` (#FFFFFF). There is no `brand` ramp: the brand is the ink and the spark, each with its own role (§5). The status ramps are unchanged from *Sea*.
 
 ### Component tokens (locked)
 
@@ -149,6 +149,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `table-row-padding-block` | 14px | Table |
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
+| `skeleton` | light `n-200` · dark `n-800`: the `hover` fill's steps, a different meaning | Skeleton's fill: a loading placeholder seen on `card` and `background` (§5, *Verified*) |
 | `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
 | `chart-height-md` · `chart-height-sm` | 200px · 120px | BarChart's two sizes: a chart of its own, and one beside others |
 | `refreshing` | opacity 0.6 | Refreshing and DataTable's `refreshing`: the rows or cards shown while the next page or filter loads over them |
@@ -160,7 +161,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 
 ## 5. Semantic roles
 
-Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`.
+Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`. A state takes its surface's text: `primary-hover` (its text `primary-foreground`) and `hover-on-muted` (over a muted ground, the control's `foreground`) have none, and `spark` carries no text (a count on it is `sidebar-primary`, whose `-foreground` is verified).
 
 ### Surfaces and text
 | Role | Purpose |
@@ -172,13 +173,18 @@ Names follow shadcn/ui's convention so copied components work unchanged, plus Ma
 | `border` | Default borders and dividers |
 | `input` | Form control borders |
 | `ring` | Focus indicator (one focus style for the whole system) |
+| `scrim` / `scrim-foreground` | Text laid over a photo, such as the photo grid's «+N»: the ink at 70% (light) or its light end at 70% (dark) |
 
 ### Actions
 | Role | Purpose |
 |---|---|
-| `primary` / `primary-foreground` | Main action, links, selected state, the brand accent |
+| `primary` / `primary-foreground` | The **ink**: main action, links, checked and active controls |
+| `primary-hover` | The ink's hover: `primary` mixed 18% toward the page, as the ink and the text are one colour |
 | `secondary` / `secondary-foreground` | Secondary actions |
-| `accent` / `accent-foreground` | Hover and highlighted rows or items |
+| `accent` / `accent-foreground` | **Selected**, the spark's tint: a chip that is on, the current item, today's row, the inside of a range |
+| `hover` / `hover-foreground` | **Hover**, a neutral fill of its own: a hovered row, item, card or outline and ghost control; never the spark |
+| `hover-on-muted` | The hover of a control drawn on a `muted` or `secondary` ground: an ink wash, where an opaque fill would vanish |
+| `spark` | **What matters now**, sparingly: a fill, an edge, an outline or a mark. It has no text utility: only `bg-spark`, `border-spark`, `outline-spark` and `fill-spark` exist |
 | `destructive` / `destructive-foreground` | Delete, deactivate, errors |
 
 ### Status (Masaha additions)
@@ -199,7 +205,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 ### Data visualisation
 `chart-1` … `chart-5` — for finance and statistics (income by month, visits and subscriptions; occupancy by hour and by day).
 
-### Values (locked — *Sea*)
+### Values (locked — *ink + berry*)
 
 | Role | Light | Dark |
 |---|---|---|
@@ -209,10 +215,15 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `muted` / `muted-foreground` | n-100 / n-600 | n-800 / n-400 |
 | `border` | n-200 | n-800 |
 | `input` | n-500 | n-500 |
-| `ring` | b-500 | b-400 |
-| `primary` / `primary-foreground` | b-600 / white | b-400 / b-950 |
+| `ring` | n-900 | n-50 |
+| `primary` / `primary-foreground` | n-900 / white | n-50 / n-950 |
+| `primary-hover` | n-900 mixed 18% toward n-50 (OKLab) | n-50 mixed 18% toward n-950 (OKLab) |
 | `secondary` / `secondary-foreground` | n-100 / n-900 | n-800 / n-100 |
-| `accent` / `accent-foreground` | b-50 / b-800 | b-900 / b-100 |
+| `accent` / `accent-foreground` | s-100 / n-900 | s-900 mixed 30% toward s-800 (OKLab) / n-50 |
+| `hover` / `hover-foreground` | n-200 / n-900 | n-800 / n-50 |
+| `hover-on-muted` | n-900 at 10% | n-50 at 8% |
+| `spark` | s-500 | s-400 |
+| `scrim` / `scrim-foreground` | n-900 at 70% / n-50 | n-50 at 70% / n-950 |
 | `destructive` / `-foreground` | r-600 / white | r-400 / r-950 |
 | `destructive-subtle` / `-foreground` | r-50 / r-800 | r-950 / r-200 |
 | `success` / `-foreground` | g-600 / white | g-400 / g-950 |
@@ -222,14 +233,25 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `info` / `-foreground` | i-600 / white | i-400 / i-950 |
 | `info-subtle` / `-foreground` | i-50 / i-800 | i-950 / i-200 |
 | `sidebar` / `sidebar-foreground` | white / n-700 | n-900 / n-300 |
-| `sidebar-primary` / `-foreground` | b-600 / white | b-400 / b-950 |
-| `sidebar-accent` / `-foreground` | b-50 / b-800 | n-800 / n-50 |
-| `sidebar-border` / `sidebar-ring` | n-200 / b-500 | n-800 / b-400 |
-| `chart-1` … `chart-5` | b-600 · i-600 · a-500 · g-500 · n-500 | b-400 · i-400 · a-400 · g-400 · n-500 |
+| `sidebar-primary` / `-foreground` | s-500 / n-950 | s-400 / n-950 |
+| `sidebar-accent` / `-foreground` | s-100 / n-900 | as `accent` / n-50 |
+| `sidebar-border` / `sidebar-ring` | n-200 / n-900 | n-800 / n-50 |
+| `chart-1` … `chart-5` | s-500 · i-600 · a-500 · g-500 · n-500 | s-400 · i-400 · a-400 · g-400 · n-500 |
 
-**Verified:** every `-foreground` on its surface, and `muted-foreground`, `primary`, `destructive`, `success` and `info` as text on `background`, `card` and `muted`, and `foreground` and `muted-foreground` on `accent` (a highlighted table row), meet 4.5:1 in both themes. `input`, `ring`, every `chart-*` and the status fills meet 3:1 against `background` and `card`. The layer's contrast test re-checks these pairs.
+A role "at 10%" is the colour mixed with transparent in OKLab, so it lies over its ground. Every mix of the tokens is written in OKLab: in OKLCH Chrome treats a near-grey's hue as missing, so a mix of the ink's neutrals would paint a warm grey (2026-11-12, #144).
+
+**Verified** by the layer's token test, in both themes, translucent roles composited over their ground as painted:
+- **Text, 4.5:1:** every `-foreground` on its surface; `muted-foreground`, `primary`, `destructive`, `success` and `info` on `background`, `card` and `muted`; `foreground` and `muted-foreground` on the selected tints (`accent`, `sidebar-accent`); `muted-foreground` and `sidebar-foreground` on `hover`; `primary-foreground` on `primary-hover`; `foreground` on `hover-on-muted` over `muted`; `scrim-foreground` on `scrim` over a photo's white and its black.
+- **Non-text, 3:1:** `input`, `ring`, every `chart-*` and the status fills on `background` and `card`; the `spark` on `background`, `card`, `popover`, `sidebar` and the selected tints; `ring` on `muted`, the tints and `hover`.
+- **Fills seen:** `hover` at 1.2:1 from `card`, `background`, `popover` and `sidebar`; `hover-on-muted` from `muted`, and the `skeleton` from `card` and `background`, at 1.2:1; the selected tints at 1.15:1 from `card` and `sidebar` (a second mark or a word carries the rest).
+- **Apart:** `hover` is not the selected tint (OKLab ΔE ≥ 0.02); the ink and the spark stand ΔE ≥ 0.10 from `destructive`, and ≥ 0.08 under simulated protanopia and deuteranopia; in dark the tints stand ΔE ≥ 0.10 from `destructive-subtle`, and `destructive` keeps a red's hue (OKLCH 15–45°).
+- **The identity's colours** that the logo's files and the browser's icons write by hand: light `background` #F7FBFF, `foreground` #1A1F25, `spark` #B55BB3; dark #0D1217, #F7FBFF, #D27ED0.
 
 **Usage rules the values depend on:**
+- **The spark is never text, never on an action, never destructive.** It marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words.
+- **Text over a photo** sits on `scrim` with `scrim-foreground`, never on an opacity of another role.
+- **Hover is not selected.** A hover is the neutral `hover` fill; selected is the spark's tint (`accent`, `sidebar-accent`). They differ by hue and, where the design gives one, a second mark: the sidebar's current item has a 3 px `spark` bar at its inline start, a chip that is on a `spark` edge and a check. Selected keeps its tint under the pointer: an item hovers only while it is not selected (`not-data-on:`, `not-data-active:`, `not-data-[active=true]:`, or the caller's own condition), never by the order Tailwind emits its variants in. A control drawn on a `muted` or `secondary` ground hovers with `hover-on-muted`: in dark, `hover` equals `muted` and would vanish there.
+- **Links in running text are underlined.** The ink is also the text's colour, so a link inside a sentence, a note or the footer is underlined at rest (`text-primary underline underline-offset-4`), not only under the pointer; so is the link Button.
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
 - **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
@@ -358,7 +380,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
 
 - **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode. A bordered control (input, textarea, select trigger, checkbox, radio) also turns its border to `ring`, except while invalid, when it keeps its error border.
-- **A hover never fades a fill.** A filled variant's hover mixes the fill toward the foreground (`hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)]`), which raises its label's contrast in both themes; `bg-primary/90` drops the light theme's white label below AA. Outline and ghost hovers use `accent`.
+- **A hover never fades a fill.** `bg-primary/90` drops the light theme's white label below AA. The ink's hover is its own role (`hover:bg-primary-hover`); secondary and destructive mix their fill toward the foreground, which raises the label's contrast in both themes: secondary in OKLab, since in OKLCH Chrome drops the hue of two near-greys and paints them warm (§5, *Values*), destructive in OKLCH (`hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]`), where the red keeps its hue. Outline and ghost variants, rows, and menu and list items hover with `hover` (`hover:bg-hover hover:text-hover-foreground`), never `accent`, which means selected (§5; `check:classes` refuses it, §3); on a `muted` or `secondary` ground, with `hover-on-muted`.
 - **Verified pairs only.** A fill carries the text §5 verifies on it (`bg-destructive text-destructive-foreground`), never a tint of a role under a colour it was not checked against (`bg-destructive/10 text-destructive`).
 - **`data-side` offsets stay physical.** Radix names the side a popup opened on (`left`, `right`) the same in either direction, so the CLI's `rtl:` reversals of those offsets are dropped.
 - **Raw px values** (`h-[18.4px]`, `translate-x-[calc(100%-2px)]`) become the spacing scale.
@@ -374,8 +396,8 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
-| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side · a `held` item, for an action that cannot be taken now: `aria-disabled` and drawn disabled, its reason inside the item's text, and selecting it does nothing; unlike `disabled`, which Radix skips in the arrow keys and typeahead, it stays reachable, so its reason is read (§10; [finding 105](../../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)) |
+| Button | shadcn | primary, secondary, outline, ghost, destructive, link (underlined at rest) · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
+| DropdownMenu | shadcn | Row actions, account menu · a highlighted item takes `hover` · a `destructive` item variant; checkbox and radio items; a submenu toward the end side · a `held` item, for an action that cannot be taken now: `aria-disabled` and drawn disabled, its reason inside the item's text, and selecting it does nothing; unlike `disabled`, which Radix skips in the arrow keys and typeahead, it stays reachable, so its reason is read (§10; [finding 105](../../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)) |
 
 ### `fields`
 
@@ -383,12 +405,12 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 |---|---|---|
 | Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box · Input's `size="lg"` is a page's main field, such as the front desk's search: `control-height-lg`, its value text `control-text-size` as at the standard size |
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
-| Select / Combobox | shadcn | Area filter, a filter of several choices (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one · a caller that finds its own options, such as a server's search, passes `search` (the text and its change): the list shows the options as given, unfiltered, and `loading` stands in for the empty text while they come. |
+| Select / Combobox | shadcn | Area filter, a filter of several choices (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one · the highlighted item (pointer or arrow keys) takes `hover`, never the selected tint · a caller that finds its own options, such as a server's search, passes `search` (the text and its change): the list shows the options as given, unfiltered, and `loading` stands in for the empty text while they come. |
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
-| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range; a range starts afresh on each click once it is empty or whole, so its first click leaves `to` empty · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
-| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
-| SegmentedControl | hand-built (Radix radio group) | One choice among a few short ones, as joined segments on a track: the directory's subscription «الكل · ساعة · يوم · أسبوع · شهر» · a radiogroup with one tab stop, entering on the chosen segment; the arrow keys choose the next or previous, following the direction, and loop; Home and End choose the first and the last (Radix only moves the focus there) · the track `muted` with `radius-control`; a segment `muted-foreground` at the `label` size, `foreground` on hover; the chosen one on `card` with the card's edge and the raised shadow, so in dark, which has no shadow, its edge still shows it · 32px segments, the control height on touch · inside a Field, named by its label and described by its helper · no disabled or invalid styling: no caller needs one |
-| Sortable | hand-built (dnd-kit) | A list or a grid its user reorders by dragging, made for the space profile's photos (a grid, the whole tile dragged) and contacts (a list, by a handle) · the mouse starts a drag after 6 px, so a click on a button inside an item stays a click; a finger after a 250 ms press, so a swipe still scrolls; an item never sets `touch-action: none`, which would stop that swipe · the keyboard mode is the layer's own, by index, with no visible buttons: Space or Enter lifts the focused handle, the arrows move it (in a grid, left and right follow the reading direction; a list moves up and down), Home and End go to the ends, Space or Enter drops, Escape puts it back (heard on the window in the capture phase, before an overlay's listener, and kept from it, so a Sheet around the list stays open; Escape during a drag ends the drag the same way), Tab or the focus leaving for another element drops it where it is; the focus stays on the moved item, a cancel included · every word is the caller's: the handles' role description and instructions, and each step's announcement (lifted, moved, dropped, cancelled, and why a held list lifts nothing), said with the item's name and its place «2 من 3» in the layer's one live region; dnd-kit's English words are never drawn · `onMove` once per drop, with the new order; the order shown while an item is lifted is the layer's own · the item is a list item the layer draws; `renderItem` spreads `handleProps` on the whole tile or on a handle; a control in an item (a tile's delete button) sits beside the handle's element, never inside it (a focusable control inside a `role="button"` is axe's nested-interactive), and a handle leaves a control's own keys to it · its slide follows `--duration-medium` and `--easing-standard`, so reduced motion stops it · its own entry, so dnd-kit reaches only what imports it: the space profile's photos and contacts (2026-11-11, #143) |
+| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range; a range starts afresh on each click once it is empty or whole, so its first click leaves `to` empty · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, hovering with `primary-hover`; the inside of a range on `accent`, kept under the pointer; today's cell on `muted`, its day hovering with `hover-on-muted` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
+| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair (selected), a `spark` edge and a check at the start, kept under the pointer; a chip that is off hovers with `hover` · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
+| SegmentedControl | hand-built (Radix radio group) | One choice among a few short ones, as joined segments on a track: the directory's subscription «الكل · ساعة · يوم · أسبوع · شهر» · a radiogroup with one tab stop, entering on the chosen segment; the arrow keys choose the next or previous, following the direction, and loop; Home and End choose the first and the last (Radix only moves the focus there) · the track `muted` with `radius-control`; a segment `muted-foreground` at the `label` size, on hover `foreground` over the `hover-on-muted` wash; the chosen one on `card` with the card's edge and the raised shadow, so in dark, which has no shadow, its edge still shows it · 32px segments, the control height on touch · inside a Field, named by its label and described by its helper · no disabled or invalid styling: no caller needs one |
+| Sortable | hand-built (dnd-kit) | A list or a grid its user reorders by dragging, made for the space profile's photos (a grid, the whole tile dragged) and contacts (a list, by a handle) · the mouse starts a drag after 6 px, so a click on a button inside an item stays a click; a finger after a 250 ms press, so a swipe still scrolls; an item never sets `touch-action: none`, which would stop that swipe · the keyboard mode is the layer's own, by index, with no visible buttons: Space or Enter lifts the focused handle, the arrows move it (in a grid, left and right follow the reading direction; a list moves up and down), Home and End go to the ends, Space or Enter drops, Escape puts it back (heard on the window in the capture phase, before an overlay's listener, and kept from it, so a Sheet around the list stays open; Escape during a drag ends the drag the same way), Tab or the focus leaving for another element drops it where it is; the focus stays on the moved item, a cancel included · every word is the caller's: the handles' role description and instructions, and each step's announcement (lifted, moved, dropped, cancelled, and why a held list lifts nothing), said with the item's name and its place «2 من 3» in the layer's one live region; dnd-kit's English words are never drawn · `onMove` once per drop, with the new order; the order shown while an item is lifted is the layer's own · the item is a list item the layer draws; `renderItem` spreads `handleProps` on the whole tile or on a handle; a control in an item (a tile's delete button) sits beside the handle's element, never inside it (a focusable control inside a `role="button"` is axe's nested-interactive), and a handle leaves a control's own keys to it · the caller draws the item it lifts (`renderItem`'s `lifted` and `dragging`) with a `spark` edge: the contacts' row `border-spark` with the floating shadow, a photo `outline-spark` · its slide follows `--duration-medium` and `--easing-standard`, so reduced motion stops it · its own entry, so dnd-kit reaches only what imports it: the space profile's photos and contacts (2026-11-11, #143) |
 
 ### `display`
 
@@ -399,14 +421,15 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
-| FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
+| FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch, hovering with `hover-on-muted` ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
+| Logo | hand-built | Masaha's logo (§16), drawn inline on `foreground` and `spark`, so it follows the theme · `form="full"` («مساحة» over "MASAHA") or `"mark"` (the ة with its dots) · named by `label`, in the interface's language, as an image; without one it is decorative, hidden from assistive technology where its name is beside it · sized by its height (`h-10`, `size-9`), its width following the drawing · never mirrored · in the layer as the identity the tokens draw, not a domain concept (§2) |
 | Meter | hand-built | A share of a whole as a bar: a `muted` track 12px high, `radius-pill`, filled from the start side in `primary` or `warning` (`tone`) · `kind="meter"` (a measure, such as occupancy) or `"progress"` (a task on its way, such as a photo's upload), with `aria-valuemin/max/now`, an optional `valueText`, and named by `label` · the value kept inside 0…max; the fill's width is set inside the layer, so no page draws a bar |
 
 ### `data`
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows · `refreshing` keeps the rows or cards shown while another page or filter loads over them, dimmed (`refreshing`) and the table or list marked busy, so a list never blanks between two answers · `cardsBelow="lg"` keeps the cards until 1024px, for the lists the design draws as cards until 1024 (A7: the spaces, users and data-report lists) |
+| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `hover` when hovered and while its row menu is open, never the selected tint · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, hovering with `hover-on-muted` on the muted header row, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows · `refreshing` keeps the rows or cards shown while another page or filter loads over them, dimmed (`refreshing`) and the table or list marked busy, so a list never blanks between two answers · `cardsBelow="lg"` keeps the cards until 1024px, for the lists the design draws as cards until 1024 (A7: the spaces, users and data-report lists) |
 | BarChart | hand-built | Stacked vertical bars on the `chart-1…5` roles (each series names its `tone`), hand-built without a chart library: `md` 200px or `sm` 120px high (`chart-height-*`), a tick under each bar, a legend only for two series or more · the bars are for the eye (`aria-hidden`); a visually hidden table, captioned with the `title`, holds every value of every series as the caller's `format` writes it, its first header the `periodLabel` |
 | Heatmap | hand-built | Rows by columns (days by hours), each cell `primary` at one of five steps over `muted` (`heatmap-step-*`), with a legend from `fewer` to `more` · the cells are for the eye; a visually hidden table holds every value, captioned with the `title` and the `unit`, its first header the `dayLabel` |
 
@@ -416,7 +439,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 |---|---|---|
 | Toast | shadcn (Sonner) | Success and error feedback |
 | Alert | shadcn | info, warning, destructive |
-| Skeleton | shadcn | Loading states |
+| Skeleton | shadcn | Loading states · its fill is the `skeleton` component token (§4), at least 1.2:1 on `card` and `background` (§5, *Verified*) |
 | EmptyState | hand-built | Icon + title + text + action |
 | Spinner | hand-built | |
 | Refreshing | hand-built | A wrapper for a list that is not a table, such as a grid of cards, while its next page or filter loads: what it holds stays, dimmed (`refreshing`), and it is marked `aria-busy` ([finding 132](../../architecture/findings/132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)) |
@@ -435,8 +458,8 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
-| Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
-| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · `SidebarText` holds text beside a mark outside the menu, such as the space switcher's name, kept for assistive technology only on the rail · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
+| Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`); a tab that is not active hovers with `hover`, on the `md` track with `hover-on-muted`, as in the Owner › Members stress test · `line`: underlined, for the sections of a page, the active tab marked by a line in the `spark` |
+| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · `SidebarHeader` takes the logo's `mark`, shown on the rail, and its full `logo`, shown expanded and in the drawer · an item hovers with `hover`; the current page keeps `sidebar-accent` under the pointer, with a 3 px `spark` bar at its inline start, clipped by its radius · `SidebarText` holds text beside a mark outside the menu, such as the space switcher's name, kept for assistive technology only on the rail · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 
 **Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, CustomerRow, AnnouncementBanner, VerifiedBadge (a Badge usage).
@@ -516,10 +539,31 @@ Steps 3–4 make the design and the code share one design system, so what is des
 
 | # | Decision | Status |
 |---|---|---|
-| 1 | Brand colour and full palette | **Settled** — *Sea*, petrol teal `brand-600` (§4, §5) |
+| 1 | Brand colour and full palette | **Settled** — *ink + berry spark* ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)): the ink `neutral-900` / `neutral-50`, the spark `spark-500` / `spark-400` (§4, §5) |
 | 2 | Font family | **Settled** — IBM Plex Sans Arabic (§7) |
 | 3 | Radius style and density | **Settled** — soft (8px base) and comfortable (40px controls) (§4, §5) |
 | 4 | Icon library | **Settled** — Lucide |
-| 5 | Logo / wordmark for «مساحة» / Masaha | **Open** — the directions used a placeholder mark; decided during Step 5 |
+| 5 | Logo / wordmark for «مساحة» / Masaha | **Settled** — the logo (§16) |
 
-The other directions explored (*1b Dusk*: compact indigo; *1c Ink*: warm monochrome, round) are not carried forward.
+*1a Sea*, the first direction, set the type, the radius and the density; its petrol teal gave way to ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)). The other directions explored (*1b Dusk*: compact indigo; *1c Ink*: warm monochrome, round) are not carried forward.
+
+---
+
+## 16. The logo
+
+The identity's mark, drawn with ink + berry ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)) and settled with it (§15).
+
+- **Forms.** The full logo: «مساحة» over "MASAHA" in the ink, the ة's two dots in the spark. The small mark: the ة with its dots, square. The layer's `Logo` draws both, on `foreground` and `spark`, so it follows the theme (§12).
+- **Where it shows.** The full logo, named, as the link home in the site's header and in the focus shell's (sign-in, register, the forgotten and the reset password, the forced change), and at the head of the phone's menu: 40 px tall. In the admin's sidebar, decorative beside the name kept for assistive technology and «إدارة المنصة»: the full logo 36 px tall, expanded and in the drawer, and the small mark 36 px on its rail. Not in the owner's and reception's shell: its sidebar head is the space's own (the switcher).
+- **Sizes.** Never under 36 px tall, the smallest the owner reviewed; the small mark from 16 px.
+- **Clear space.** 20% of its height on every side: 8 px around the 40 px logo.
+- **Never** mirrored (the same drawing in both directions), cropped, stretched, recoloured, or set on a photo without a plain ground.
+- **Its name** is «مساحة» / "Masaha" in the interface's language. Where the name is written beside it, the logo is decorative, so the name is read once.
+- **The source files**, the owner's: `docs/design/prototype/masaha/logo/` (`*-berry.svg`: the full logo, the mark and the app icon, light and dark).
+- **The browser's icons** (`apps/web/public/`, linked from `index.html`):
+  - `favicon.svg`: the small mark with no background, in the light theme's ink and spark, and in the dark theme's by the browser's own scheme (the tab is the browser's, not the app's toggle).
+  - `favicon.ico`: the app icon (the mark on its white tile) at 16, 32 and 48 px, for a browser that takes no SVG and for a dark tab bar.
+  - `apple-touch-icon.png`: the mark on white at 180 px, full bleed, since iOS rounds the corners itself.
+
+  The rasters are drawn from the source files in headless Chrome at device scale 1, and the `.ico` is packed from them. `theme-color` is each scheme's background. **A stated exception** to §2's *one layer, one place*: the browser draws these outside the page, where no token reaches, so they carry the identity's values as hexes. `apps/web/scripts/browserIcons.unit.test.ts` holds the links, the files, their sizes and those hexes by hand.
+- **The reset e-mail** draws no logo: its brand line is the word «مساحة» in the ink. **A stated exception** too: a mail client reads no token, so `resetEmail.ts` writes the ink and the neutrals inline, with no spark; its links are ink and the English one is underlined. A change of the brand or the neutrals is carried to it by hand ([finding 19](../../architecture/findings/19-the-reset-emails-colours-fonts-and-styles-are-written-outside-the-design-system.md)), and `resetEmail.unit.test.ts` holds its colour set.

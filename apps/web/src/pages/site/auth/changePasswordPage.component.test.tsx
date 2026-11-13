@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe('the change password page', () => {
-  it('shows the change in the focus shell, whose short header offers only the wordmark and sign-out', async () => {
+  it('shows the change in the focus shell, whose short header offers only the logo, linking home, and sign-out', async () => {
     renderSite('/change-password');
 
     const main = await screen.findByRole('main');
@@ -53,7 +53,9 @@ describe('the change password page', () => {
       await within(main).findByRole('heading', { level: 1, name: 'Choose a new password' }),
     ).toBeInTheDocument();
     const header = within(screen.getByRole('banner'));
-    expect(header.getByRole('link', { name: 'Masaha' })).toBeInTheDocument();
+    const home = header.getByRole('link', { name: 'Masaha' });
+    expect(home).toHaveAttribute('href', '/');
+    expect(within(home).getByRole('img', { name: 'Masaha' })).toBeInTheDocument();
     expect(header.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(header.queryByRole('button', { name: 'العربية' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();

@@ -42,7 +42,9 @@ function OwnerShell() {
   return (
     <SidebarProvider>
       <Sidebar label="Owner dashboard">
-        <SidebarHeader mark={<span aria-hidden>M</span>}>Masaha</SidebarHeader>
+        <SidebarHeader mark={<span aria-hidden>MARK</span>} logo={<span aria-hidden>LOGO</span>}>
+          Masaha
+        </SidebarHeader>
         <SidebarContent>
           <SidebarText>Focus Hub</SidebarText>
           <SidebarMenu>
@@ -95,6 +97,30 @@ describe('Sidebar', () => {
     await userEvent.hover(within(nav).getByRole('link', { name: 'Overview' }));
 
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Overview');
+  });
+
+  it('shows the small mark on the rail, not the full logo', () => {
+    renderShell(800);
+
+    expect(screen.getByText('MARK')).toBeInTheDocument();
+    expect(screen.queryByText('LOGO')).not.toBeInTheDocument();
+    expect(screen.getByText('Masaha')).toHaveClass('sr-only');
+  });
+
+  it('shows the full logo on a desktop, not the small mark', () => {
+    renderShell(1280);
+
+    expect(screen.getByText('LOGO')).toBeInTheDocument();
+    expect(screen.queryByText('MARK')).not.toBeInTheDocument();
+  });
+
+  it('shows the full logo in the phone drawer, not the small mark', async () => {
+    renderShell(360);
+    await userEvent.click(screen.getByRole('button', { name: 'Open the navigation' }));
+    const drawer = screen.getByRole('dialog', { name: 'Owner dashboard' });
+
+    expect(within(drawer).getByText('LOGO')).toBeInTheDocument();
+    expect(within(drawer).queryByText('MARK')).not.toBeInTheDocument();
   });
 
   it('keeps SidebarText for assistive technology only on the rail', () => {

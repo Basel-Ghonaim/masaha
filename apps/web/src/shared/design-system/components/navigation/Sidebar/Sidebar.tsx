@@ -115,12 +115,17 @@ export function Sidebar({ label, className, children, ...props }: SidebarProps) 
 }
 
 export type SidebarHeaderProps = ComponentProps<'div'> & {
-  /** Always shown, also on the rail: the logo mark. */
+  /** The rail's: the logo's small mark. */
   mark: ReactNode;
+  /** Expanded and in the phone's drawer: the full logo. */
+  logo: ReactNode;
 };
 
-/** The logo mark and, beside it, the product name and area; on the rail, the mark alone. */
-export function SidebarHeader({ mark, className, children, ...props }: SidebarHeaderProps) {
+/**
+ * The logo and, beside it, the product's name and area; on the rail, the small mark alone, the
+ * name and area kept for assistive technology.
+ */
+export function SidebarHeader({ mark, logo, className, children, ...props }: SidebarHeaderProps) {
   const { mode } = useSidebar();
 
   return (
@@ -133,7 +138,7 @@ export function SidebarHeader({ mark, className, children, ...props }: SidebarHe
       )}
       {...props}
     >
-      {mark}
+      {mode === 'tablet' ? mark : logo}
       <div className={cn('flex min-w-0 flex-col', mode === 'tablet' && 'sr-only')}>{children}</div>
     </div>
   );
@@ -223,7 +228,10 @@ export type SidebarMenuButtonProps = Omit<ComponentProps<'a'>, 'children'> & {
   icon: ReactNode;
   /** The item's name. On the rail it is the tooltip, and stays its accessible name. */
   label: string;
-  /** The page shown now: highlighted, and marked as the current page. */
+  /**
+   * The page shown now: the selected tint and a spark bar at its start, kept under the pointer,
+   * and marked as the current page.
+   */
   isActive?: boolean;
   /** A count at the end of the item, such as new reports. It is shown only; `badgeLabel` says it. */
   badge?: ReactNode;
@@ -253,6 +261,8 @@ export function SidebarMenuButton({
   const Comp = asChild ? Slot.Root : 'a';
   const badgeLabelId = useId();
 
+  // Only an item that is not the current page hovers, with the neutral fill: the current one keeps
+  // its tint under the pointer and has a 3 px spark bar at its inline start, clipped by its radius.
   const item = (
     <Comp
       data-slot="sidebar-menu-button"
@@ -260,7 +270,7 @@ export function SidebarMenuButton({
       aria-current={isActive ? 'page' : undefined}
       aria-describedby={badgeLabel === undefined ? undefined : badgeLabelId}
       className={cn(
-        'flex h-10 w-full items-center gap-3 rounded-md px-3 text-body text-sidebar-foreground transition-colors pointer-coarse:h-(--control-height) hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-5',
+        'relative flex h-10 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-body text-sidebar-foreground transition-colors pointer-coarse:h-(--control-height) not-data-[active=true]:hover:bg-hover not-data-[active=true]:hover:text-hover-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:before:absolute data-[active=true]:before:inset-y-0 data-[active=true]:before:start-0 data-[active=true]:before:w-0.75 data-[active=true]:before:bg-spark [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-5',
         collapsed && 'relative justify-center px-0',
         className,
       )}

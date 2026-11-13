@@ -58,14 +58,14 @@ export function ContactsSheet({ host }: { host: SectionHost }) {
             <div
               className={cn(
                 'grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-12 md:items-start',
-                (lifted || dragging) && 'border-primary shadow-floating',
+                (lifted || dragging) && 'border-spark shadow-floating',
               )}
             >
               {view.order && (
                 <span
                   {...handleProps}
                   aria-label={row.handle}
-                  className="flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground select-none hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:col-span-1 md:mt-6"
+                  className="flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground select-none hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:col-span-1 md:mt-6"
                 >
                   <GripVerticalIcon aria-hidden />
                 </span>

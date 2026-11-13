@@ -1,6 +1,7 @@
 import {
   CircleCheckIcon,
   InfoIcon,
+  Logo,
   LogOutIcon,
   Sidebar,
   SidebarContent,
@@ -45,16 +46,10 @@ export function SidebarSection({ samples }: { samples: SidebarSamples }) {
         <SidebarProvider className="h-120 min-h-0 overflow-hidden rounded-lg border border-border">
           <Sidebar label={samples.label} className="static h-full">
             <SidebarHeader
-              mark={
-                <span
-                  aria-hidden
-                  className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
-                >
-                  {Array.from(samples.product)[0]}
-                </span>
-              }
+              mark={<Logo form="mark" className="size-9" />}
+              logo={<Logo className="h-9" />}
             >
-              <span className="text-heading-3 text-foreground">{samples.product}</span>
+              <span className="sr-only">{samples.product}</span>
               <span className="text-caption text-muted-foreground">{samples.area}</span>
             </SidebarHeader>
             <SidebarContent>

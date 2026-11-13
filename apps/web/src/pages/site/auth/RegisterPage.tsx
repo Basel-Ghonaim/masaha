@@ -52,13 +52,13 @@ export function RegisterPage() {
         </p>
         <p className="text-center text-caption">
           {copy.auth.register.privacy.read}{' '}
-          <Link to={SITE_PATHS.privacy} className="text-primary">
+          <Link to={SITE_PATHS.privacy} className="text-primary underline underline-offset-4">
             {copy.auth.register.privacy.link}
           </Link>
         </p>
         <p className="text-center text-caption">
           {copy.auth.register.ownerNote}{' '}
-          <Link to={SITE_PATHS.owners} className="text-primary">
+          <Link to={SITE_PATHS.owners} className="text-primary underline underline-offset-4">
             {copy.site.contact}
           </Link>
         </p>

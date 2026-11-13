@@ -50,7 +50,7 @@ export function AreaCards({ headingRef }: { headingRef: Ref<HTMLHeadingElement> 
                   to={card.to}
                   className="block h-full rounded-lg text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  <Card className="h-full hover:bg-accent">
+                  <Card className="h-full hover:bg-hover">
                     <CardHeader>
                       <CardTitle>
                         <h3>{card.title}</h3>

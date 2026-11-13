@@ -63,7 +63,7 @@ export function SortableSection({ samples }: { samples: SortableSamples }) {
               aria-label={tileName(id)}
               className={cn(
                 'flex aspect-4/3 cursor-grab flex-col justify-between rounded-lg border border-border bg-card p-3 text-body-sm text-card-foreground select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                (lifted || dragging) && 'border-primary shadow-floating',
+                (lifted || dragging) && 'border-spark shadow-floating',
               )}
             >
               <span>{tileName(id)}</span>
@@ -87,13 +87,13 @@ export function SortableSection({ samples }: { samples: SortableSamples }) {
             <div
               className={cn(
                 'flex items-center gap-2 rounded-lg border border-border bg-card p-2 text-body-sm text-card-foreground',
-                (lifted || dragging) && 'border-primary shadow-floating',
+                (lifted || dragging) && 'border-spark shadow-floating',
               )}
             >
               <span
                 {...handleProps}
                 aria-label={fill(samples.handle, { name: rowName(id), position: 0, count: 0 })}
-                className="flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground select-none hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground select-none hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <EllipsisVerticalIcon />
               </span>

@@ -374,6 +374,23 @@ describe("the dashboard's navigation", () => {
     expect(await topBarTitle('Overview')).toBeInTheDocument();
   });
 
+  it('heads the admin’s sidebar with the logo hidden from assistive technology, «مساحة» read once beside «إدارة المنصة», and no «م» tile', async () => {
+    startPreferences('ar');
+    stubScreenWidth(1280);
+    signIn({ role: 'ADMIN' });
+    renderDashboard('/dashboard/admin');
+
+    const nav = await screen.findByRole('navigation', { name: 'لوحة إدارة المنصة' });
+    const header = nav.querySelector<HTMLElement>('[data-slot="sidebar-header"]');
+    if (header === null) throw new Error('The sidebar has no header');
+    const head = within(header);
+    expect(head.queryByText('م')).not.toBeInTheDocument();
+    expect(header.querySelector('[data-slot="logo"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(head.queryByRole('img')).not.toBeInTheDocument();
+    expect(head.getByText('مساحة')).toHaveClass('sr-only');
+    expect(head.getByText('إدارة المنصة')).not.toHaveClass('sr-only');
+  });
+
   it('shows the admin the lookups page: its title in the top bar, and the governorates', async () => {
     signIn({ role: 'ADMIN' });
     fakeTransport(({ url }) =>

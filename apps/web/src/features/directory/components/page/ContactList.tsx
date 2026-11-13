@@ -13,7 +13,7 @@ export function ContactList({ items }: { items: ContactLink[] }) {
           <a
             href={item.href}
             {...(item.external && { target: '_blank', rel: 'noopener' })}
-            className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-body-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-body-sm transition-colors hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <span {...(item.ownName && { dir: 'auto' })} className="shrink-0 text-label">
               {item.label}

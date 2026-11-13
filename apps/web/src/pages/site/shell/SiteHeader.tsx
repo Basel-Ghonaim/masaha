@@ -1,6 +1,6 @@
 import { AccountMenu } from '@features/users';
 import { useCopy } from '@shared/copy';
-import { Button, LogInIcon } from '@shared/design-system';
+import { Button, LogInIcon, Logo } from '@shared/design-system';
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { Link, NavLink } from 'react-router';
@@ -23,8 +23,11 @@ export function SiteHeader() {
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 md:px-8">
         <SiteMenu />
-        <Link to={SITE_PATHS.home} className="text-heading-3 text-primary">
-          {copy.site.wordmark}
+        <Link
+          to={SITE_PATHS.home}
+          className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Logo label={copy.site.wordmark} className="h-10" />
         </Link>
         <nav aria-label={copy.site.navigation} className="ms-6 hidden items-center gap-1 md:flex">
           {SITE_LINKS.map((link) => (

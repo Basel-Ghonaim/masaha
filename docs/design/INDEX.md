@@ -125,7 +125,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 
 | Parameter | Where | What it shows |
 |---|---|---|
-| `?identity=slate-coral` · `slate-berry` | every app page, carried on its links | a **trial** identity (`slate-berry` adopted by the owner, 2026-11-11; `slate-coral` kept to compare): ink actions, a spark for what matters now and the candidate's logo ([CHANGES.md](CHANGES.md#identity-trial--ink--spark-2026-11-11)); without it, *Sea* |
+| `?identity=sea` · `slate-coral` | every app page, carried on its links | without it, or with an unknown one, **ink + berry** (`slate-berry`), production's identity ([CHANGES.md](CHANGES.md#berry-the-default-2026-11-12)); `sea`: *Sea*, the first identity; `slate-coral`: the trial's other candidate, kept to compare ([CHANGES.md](CHANGES.md#identity-trial--ink--spark-2026-11-11)). `?identity=slate-berry` is the same as none |
 
 ## 01 · Flow
 

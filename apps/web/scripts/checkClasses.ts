@@ -24,7 +24,7 @@ const PHYSICAL_CLASS = new RegExp(
 );
 
 // An arbitrary value bypasses the tokens (foundation §2), so outside the design-system layer no
-// utility may carry one: text-[13px], bg-[#fff], bg-(--brand-600), a /[..] modifier, or an arbitrary
+// utility may carry one: text-[13px], bg-[#fff], bg-(--spark-500), a /[..] modifier, or an arbitrary
 // property such as [mask-type:alpha]. Arbitrary variants (data-[state=open]:) only choose when a
 // utility applies, so they stay allowed. The layer itself binds its tokens this way.
 const ARBITRARY_UTILITY = /^!?(?:-?[a-z][\w-]*?[-/][[(]|\[[\w-]+:)/;
@@ -48,7 +48,8 @@ export function findPhysicalClasses(source: string): ClassHit[] {
 }
 
 // Variants end at a colon outside brackets and parentheses; the utility is what follows the last.
-function utilityOf(token: string): string {
+function splitVariants(token: string): { variants: string[]; utility: string } {
+  const variants: string[] = [];
   let depth = 0;
   let start = 0;
   for (let index = 0; index < token.length; index += 1) {
@@ -58,14 +59,53 @@ function utilityOf(token: string): string {
     } else if (character === ']' || character === ')') {
       depth -= 1;
     } else if (character === ':' && depth === 0) {
+      variants.push(token.slice(start, index));
       start = index + 1;
     }
   }
-  return token.slice(start);
+  return { variants, utility: token.slice(start) };
 }
 
 export function findArbitraryValueClasses(source: string): ClassHit[] {
-  return findClasses(source, CLASS_TOKEN, (token) => ARBITRARY_UTILITY.test(utilityOf(token)));
+  return findClasses(source, CLASS_TOKEN, (token) =>
+    ARBITRARY_UTILITY.test(splitVariants(token).utility),
+  );
+}
+
+// The selected tint (foundation §5) marks what is chosen, so it is never a hover or a highlight: a
+// copied component's hover:bg-accent would bring the old meaning back unseen. A hover takes the
+// `hover` role, or `hover-on-muted` on a muted ground. A hover or highlight variant counts anywhere
+// in a class's stack (md:hover:, not-data-active:hover:), on another element (group-hover:,
+// peer-hover/menu-button:), and with an opacity or an important mark. The layer is checked too.
+const SELECTED_TINT = new Set([
+  'bg-accent',
+  'text-accent-foreground',
+  'bg-sidebar-accent',
+  'text-sidebar-accent-foreground',
+]);
+const HOVER_OR_HIGHLIGHT = new Set([
+  'hover',
+  'focus',
+  'focus-visible',
+  'aria-expanded',
+  'data-open',
+  'has-data-open',
+  'data-[selected=true]',
+  'data-highlighted',
+]);
+
+// A group- or peer- variant, and its /name, is the same state read on another element.
+const hoversOrHighlights = (variant: string) =>
+  HOVER_OR_HIGHLIGHT.has(variant.replace(/\/[\w-]+$/, '').replace(/^(?:group|peer)-/, ''));
+
+// The utility's name, without its important mark or opacity modifier.
+const utilityName = (utility: string) => utility.replace(/^!|!$/g, '').replace(/\/.*$/, '');
+
+export function findSelectedTintHoverClasses(source: string): ClassHit[] {
+  return findClasses(source, CLASS_TOKEN, (token) => {
+    const { variants, utility } = splitVariants(token);
+    return SELECTED_TINT.has(utilityName(utility)) && variants.some(hoversOrHighlights);
+  });
 }
 
 function main() {
@@ -83,12 +123,14 @@ function main() {
 
   let physical = 0;
   let arbitrary = 0;
+  let tintHovers = 0;
   for (const file of files) {
     const source = readFileSync(join(webRoot, file), 'utf8');
     physical += report(file, findPhysicalClasses(source));
     if (!file.startsWith(LAYER)) {
       arbitrary += report(file, findArbitraryValueClasses(source));
     }
+    tintHovers += report(file, findSelectedTintHoverClasses(source));
   }
 
   if (physical > 0) {
@@ -101,11 +143,16 @@ function main() {
       `\n${String(arbitrary)} arbitrary-value class(es) outside ${LAYER}. Use a token instead.`,
     );
   }
-  if (physical > 0 || arbitrary > 0) {
+  if (tintHovers > 0) {
+    console.error(
+      `\n${String(tintHovers)} class(es) show the selected tint as a hover or highlight. Use hover (hover-on-muted on a muted ground) instead.`,
+    );
+  }
+  if (physical > 0 || arbitrary > 0 || tintHovers > 0) {
     process.exitCode = 1;
   } else {
     console.log(
-      `No physical direction or arbitrary-value classes in ${String(files.length)} files.`,
+      `No physical direction, arbitrary-value or selected-tint hover classes in ${String(files.length)} files.`,
     );
   }
 }

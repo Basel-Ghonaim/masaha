@@ -98,6 +98,19 @@ describe('the site shell', () => {
     expect(header.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
+  it('draws the logo in the header’s home link, which it names «Masaha», and «مساحة» in Arabic', async () => {
+    const user = userEvent.setup();
+    await renderSite('/');
+    const home = within(screen.getByRole('banner')).getByRole('link', { name: 'Masaha' });
+
+    expect(within(home).getByRole('img', { name: 'Masaha' })).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole('banner')).getByRole('button', { name: 'العربية' }));
+
+    const homeInArabic = within(screen.getByRole('banner')).getByRole('link', { name: 'مساحة' });
+    expect(within(homeInArabic).getByRole('img', { name: 'مساحة' })).toBeInTheDocument();
+  });
+
   it('links the footer to about, to the privacy policy and to the contact section', async () => {
     await renderSite('/');
     const footer = within(screen.getByRole('contentinfo'));
@@ -185,6 +198,16 @@ describe('the site shell', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
     ).toBeInTheDocument();
+  });
+
+  it('draws the logo, named «Masaha», at the head of the phone menu, which keeps its own name', async () => {
+    const user = userEvent.setup();
+    await renderSite('/');
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+
+    const menu = within(screen.getByRole('dialog', { name: 'Menu' }));
+    expect(menu.getByRole('img', { name: 'Masaha' })).toBeInTheDocument();
   });
 
   it('offers «تخطَّ إلى المحتوى» first, leading to the page’s main content', async () => {

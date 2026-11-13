@@ -58,4 +58,34 @@ describe('resetEmail', () => {
     expect(Object.keys(ARABIC).sort()).toEqual(Object.keys(ENGLISH).sort());
     for (const value of Object.values(ARABIC)) expect(value).not.toBe('');
   });
+
+  // The identity's values, written by hand (ADR 0019, finding 19): a mail client reads no token.
+  it("draws with ink + berry's neutrals only: #f7fbff, #ffffff, #dde5ed, #1a1f25 and #5e646a", () => {
+    expect(new Set(email.html.toLowerCase().match(/#[0-9a-f]{3,8}\b/g))).toEqual(
+      new Set(['#f7fbff', '#ffffff', '#dde5ed', '#1a1f25', '#5e646a']),
+    );
+  });
+
+  it("draws its button as the web's primary: a #1a1f25 ink cell under a #ffffff label", () => {
+    const [, cell = '', label = ''] =
+      new RegExp(
+        `<td style="([^"]*)">\\s*<a href="[^"]*" style="([^"]*)">${ARABIC.action}</a>`,
+      ).exec(email.html) ?? [];
+
+    expect(cell).toContain('background:#1a1f25;');
+    expect(label).toContain('color:#ffffff;');
+  });
+
+  it('writes its links in #1a1f25 ink, the one in the English text underlined', () => {
+    const [, english = ''] =
+      new RegExp(`<a href="[^"]*" style="([^"]*)">${ENGLISH.action}</a>`).exec(email.html) ?? [];
+    const asText = [...email.html.matchAll(/<p dir="ltr" style="([^"]*)">/g)].map(
+      ([, style]) => style,
+    );
+
+    expect(english).toContain('color:#1a1f25;');
+    expect(english).toContain('text-decoration:underline;');
+    expect(asText).toHaveLength(2);
+    for (const style of asText) expect(style).toContain('color:#1a1f25;');
+  });
 });

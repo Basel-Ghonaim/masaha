@@ -10,6 +10,7 @@ import { AvatarSection } from './sections/display/AvatarSection';
 import { BadgeSection } from './sections/display/BadgeSection';
 import { CardSection } from './sections/display/CardSection';
 import { FilterTagSection } from './sections/display/FilterTagSection';
+import { LogoSection } from './sections/display/LogoSection';
 import { MeterSection } from './sections/display/MeterSection';
 import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
@@ -174,6 +175,7 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   )),
   entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
   entry('display', 'Meter', 'meter', (samples) => <MeterSection samples={samples} />),
+  entry('display', 'Logo', 'logo', (samples) => <LogoSection samples={samples} />),
   entry('data', 'BarChart', 'barChart', (samples) => <BarChartSection samples={samples} />),
   entry('feedback', 'Refreshing', 'refreshing', (samples) => (
     <RefreshingSection samples={samples} />

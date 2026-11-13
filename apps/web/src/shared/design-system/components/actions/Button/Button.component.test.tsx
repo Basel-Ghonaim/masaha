@@ -54,6 +54,23 @@ describe('Button', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('underlines the link variant at rest, not only under the pointer', () => {
+    render(<Button variant="link">Details</Button>);
+    const link = screen.getByRole('button', { name: 'Details' });
+
+    expect(link).toHaveClass('underline');
+    expect(link).not.toHaveClass('hover:underline');
+  });
+
+  it.each(['primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const)(
+    'draws the %s variant without the spark, which never marks an action',
+    (variant) => {
+      render(<Button variant={variant}>Save</Button>);
+
+      expect(screen.getByRole('button', { name: 'Save' }).className).not.toMatch(/spark/);
+    },
+  );
+
   it('has no accessibility violations', async () => {
     const { container } = render(
       <>

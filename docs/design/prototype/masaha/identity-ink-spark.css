@@ -1,7 +1,9 @@
-/* Identity trial — "ink + spark" (2026-11-11). The owner adopted slate-berry (2026-11-11); slate-coral stays to
-   compare. Until foundation.md takes it, foundation §4–§5 (Sea) still rule and stay the default.
-   Loaded last on every app page. It does nothing unless <html data-identity="…"> is set, which i18n.js does
-   from ?identity=slate-coral | slate-berry (carried on every link). Without it the page is Sea.
+/* Identity — "ink + spark" (trial 2026-11-11). The owner adopted slate-berry (2026-11-11) and production now
+   takes it (foundation §4–§5 and §16, ADR 0019), so it is the prototype's default; slate-coral stays to
+   compare, and Sea, the first identity, is ?identity=sea.
+   Loaded last on every app page. It does nothing unless <html data-identity="…"> is set, which i18n.js does:
+   slate-berry without ?identity= (or with an unknown one), slate-coral from ?identity=slate-coral, carried on
+   every link. ?identity=sea sets none, and the page is the bundle's own Sea.
    The brand has two roles: a dark INK (neutral-900 / neutral-50) carries actions, links, focus and structure;
    a warm SPARK marks what matters now — selected, current, the brand mark — sparingly, as fills, borders and
    marks at ≥ 3:1, never as small text, never on an action button, never for destructive.
@@ -57,8 +59,9 @@ html[data-identity][data-theme=dark]{
 /* ── Ink: actions, links, structure. ── */
 
 /* The bundle's primary hover mixes primary with foreground; with ink both are one colour, so the hover would
-   vanish. Mixed toward the background instead (white text keeps 4.5:1: measured in both themes). */
-html[data-identity] [data-slot=button].bg-primary:hover{background-color:color-mix(in oklch,var(--primary),var(--background) 18%)}
+   vanish. Mixed toward the background instead (white text keeps 4.5:1: measured in both themes), in OKLab: in
+   OKLCH Chrome drops the hue of these near-greys and paints a warm grey. */
+html[data-identity] [data-slot=button].bg-primary:hover{background-color:color-mix(in oklab,var(--primary),var(--background) 18%)}
 /* The spark never sits on an action, and hover is never the selected tint. Inside a button (its hover and its
    open state) and in a menu, a select or a combobox list (the highlighted item) accent is the hover fill. */
 html[data-identity] [data-slot=button],html[data-identity] [data-slot=dropdown-menu-content],html[data-identity] [data-slot=select-content],html[data-identity] [data-slot=combobox-content]{--accent:var(--hover);--accent-foreground:var(--foreground)}

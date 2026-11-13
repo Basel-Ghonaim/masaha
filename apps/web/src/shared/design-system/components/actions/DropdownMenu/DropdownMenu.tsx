@@ -60,7 +60,7 @@ export function DropdownMenuContent({
 // An item is 36px high, and the control height on touch screens. Its icon is muted until the item
 // is highlighted.
 const itemClasses =
-  "relative flex min-h-9 cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm outline-hidden select-none pointer-coarse:min-h-(--control-height) focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:text-muted-foreground focus:[&_svg]:text-accent-foreground [&_svg:not([class*='size-'])]:size-4";
+  "relative flex min-h-9 cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm outline-hidden select-none pointer-coarse:min-h-(--control-height) focus:bg-hover focus:text-hover-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:text-muted-foreground focus:[&_svg]:text-hover-foreground [&_svg:not([class*='size-'])]:size-4";
 
 export type DropdownMenuItemProps = ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   /** An action that removes, rejects or deactivates. */
@@ -183,7 +183,7 @@ export function DropdownMenuSubTrigger({
   return (
     <DropdownMenuPrimitive.SubTrigger
       data-slot="dropdown-menu-sub-trigger"
-      className={cn(itemClasses, 'data-open:bg-accent data-open:text-accent-foreground', className)}
+      className={cn(itemClasses, 'data-open:bg-hover data-open:text-hover-foreground', className)}
       {...props}
     >
       {children}

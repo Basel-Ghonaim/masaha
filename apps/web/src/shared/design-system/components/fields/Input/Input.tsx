@@ -99,7 +99,7 @@ export function InputAction({ label, icon, className, ...props }: InputActionPro
       data-slot="input-action"
       aria-label={label}
       className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors after:absolute after:-inset-1.5 hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        "relative flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors after:absolute after:-inset-1.5 hover:bg-hover hover:text-hover-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
