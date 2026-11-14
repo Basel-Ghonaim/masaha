@@ -17,6 +17,8 @@ const CARD: SpaceCardView = {
   status: { label: 'Available', variant: 'success' },
   noStatus: 'No live status',
   verified: 'Verified',
+  evening: null,
+  womensHall: null,
   today: 'Open today 08:00–22:00',
   distance: null,
   price: null,
@@ -74,6 +76,40 @@ describe('SpaceCard', () => {
     expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
       'Al-Rimal No live status Hours not available',
     );
+  });
+
+  it('marks the evening and the women’s hall after «Verified», read in that order (E6, W4)', () => {
+    renderCard(undefined, { ...CARD, evening: 'Evening hours', womensHall: 'Women’s hall' });
+
+    expect(screen.getByText('Evening hours')).toBeInTheDocument();
+    expect(screen.getByText('Women’s hall')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
+      'Al-Rimal Available Verified Evening hours Women’s hall Open today 08:00–22:00',
+    );
+  });
+
+  it('draws no mark a space lacks, and never says it is mixed (W6)', () => {
+    renderCard(undefined, { ...CARD, evening: 'Evening hours' });
+
+    expect(screen.getByText('Evening hours')).toBeInTheDocument();
+    expect(screen.queryByText('Women’s hall')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masaha Hub' })).toHaveAccessibleDescription(
+      'Al-Rimal Available Verified Evening hours Open today 08:00–22:00',
+    );
+  });
+
+  it('says both marks in Arabic, with no detectable accessibility violations', async () => {
+    startPreferences('ar');
+    const { container } = renderCard(undefined, {
+      ...CARD,
+      verified: 'موثّقة',
+      evening: 'دوام مسائي',
+      womensHall: 'قاعة للنساء',
+    });
+
+    expect(screen.getByText('دوام مسائي')).toBeInTheDocument();
+    expect(screen.getByText('قاعة للنساء')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('reads its price last, after today’s hours, while a subscription is chosen', () => {

@@ -5,6 +5,8 @@ import {
   CardHeader,
   CardTitle,
   CircleCheckIcon,
+  MoonIcon,
+  VenusIcon,
 } from '@shared/design-system';
 import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -15,10 +17,11 @@ import { SpaceCover } from './SpaceCover';
 /**
  * A space in the directory: the whole card one link to its page, named by the space's name and
  * described by each detail in turn, so a screen reader that reads a link by its name reads them
- * after it. Its cover or mark, its name, its area, its state, whether it is verified, today's
- * hours (or that they are not available), how far it is while the list is ordered by distance, and,
- * last, its price while a subscription is chosen. An action the page sets
- * (the heart) stands over the cover's corner, beside the link and never inside it.
+ * after it. Its cover or mark, its name, its area, its state, whether it is verified, its evening
+ * and its women's hall while it has them (muted: they describe the space, they certify nothing),
+ * today's hours (or that they are not available), how far it is while the list is ordered by
+ * distance, and, last, its price while a subscription is chosen. An action the page sets (the
+ * heart) stands over the cover's corner, beside the link and never inside it.
  */
 export function SpaceCard({
   card,
@@ -36,6 +39,8 @@ export function SpaceCard({
   const areaId = `${ids}-area`;
   const statusId = `${ids}-status`;
   const verifiedId = `${ids}-verified`;
+  const eveningId = `${ids}-evening`;
+  const womenId = `${ids}-women`;
   const todayId = `${ids}-today`;
   const distanceId = `${ids}-distance`;
   const priceId = `${ids}-price`;
@@ -43,6 +48,8 @@ export function SpaceCard({
     areaId,
     statusId,
     ...(card.verified === null ? [] : [verifiedId]),
+    ...(card.evening === null ? [] : [eveningId]),
+    ...(card.womensHall === null ? [] : [womenId]),
     todayId,
     ...(card.distance === null ? [] : [distanceId]),
     ...(card.price === null ? [] : [priceId]),
@@ -74,6 +81,24 @@ export function SpaceCard({
               <span id={verifiedId} className="flex items-center gap-1 text-body-sm text-primary">
                 <CircleCheckIcon aria-hidden className="size-4" />
                 {card.verified}
+              </span>
+            )}
+            {card.evening !== null && (
+              <span
+                id={eveningId}
+                className="flex items-center gap-1 text-body-sm text-muted-foreground"
+              >
+                <MoonIcon aria-hidden className="size-4" />
+                {card.evening}
+              </span>
+            )}
+            {card.womensHall !== null && (
+              <span
+                id={womenId}
+                className="flex items-center gap-1 text-body-sm text-muted-foreground"
+              >
+                <VenusIcon aria-hidden className="size-4" />
+                {card.womensHall}
               </span>
             )}
           </div>

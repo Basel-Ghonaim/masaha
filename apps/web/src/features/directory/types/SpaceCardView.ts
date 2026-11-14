@@ -16,6 +16,10 @@ export type SpaceCardView = {
   status: { label: string; variant: 'success' | 'warning' | 'neutral' } | null;
   noStatus: string;
   verified: string | null;
+  /** «دوام مسائي», while its owner declares the evening (E6). */
+  evening: string | null;
+  /** «قاعة للنساء», while it has the women's hall; nothing is said without it (W4, W6). */
+  womensHall: string | null;
   /** Today's hours, or that the hours are not available. */
   today: string;
   /** How far, in a straight line, while the list is ordered by distance. */

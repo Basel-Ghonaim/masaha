@@ -73,6 +73,8 @@ export const DIRECTORY = {
   },
   card: {
     verified: 'موثّقة',
+    evening: 'دوام مسائي',
+    womensHall: 'قاعة للنساء',
     today: ({ range }: { range: string }) => `اليوم ${range}`,
     closedToday: 'مغلقة اليوم',
     openAllDay: 'مفتوحة اليوم على مدار الساعة',

@@ -90,6 +90,21 @@ describe('cardViewOf', () => {
     });
   });
 
+  it('marks «دوام مسائي» and «قاعة للنساء» only when the space has them (E6, W4, W6)', () => {
+    expect(card({ ...SPACE, worksEvenings: true, womensHall: true })).toMatchObject({
+      evening: 'دوام مسائي',
+      womensHall: 'قاعة للنساء',
+    });
+    expect(card({ ...SPACE, worksEvenings: false, womensHall: false })).toMatchObject({
+      evening: null,
+      womensHall: null,
+    });
+    expect(card({ ...SPACE, worksEvenings: true, womensHall: false })).toMatchObject({
+      evening: 'دوام مسائي',
+      womensHall: null,
+    });
+  });
+
   it('says the subscription’s price, isolated, only with a period and a price in the answer', () => {
     const priced = { ...SPACE, priceAgorot: 1500 };
     expect(

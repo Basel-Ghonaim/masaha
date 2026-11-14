@@ -76,6 +76,10 @@ export const DIRECTORY = {
   },
   card: {
     verified: 'Verified',
+    /** Its owner declares the evening (E6). */
+    evening: 'Evening hours',
+    /** It has the women's hall (W4). */
+    womensHall: 'Women’s hall',
     /** Today's opening hours, the range left to right. */
     today: ({ range }: { range: string }) => `Today ${range}`,
     closedToday: 'Closed today',
