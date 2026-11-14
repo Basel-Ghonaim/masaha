@@ -20,7 +20,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [217. Contacts and every phone refuse Arabic-Indic digits](217-contacts-and-every-phone-refuse-arabic-indic-digits.md)
 - [218. A website's bare number is stored as an IP address; a Facebook video link loses its id](218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md)
 - [219. A toast's removal timer can outlive its test file's jsdom](219-a-toasts-removal-timer-can-outlive-its-test-files-jsdom.md)
-- [220. The admin's top bar still offers to hide and delete a space found deleted](220-the-admins-top-bar-still-offers-to-hide-and-delete-a-space-found-deleted.md)
 - [221. The README's screenshots show Sea](221-the-readmes-screenshots-show-sea.md)
 - [222. A focused photo in the photo editor shows no focus ring](222-a-focused-photo-in-the-photo-editor-shows-no-focus-ring.md)
 - [223. Finance › Occupancy scrolls sideways on a phone](223-finance-occupancy-scrolls-sideways-on-a-phone.md)
@@ -172,4 +171,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
 - [213. A cron every 5 minutes keeps Neon's free database awake all month](213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)
 - [214. The Home test's wait finds Home's own search box](214-the-home-tests-wait-finds-homes-own-search-box.md)
+- [220. The admin's top bar still offers to hide and delete a space found deleted](220-the-admins-top-bar-still-offers-to-hide-and-delete-a-space-found-deleted.md)
 - [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
