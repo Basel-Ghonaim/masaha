@@ -389,6 +389,24 @@ describe("the dashboard's navigation", () => {
     expect(head.queryByRole('img')).not.toBeInTheDocument();
     expect(head.getByText('مساحة')).toHaveClass('sr-only');
     expect(head.getByText('إدارة المنصة')).not.toHaveClass('sr-only');
+    // Expanded, the full logo (R2-F2 of #144).
+    expect(header.querySelector('[data-slot="logo"]')).toHaveAttribute(
+      'viewBox',
+      '263 45 2473 903',
+    );
+  });
+
+  it('heads the admin’s rail with the logo’s square mark, never the full logo (R2-F2 of #144)', async () => {
+    stubScreenWidth(800);
+    signIn({ role: 'ADMIN' });
+    renderDashboard('/dashboard/admin');
+
+    const nav = await screen.findByRole('navigation', { name: 'Platform admin' });
+    const header = nav.querySelector<HTMLElement>('[data-slot="sidebar-header"]');
+    if (header === null) throw new Error('The sidebar has no header');
+    const logos = header.querySelectorAll('[data-slot="logo"]');
+    expect(logos).toHaveLength(1);
+    expect(logos[0]).toHaveAttribute('viewBox', '190 17 778 778');
   });
 
   it('shows the admin the lookups page: its title in the top bar, and the governorates', async () => {

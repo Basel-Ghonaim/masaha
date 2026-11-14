@@ -77,6 +77,21 @@ describe("the browser's icons", () => {
     );
   });
 
+  it('draws every shape of the SVG favicon with its class: the words ink, the dots spark (R2-F1 of #144)', () => {
+    const svg = publicFile('favicon.svg').toString('utf8');
+    // What is drawn: every shape outside <defs>, which only holds the clips and the words' path.
+    const drawn = svg.replace(/<defs>[\s\S]*?<\/defs>/, '');
+    const shapes = [...drawn.matchAll(/<(use|path|rect|circle|polygon|ellipse)\b[^>]*>/g)].map(
+      ([tag = '', name = '']) => ({ name, className: /\sclass="([^"]*)"/.exec(tag)?.[1] ?? null }),
+    );
+
+    expect(shapes).toEqual([
+      { name: 'use', className: 'ink' },
+      { name: 'use', className: 'ink' },
+      { name: 'path', className: 'spark' },
+    ]);
+  });
+
   it('the home-screen icon is a 180 × 180 PNG', () => {
     expect(pngSize(publicFile('apple-touch-icon.png'))).toEqual({ width: 180, height: 180 });
   });

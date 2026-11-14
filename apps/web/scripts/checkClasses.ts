@@ -85,6 +85,7 @@ const SELECTED_TINT = new Set([
 ]);
 const HOVER_OR_HIGHLIGHT = new Set([
   'hover',
+  'active',
   'focus',
   'focus-visible',
   'aria-expanded',
@@ -94,9 +95,20 @@ const HOVER_OR_HIGHLIGHT = new Set([
   'data-highlighted',
 ]);
 
+// The same states under their arbitrary spellings, as older copied components write them. Not
+// aria-selected: react-day-picker marks a chosen day with it.
+const SPELLINGS: Record<string, string> = {
+  'data-[state=open]': 'data-open',
+  'aria-[expanded=true]': 'aria-expanded',
+  'data-[highlighted]': 'data-highlighted',
+  'data-[highlighted=true]': 'data-highlighted',
+};
+
 // A group- or peer- variant, and its /name, is the same state read on another element.
-const hoversOrHighlights = (variant: string) =>
-  HOVER_OR_HIGHLIGHT.has(variant.replace(/\/[\w-]+$/, '').replace(/^(?:group|peer)-/, ''));
+const hoversOrHighlights = (variant: string) => {
+  const state = variant.replace(/\/[\w-]+$/, '').replace(/^(?:group|peer)-/, '');
+  return HOVER_OR_HIGHLIGHT.has(SPELLINGS[state] ?? state);
+};
 
 // The utility's name, without its important mark or opacity modifier.
 const utilityName = (utility: string) => utility.replace(/^!|!$/g, '').replace(/\/.*$/, '');

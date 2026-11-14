@@ -4,7 +4,8 @@ import type { DirectoryListView } from '../../types/DirectoryListView';
 
 /**
  * «الأقرب إليّ»: pressed while the list sorts by distance, busy while the location is asked. Busy,
- * not disabled, so it keeps the focus while it waits; a press then does nothing.
+ * not disabled, so it keeps the focus while it waits; a press then does nothing. Pressed, it takes a
+ * chip's selected look, the spark's tint and edge, kept under the pointer (foundation §5).
  */
 export function NearMeButton({
   button,
@@ -17,7 +18,8 @@ export function NearMeButton({
     <Button
       ref={ref}
       size="sm"
-      variant={button.on ? 'secondary' : 'outline'}
+      variant={button.on ? null : 'outline'}
+      className={button.on ? 'border-spark bg-accent text-accent-foreground' : undefined}
       aria-pressed={button.on}
       aria-busy={button.locating || undefined}
       aria-disabled={button.locating || undefined}

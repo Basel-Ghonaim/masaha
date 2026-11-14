@@ -67,6 +67,18 @@ describe('the contacts’ tiles', () => {
     expect(tiles[1]).toHaveTextContent('discord.gg/focushub');
     expect(tiles[1]).toHaveAttribute('target', '_blank');
   });
+
+  it('turns a tile’s caption to the foreground under its link’s hover, a verified pair on the wash (R1-F1 of #144)', async () => {
+    renderProfile();
+    await screen.findByRole('heading', { level: 2, name: 'Contacts' });
+
+    const [tile] = within(sectionOf('Contacts')).getAllByRole('link');
+    expect(tile).toHaveClass('group', 'hover:bg-hover-on-muted');
+    expect(within(tile as HTMLElement).getByText('+970599123456')).toHaveClass(
+      'text-muted-foreground',
+      'group-hover:text-foreground',
+    );
+  });
 });
 
 describe('the contacts’ Sheet', () => {
