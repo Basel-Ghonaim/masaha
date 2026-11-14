@@ -21,7 +21,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [218. A website's bare number is stored as an IP address; a Facebook video link loses its id](218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md)
 - [219. A toast's removal timer can outlive its test file's jsdom](219-a-toasts-removal-timer-can-outlive-its-test-files-jsdom.md)
 - [221. The README's screenshots show Sea](221-the-readmes-screenshots-show-sea.md)
-- [223. Finance › Occupancy scrolls sideways on a phone](223-finance-occupancy-scrolls-sideways-on-a-phone.md)
 - [224. The map's tooltip and two scrolling strips fail axe](224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)
 - [225. Four site test files render lazy routes without the warm-up](225-four-site-test-files-render-lazy-routes-without-the-warm-up.md)
 - [226. A ghost control inside a hovered table row has no hover of its own](226-a-ghost-control-inside-a-hovered-table-row-has-no-hover-of-its-own.md)
@@ -172,4 +171,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [214. The Home test's wait finds Home's own search box](214-the-home-tests-wait-finds-homes-own-search-box.md)
 - [220. The admin's top bar still offers to hide and delete a space found deleted](220-the-admins-top-bar-still-offers-to-hide-and-delete-a-space-found-deleted.md)
 - [222. A focused photo in the photo editor shows no focus ring](222-a-focused-photo-in-the-photo-editor-shows-no-focus-ring.md)
+- [223. Finance › Occupancy scrolls sideways on a phone](223-finance-occupancy-scrolls-sideways-on-a-phone.md)
 - [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
