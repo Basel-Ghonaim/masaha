@@ -440,6 +440,12 @@ describe('the measures', () => {
     expect([toHex(wash), wash.alpha]).toEqual(['#ff0000', 0.4]);
   });
 
+  it('turns a chromatic OKLab mix back to sRGB as Chrome paints it: dark accent is #471f46', () => {
+    // Chrome's painted pixel (the identity's visual pass, EC3), not computed by this code: it pins
+    // the inverse's chroma terms, which a grey and a clamped red cannot.
+    expect(toHex(painted('dark', 'accent'))).toBe('#471f46');
+  });
+
   it('refuses a mix in OKLCH, where Chrome drops a near-grey’s hue', () => {
     expect(() => resolveValue('light', 'color-mix(in oklch, #1a1f25, #f7fbff 18%)')).toThrow(
       'Unsupported mix',

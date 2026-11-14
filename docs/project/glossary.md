@@ -1,6 +1,6 @@
 # Glossary
 
-> **Status:** Active · **Last Updated:** 2026-11-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-11-12 · **Owner:** Basel Ghoneim
 > **Authority:** The canonical vocabulary. Code, documents and copy use these terms.
 
 | Term | Arabic | Meaning |
@@ -25,6 +25,8 @@
 | **Payment status** | حالة الدفع | Paid, partly paid or unpaid, per visit or subscription |
 | **Void a payment** | إلغاء دفعة | The owner cancels a payment, with a reason; it stays in the ledger and counts nowhere |
 | **Shift** | وردية | An optional named part of a space's daily opening range (for example, morning and evening), which a price or a subscription can name |
+| **Women's hall** | قاعة للنساء | A private hall for women at a space, not mixed: one of the platform's amenities, which the space ticks and the directory filters by. A space without it says nothing about it, never «مختلطة» |
+| **Evening hours** | دوام مسائي | The owner declares that the space works in the evening («المساحة تعمل مساءً»); its opening hours say until when. Never a shift named «مسائي», which lies inside the day's hours |
 | **Check-in** | تسجيل حضور | A record that a customer or a visitor is present at a space |
 | **Open check-in** | حضور مفتوح | A check-in without a check-out |
 | **Auto check-out** | خروج تلقائي | A check-out the system records at closing time or after the maximum duration |

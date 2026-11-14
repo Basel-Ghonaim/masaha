@@ -136,6 +136,8 @@ export const DOMAIN_ERROR_CODES = [
   // a subscribe from a published price whose amount the desk showed differs from the price now:
   // nothing is written (subscriptions)
   'PUBLISHED_PRICE_CHANGED',
+  // retiring the amenity the directory filters by, the women's hall (lookups)
+  'AMENITY_IN_FILTER',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

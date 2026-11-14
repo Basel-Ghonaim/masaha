@@ -43,7 +43,8 @@ function cardStatusOf(
 
 /**
  * A space's card, worded in the interface's language: its name, its mark, its state (`cardStatusOf`),
- * whether it is verified, today's hours (or that they are not available), and how far it is while
+ * whether it is verified, its evening and its women's hall while it has them (a pin has neither),
+ * today's hours (or that they are not available), and how far it is while
  * the list is ordered by distance (`byDistance`): an answer asked by distance and still shown once
  * the order stops says no distance. While the list is filtered by a subscription (`period`), the
  * price its answer carries, «15 ₪ / يوم», the amount left to right. A map's pin makes the same
@@ -78,6 +79,8 @@ export function cardViewOf(
     status: cardStatusOf(space, copy),
     noStatus: words.status.none,
     verified: space.isVerified ? words.card.verified : null,
+    evening: 'worksEvenings' in space && space.worksEvenings ? words.card.evening : null,
+    womensHall: 'womensHall' in space && space.womensHall ? words.card.womensHall : null,
     today: todayHours(space.days, now, words.card),
     distance:
       !byDistance || !('distanceMeters' in space) || space.distanceMeters === undefined

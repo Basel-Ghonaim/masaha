@@ -338,6 +338,11 @@ describe('the index', () => {
     ]);
     expect(links[0]).toHaveAttribute('aria-current', 'location');
     expect(links[0]).toHaveAttribute('href', '/spaces/7#photos');
+    // The section in view is selected, the spark's tint with no ghost hover (R1-F2 of #144).
+    expect(links[0]).toHaveClass('bg-accent', 'text-accent-foreground');
+    expect(links[0]).not.toHaveClass('bg-secondary');
+    expect(links[0]).not.toHaveClass('hover:bg-hover');
+    expect(links[1]).toHaveClass('hover:bg-hover');
   });
 
   it('draws no index below 1024 px', async () => {

@@ -1,6 +1,7 @@
 import type { OpeningRange, Shift, SpaceHours } from '@masaha/shared/spaces';
 import { describe, expect, it } from 'vitest';
 import {
+  eveningEndsEarly,
   fitsSimple,
   sameWeek,
   sheetOf,
@@ -20,6 +21,7 @@ const WITH_FRIDAY: (OpeningRange | null)[] = [DAY, DAY, DAY, DAY, DAY, range(780
 const hours = (days: (OpeningRange | null)[], shifts: Shift[] = []): SpaceHours => ({
   days,
   shifts,
+  worksEvenings: false,
 });
 
 describe('sheetOf', () => {
@@ -50,6 +52,26 @@ describe('sheetOf', () => {
 
   it('opens a week with Saturday closed in the custom view', () => {
     expect(sheetOf(hours([DAY, DAY, DAY, DAY, DAY, null, null])).custom).toBe(true);
+  });
+});
+
+describe('sheetOf’s evening switch', () => {
+  it('opens on the saved switch, and off for hours never saved', () => {
+    expect(sheetOf({ ...hours([DAY]), worksEvenings: true }).worksEvenings).toBe(true);
+    expect(sheetOf(hours([DAY])).worksEvenings).toBe(false);
+    expect(sheetOf(null).worksEvenings).toBe(false);
+  });
+});
+
+describe('eveningEndsEarly (E9)', () => {
+  it('holds while the switch is on and no open day closes after 18:00, an 18:00 close included', () => {
+    expect(eveningEndsEarly([DAY, DAY, null, range(600, 1080)], true)).toBe(true);
+    expect(eveningEndsEarly([DAY, null, range(480, 960)], true)).toBe(true);
+  });
+
+  it('lets go once one open day closes after 18:00, and never with the switch off', () => {
+    expect(eveningEndsEarly([DAY, range(480, 1110), null], true)).toBe(false);
+    expect(eveningEndsEarly([DAY, DAY], false)).toBe(false);
   });
 });
 

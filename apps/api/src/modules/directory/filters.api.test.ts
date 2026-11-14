@@ -16,8 +16,8 @@ import {
 } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
-// The directory's hours filters, «مفتوحة الآن» and «مفتوحة مساءً», on the real database at a fixed
-// clock each test sets (Gaza's clock: UTC+2 in winter, UTC+3 in summer until 2026-10-24), and every
+// The directory's hours filters, «مفتوحة الآن» and «مفتوحة مساءً» (the owner's switch), on the real
+// database at a fixed clock each test sets (Gaza's clock: UTC+2 in winter, UTC+3 in summer until 2026-10-24), and every
 // filter together (docs/features/directory.md).
 
 let now = new Date('2026-11-08T10:00:00+02:00');
@@ -45,12 +45,19 @@ beforeEach(async () => {
   now = sunday('10:00');
 });
 
-/** A listed space, unverified unless told, with the week given (none: hours never saved). */
+/**
+ * A listed space, unverified unless told, with the week given (none: hours never saved) and its
+ * owner's evening switch.
+ */
 async function space(
   nameEn: string,
-  { week, verified = false }: { week?: Day[]; verified?: boolean } = {},
+  {
+    week,
+    verified = false,
+    evening = false,
+  }: { week?: Day[]; verified?: boolean; evening?: boolean } = {},
 ) {
-  const created = await createPublicSpace(areaId, nameEn);
+  const created = await createPublicSpace(areaId, nameEn, { worksEvenings: evening });
   if (verified) await signInOwnerOf(created.id);
   if (week) await setWeek(created.id, week);
   return created;
@@ -98,6 +105,32 @@ interface Card {
   nameEn: string;
   liveStatus: string | null;
   hoursStatus: string | null;
+  worksEvenings: boolean;
+  womensHall: boolean;
+}
+
+/**
+ * The catalogue's women's hall, by its key, after another amenity, so its id is never the first;
+ * the spaces given have it.
+ */
+async function womensHall(spaceIds: readonly number[] = [], isActive = true) {
+  await prisma.amenity.create({
+    data: { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', sortOrder: 1 },
+  });
+  const hall = await prisma.amenity.create({
+    data: {
+      key: 'womens_hall',
+      nameAr: 'قاعة للنساء',
+      nameEn: 'Women’s hall',
+      icon: 'venus',
+      sortOrder: 2,
+      isActive,
+    },
+  });
+  await prisma.spaceAmenity.createMany({
+    data: spaceIds.map((spaceId) => ({ spaceId, amenityId: hall.id })),
+  });
+  return hall;
 }
 
 /** The list's answer at the query, its cards and its meta. */
@@ -272,24 +305,75 @@ describe('openNow: open now by the hours, on Gaza’s clock', () => {
   });
 });
 
-describe('evening: closes at 20:00 or later on one of its open days', () => {
-  it('reads the week, never the clock', async () => {
-    await space('Closes At Twenty', { week: everyDay(480, 1200) });
-    await space('Closes At 19:59', { week: everyDay(480, 1199) });
-    await space('One Late Day', {
-      week: [[480, 900], [480, 900], [480, 1260], null, [480, 900], null, [480, 900]],
-    });
-    await space('Around The Clock', { week: everyDay(0, 1440) });
-    await space('Every Day Closed', { week: Array.from({ length: 7 }, () => null) });
+describe('evening: the owner declares the space works in the evening (E7)', () => {
+  it('passes by the switch alone, never by the week or the clock', async () => {
+    await space('Switch On Late', { week: everyDay(480, 1380), evening: true });
+    await space('Switch On Early', { week: DAY_HOURS, evening: true });
+    await space('Switch Off Late', { week: everyDay(480, 1380) });
+    await space('Switch Off Around The Clock', { week: everyDay(0, 1440) });
     await space('No Hours');
 
-    const expected = ['Around The Clock', 'Closes At Twenty', 'One Late Day'];
-    // A morning on a day the late space is closed (Wednesday, 3), and Tuesday evening.
+    const expected = ['Switch On Early', 'Switch On Late'];
+    // A morning, and an evening when the early one is closed.
     for (const at of [gaza('2026-11-11', '07:00'), gaza('2026-11-10', '21:00')]) {
       now = at;
       expect(await names('&evening=true')).toEqual(expected);
     }
-    expect(await names('&evening=false')).toHaveLength(6);
+    expect(await names('&evening=false')).toHaveLength(5);
+  });
+
+  it('carries the switch on every card, filtered or not', async () => {
+    await space('On', { week: DAY_HOURS, evening: true });
+    await space('Off', { week: everyDay(480, 1380) });
+
+    const { data } = await listed('?sort=name&lang=en');
+
+    expect(data.map(({ nameEn, worksEvenings }) => [nameEn, worksEvenings])).toEqual([
+      ['Off', false],
+      ['On', true],
+    ]);
+  });
+});
+
+describe('womensHall: the spaces with the women’s hall, by the amenity’s key (W3, W5)', () => {
+  it('keeps the spaces that have it, on the list and the map, and says so on every card', async () => {
+    const withHall = await space('With Hall', { week: DAY_HOURS });
+    const other = await space('Internet Only', { week: DAY_HOURS });
+    await space('Nothing Ticked');
+    await womensHall([withHall.id]);
+    const internet = await prisma.amenity.findUniqueOrThrow({ where: { key: 'internet' } });
+    await prisma.spaceAmenity.create({ data: { spaceId: other.id, amenityId: internet.id } });
+
+    expect(await names('&womensHall=true')).toEqual(['With Hall']);
+    expect(await pinNames('?womensHall=true')).toEqual(['With Hall']);
+    expect(await names('&womensHall=false')).toHaveLength(3);
+    const { data } = await listed('?sort=name&lang=en');
+    expect(data.map(({ nameEn, womensHall: has }) => [nameEn, has])).toEqual([
+      ['Internet Only', false],
+      ['Nothing Ticked', false],
+      ['With Hall', true],
+    ]);
+  });
+
+  it('passes none while the women’s hall is retired, nor while the catalogue lacks it', async () => {
+    const withHall = await space('With Hall');
+    expect(await names('&womensHall=true')).toEqual([]);
+
+    await womensHall([withHall.id], false);
+
+    expect(await names('&womensHall=true')).toEqual([]);
+    const { data } = await listed('');
+    expect(data.map(({ womensHall: has }) => has)).toEqual([false]);
+  });
+
+  it('combines with the evening and the hours filters', async () => {
+    const both = await space('Both', { week: DAY_HOURS, evening: true });
+    const hallOnly = await space('Hall Only', { week: DAY_HOURS });
+    await space('Evening Only', { week: DAY_HOURS, evening: true });
+    await womensHall([both.id, hallOnly.id]);
+
+    expect(await names('&womensHall=true&evening=true')).toEqual(['Both']);
+    expect(await names('&womensHall=true&openNow=true')).toEqual(['Both', 'Hall Only']);
   });
 });
 
@@ -316,29 +400,45 @@ describe('every filter together', () => {
       price = 2000,
       studentPrice = true,
       verified = true,
-    }: { area?: number; week?: Day[]; price?: number; studentPrice?: boolean; verified?: boolean },
+      evening = true,
+      hall = true,
+    }: {
+      area?: number;
+      week?: Day[];
+      price?: number;
+      studentPrice?: boolean;
+      verified?: boolean;
+      evening?: boolean;
+      hall?: boolean;
+    },
   ) {
     // Its prices dated now, so an unverified one's are shown.
     const created = await createPublicSpace(area, nameEn, {
       nameAr: `مساحة ${nameEn}`,
       pricesUpdatedAt: now,
+      worksEvenings: evening,
     });
     if (verified) await signInOwnerOf(created.id);
     await setWeek(created.id, week);
     await addPrice(created.id, 'DAY', price);
     if (studentPrice) await addPrice(created.id, 'DAY', price - 500, 'STUDENT');
+    if (hall)
+      await prisma.spaceAmenity.create({ data: { spaceId: created.id, amenityId: hallId } });
     return created;
   }
+
+  let hallId: number;
 
   /** Each filter, and the one space failing it alone. */
   const FILTERS = {
     area: 'Focus Other Area',
     price: 'Focus Too Dear',
     openNow: 'Focus Opens At Noon',
-    evening: 'Focus Closes Early',
+    evening: 'Focus No Evening',
     openFriday: 'Focus Friday Closed',
     verified: 'Focus Unverified',
     studentPrices: 'Focus No Student Price',
+    womensHall: 'Focus No Hall',
     q: 'Unmatched',
   } as const;
   type Filter = keyof typeof FILTERS;
@@ -352,6 +452,7 @@ describe('every filter together', () => {
       openFriday: 'openFriday=true',
       verified: 'verified=true',
       studentPrices: 'studentPrices=true',
+      womensHall: 'womensHall=true',
       q: 'q=Focus',
     };
     return filters.map((filter) => `&${parts[filter]}`).join('');
@@ -360,17 +461,20 @@ describe('every filter together', () => {
   beforeEach(async () => {
     // Thursday 10:00 in Gaza: every candidate with hours is open but «Opens At Noon».
     now = gaza('2026-11-05', '10:00');
+    ({ id: hallId } = await womensHall());
     const { id: otherArea } = await createArea({ nameAr: 'الشجاعية', nameEn: 'Ash-Shuja’iyya' });
     await candidate('Focus Passes', {});
     await candidate('Focus Other Area', { area: otherArea });
     await candidate('Focus Too Dear', { price: 3001 });
     await candidate('Focus Opens At Noon', { week: everyDay(720, 1260) });
-    await candidate('Focus Closes Early', { week: everyDay(480, 1199) });
+    // Open late, but its owner declares no evening.
+    await candidate('Focus No Evening', { evening: false });
     await candidate('Focus Friday Closed', {
       week: everyDay(480, 1260).map((day, i) => (i === 5 ? null : day)),
     });
     await candidate('Focus Unverified', { verified: false });
     await candidate('Focus No Student Price', { studentPrice: false });
+    await candidate('Focus No Hall', { hall: false });
     await candidate('Unmatched', {});
     // Without hours, it fails only the hours filters.
     const noHours = await createPublicSpace(areaId, 'Focus No Hours');
@@ -403,8 +507,9 @@ describe('every filter together', () => {
   it('a space without hours fails only the hours filters', async () => {
     const others: Filter[] = ['area', 'price', 'verified', 'studentPrices', 'q'];
     expect(await names(queryOf(others))).toEqual([
-      'Focus Closes Early',
       'Focus Friday Closed',
+      'Focus No Evening',
+      'Focus No Hall',
       'Focus No Hours',
       'Focus Opens At Noon',
       'Focus Passes',
@@ -416,7 +521,13 @@ describe('every filter together', () => {
   });
 
   it('the map keeps the same spaces as the list for each hours filter', async () => {
-    for (const filters of [['openNow'], ['evening'], ['openNow', 'evening'], ALL] as Filter[][]) {
+    for (const filters of [
+      ['openNow'],
+      ['evening'],
+      ['womensHall'],
+      ['openNow', 'evening'],
+      ALL,
+    ] as Filter[][]) {
       const list = await names(queryOf(filters));
       expect(await pinNames(`?${queryOf(filters).slice(1)}`), filters.join()).toEqual(
         [...list].sort(),

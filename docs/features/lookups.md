@@ -1,16 +1,16 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-12 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin, the owner's profile, and the site's Home and Directory.
 
 ## What it does
 
-- Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
+- Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored. One amenity is fixed: the women's hall («قاعة للنساء», key `womens_hall`), which the directory filters by; the admin renames it, changes its icon and moves it, but never retires it.
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
 - Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters, the field that chooses one area for a space, which the add-space form and the space editor set, and, for the editor, a space's amenities to tick and the names of its area and its amenities.
-- Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active; and for the [directory](directory.md), the areas a space may be listed in, how well a search matches each one's names, and the active amenities of a space, named, in order.
+- Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active; and for the [directory](directory.md), the areas a space may be listed in, how well a search matches each one's names, the active amenities of a space, named, in order, and the id of an active amenity by its key, the women's hall's.
 
 ## Who uses it
 
@@ -42,8 +42,8 @@
 `AmenitiesSection` shows every amenity, retired ones included, in order, in one card:
 - the card holds its title and "Add amenity", with no line under the title;
 - each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when it is retired;
-- each row has its "Active" switch, named after its amenity with its word beside it, its arrows, and Edit;
-- a sheet adds or edits an amenity: its names and its icon, chosen from a grid of the eight, and, editing one of more than ten amenities, its "Position", as a governorate's; its "Active" switch is its row's alone; its key, which the server derives from its English name, is never shown;
+- each row has its "Active" switch, named after its amenity with its word beside it, its arrows, and Edit; the women's hall's switch is refused by the server, its row saying «لا يمكن إيقاف هذا المرفق، فدليل المساحات يعتمد عليه في فلتر «قاعة للنساء». يمكنك تغيير اسمه وأيقونته وترتيبه.»;
+- a sheet adds or edits an amenity: its names and its icon, chosen from a grid of the nine, and, editing one of more than ten amenities, its "Position", as a governorate's; its "Active" switch is its row's alone; its key, which the server derives from its English name, is never shown;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
@@ -77,7 +77,9 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md), accepted). 2026-10-06, #45.
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
-- **No amenity is a filter:** the amenities carry no filter flag, and the directory filters on none (the owner's decision, D1). *Why:* every space claims fast internet and stable power, and nobody looks for a space by its hot drinks; an amenity is told on the space's page. It supersedes #16's "Internet and stable power are not filters". 2026-10-12, #64.
+- **No amenity is a filter:** the amenities carry no filter flag, and the directory filters on none (the owner's decision, D1). *Why:* every space claims fast internet and stable power, and nobody looks for a space by its hot drinks; an amenity is told on the space's page. It supersedes #16's "Internet and stable power are not filters". 2026-10-12, #64. *Revised* by the next line: one amenity, the women's hall, is a fixed filter; there is still no filter over the catalogue.
+- **The women's hall is a catalogue amenity with a fixed key, `womens_hall` («قاعة للنساء» / "Women's hall", icon `venus`), and the directory's one amenity filter** (the owner's W1–W3, W5): its migration adds it, last, to every catalogue already seeded, and the seed adds it ninth to a new one (X9); code refers to it by its key (`WOMENS_HALL_KEY`), never its id. *Why:* the owner's facts: spaces have women's halls, not "women-only spaces", and who can work there decides a visit; the catalogue's other amenities stay unfiltered (R2). A seeded catalogue's own first eight would tie with a row inserted into an empty one. 2026-11-12, #145.
+- **The admin may rename the women's hall, change its icon and move it, but never retire it: 409 `AMENITY_IN_FILTER`, nothing written** (X8). *Why:* a retired amenity leaves the space's page, and the filter would then keep spaces whose page shows no hall; nothing in the lookups is deleted, so no delete exists to refuse. 2026-11-12, #145.
 - **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
 
 ### Web decisions
@@ -90,7 +92,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **An amenity's failure shows in its row; an order's, above the list.** *Why:* the amenities have no card per row, so a failure shown once for the list would not name its amenity, and a later failure elsewhere would hide it. 2026-10-07, #49.
 - **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md), resolved). 2026-10-07, #49.
 - **An amenity shows its name in the interface's language first,** the other as its second line. *Why:* amenities are common words; the governorates' English-first rule was made for place names. 2026-10-07, #49.
-- **An amenity's icon is chosen from a visible grid,** a radio group of the eight, each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
+- **An amenity's icon is chosen from a visible grid,** a radio group of the eight (nine since 2026-11-12, #145: `venus`, the women's hall's, chosen as the common sign of a women's place and distinct from `users`, the meeting room's; X7), each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
 - **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.
 - **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
 - **An amenity's switch sits in its row, pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49; one switch since #64.
@@ -137,6 +139,7 @@ None.
 - #45 — duplicate English names accepted.
 - #64 — no amenity filter: the flag dropped.
 - The directory item — the listed areas, the areas a search matches, and the amenities named, for the public directory.
+- 2026-11-12, #145 — the women's hall: its row by the migration and the seed, the icon `venus`, the id of an active amenity by its key, and its retiring refused (`AMENITY_IN_FILTER`).
 
 ### Web history
 
@@ -155,3 +158,4 @@ None.
 - #132 — the owner's checklist names the retired amenities the space holds, from the space's read, marked, and drops one unticked; the count line removed (finding 99).
 - #132 — the switches only in the rows; a row's position in its sheet past ten rows; the arrows named with the row's position, and a move said; each tab its own hint.
 - 2026-11-11, #143 — for the space profile: the searched area field (`AreaCombobox`), the area's line (`AreaLine`), the amenities' catalogue (`useAmenityCatalogue`), and the checklist's icons and «أُزيل من القائمة».
+- 2026-11-12, #145 — the icon grid's ninth, `venus`, named «رمز المرأة» / "Women's sign".

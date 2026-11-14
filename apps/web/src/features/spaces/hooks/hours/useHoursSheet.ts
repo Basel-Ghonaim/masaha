@@ -16,6 +16,7 @@ import {
   FRIDAY,
   SHOWN_DAYS,
   WEEKDAYS,
+  eveningEndsEarly,
   fitsSimple,
   sameWeek,
   sheetOf,
@@ -52,9 +53,11 @@ const FIELDS: Path<Values>[] = SHOWN_DAYS.map(closes);
  * open in it, and going back with differing days asks first. Times are chosen every half hour, a day
  * switched on takes the hours of the last open day edited, «إلى» after «من» is said on its row, and a
  * week with no open day is said once. A saved shift the new week leaves outside every open day is
- * said before anything is sent, with the way to the shifts (DI-2). The request is the new week with
- * the saved shifts exactly as the space was last read when «حفظ» is pressed (S5), so a shift saved
- * meanwhile is kept; a week as saved sends nothing.
+ * said before anything is sent, with the way to the shifts (DI-2). Under the hours, «المساحة تعمل
+ * مساءً», the owner's evening switch (E6), and the gentle hint while it is ticked and no open day
+ * closes after 18:00 (E9), never a block. The request is the new week and the switch with the saved
+ * shifts exactly as the space was last read when «حفظ» is pressed (S5), so a shift saved meanwhile is
+ * kept; a week and a switch as saved send nothing.
  */
 export function useHoursSheet(host: SectionHost) {
   const copy = useCopy();
@@ -85,6 +88,7 @@ export function useHoursSheet(host: SectionHost) {
     fields: FIELDS,
     prepare: (values) => ({
       days: weekOf(values),
+      worksEvenings: values.worksEvenings,
       shifts: shifts.current.map(({ id, nameAr, nameEn, startsMinute, endsMinute }) => ({
         id,
         nameAr,
@@ -99,7 +103,11 @@ export function useHoursSheet(host: SectionHost) {
         return;
       }
       setNoneOpen(false);
-      if (space.updatedAt.hours !== null && sameWeek(request.days, space.hours)) {
+      if (
+        space.updatedAt.hours !== null &&
+        sameWeek(request.days, space.hours) &&
+        request.worksEvenings === space.hours?.worksEvenings
+      ) {
         toast(copy.spaces.editor.section.unchanged);
         sheet.close();
         return;
@@ -190,6 +198,15 @@ export function useHoursSheet(host: SectionHost) {
   return {
     frame,
     custom: values.custom,
+    evening: {
+      label: words.evening.label,
+      help: words.evening.help,
+      checked: values.worksEvenings,
+      toggle: (checked: boolean) => {
+        set('worksEvenings', checked);
+      },
+      early: eveningEndsEarly(weekOf(values), values.worksEvenings) ? words.evening.early : null,
+    },
     simple: {
       legend: words.weekdays,
       main: range('main', values.main, { from: words.from, to: words.to }, null),

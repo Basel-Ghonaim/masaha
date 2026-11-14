@@ -20,6 +20,8 @@ const space = (id: number, overrides: Partial<DirectorySpace> = {}): DirectorySp
   area: { id: 2, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: true,
   days: null,
+  worksEvenings: false,
+  womensHall: false,
   cover: null,
   liveStatus: 'AVAILABLE',
   hoursStatus: null,

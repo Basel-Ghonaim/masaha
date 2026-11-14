@@ -1,8 +1,11 @@
-import { Badge, cn } from '@shared/design-system';
+import { Badge, MoonIcon, cn } from '@shared/design-system';
 import { Link } from 'react-router';
 import type { HoursSectionView } from '../../hooks/hours/useHoursSection';
 
-/** The week as a visitor reads it: a line per run of days with the same hours, today marked. */
+/**
+ * The week as a visitor reads it: a line per run of days with the same hours, today marked;
+ * «دوام مسائي» and its hint under it.
+ */
 export function HoursView({ view }: { view: HoursSectionView }) {
   return (
     <div className="flex flex-col gap-3">
@@ -23,6 +26,17 @@ export function HoursView({ view }: { view: HoursSectionView }) {
           </div>
         ))}
       </dl>
+      {view.evening && (
+        <p className="flex items-center gap-2 text-body">
+          <MoonIcon aria-hidden className="size-4 text-muted-foreground" />
+          {view.evening.line}
+        </p>
+      )}
+      {view.evening?.early && (
+        <p className="rounded-lg bg-warning-subtle px-3 py-2 text-body-sm text-warning-subtle-foreground">
+          {view.evening.early}
+        </p>
+      )}
       {view.closure && (
         <p className="text-body-sm text-muted-foreground">
           {view.closure.lead}{' '}

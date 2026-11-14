@@ -13,6 +13,7 @@ const DEFAULTS: DirectoryFilters = {
   verified: false,
   studentPrices: false,
   openFriday: false,
+  womensHall: false,
   sort: undefined,
   page: 1,
   view: 'list',
@@ -44,6 +45,7 @@ describe('requestOf', () => {
           verified: true,
           openNow: true,
           evening: true,
+          womensHall: true,
           sort: 'relevance',
           page: 3,
         },
@@ -59,6 +61,7 @@ describe('requestOf', () => {
       verified: true,
       openNow: true,
       evening: true,
+      womensHall: true,
       sort: 'relevance',
       page: 3,
     });

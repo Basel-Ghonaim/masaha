@@ -47,11 +47,11 @@ afterEach(() => {
 });
 
 describe('useFiltersPanel', () => {
-  it('clearing takes off the place, the subscription, both bounds and their texts, and the five boxes, keeping the search and the order', () => {
+  it('clearing takes off the place, the subscription, both bounds and their texts, and the six boxes, keeping the search and the order', () => {
     vi.useFakeTimers();
     stubScreenWidth(390);
     const { result } = renderPanel(
-      '/spaces?q=Hub&area=3&period=MONTH&min=10&open=1&evening=1&friday=1&verified=1&students=1&sort=name',
+      '/spaces?q=Hub&area=3&period=MONTH&min=10&open=1&evening=1&friday=1&verified=1&students=1&women=1&sort=name',
     );
     act(() => {
       result.current.panel.price.range?.max.change('abc');
@@ -78,7 +78,7 @@ describe('useFiltersPanel', () => {
       [...result.current.panel.hours.items, ...result.current.panel.others.items].map(
         ({ checked }) => checked,
       ),
-    ).toEqual([false, false, false, false, false]);
+    ).toEqual([false, false, false, false, false, false]);
     act(() => {
       result.current.panel.price.subscription.choose('DAY');
     });

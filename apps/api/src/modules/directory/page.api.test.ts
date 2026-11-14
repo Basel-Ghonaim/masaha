@@ -56,6 +56,7 @@ describe('GET /spaces/:slug', () => {
       hoursUpdatedAt: NOW,
       pricesUpdatedAt: NOW,
       amenitiesUpdatedAt: NOW,
+      worksEvenings: true,
     });
     await setWeek(
       space.id,
@@ -116,6 +117,7 @@ describe('GET /spaces/:slug', () => {
           shifts: [
             { id: shift.id, nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 },
           ],
+          worksEvenings: true,
         },
         prices: [
           {

@@ -31,7 +31,7 @@ describe('completenessOf', () => {
 
   it('never counts the shifts: none is optional, not missing', () => {
     const { states, issues } = completenessOf(
-      { ...SPACE, hours: { days: SPACE.hours?.days ?? [], shifts: [] } },
+      { ...SPACE, hours: { days: SPACE.hours?.days ?? [], shifts: [], worksEvenings: false } },
       3,
     );
 

@@ -15,9 +15,6 @@ const SEARCH_THRESHOLD = 0.3;
 /** Friday, as `space_hours` numbers the days (0 = Sunday). */
 const FRIDAY = 5;
 
-/** «مفتوحة مساءً»: a day that closes at 20:00 or later, in minutes from midnight. */
-const EVENING_FROM_MINUTE = 20 * 60;
-
 const EARTH_RADIUS_METRES = 6_371_000;
 
 /** What the public may filter the listed spaces by. */
@@ -42,8 +39,15 @@ export interface PublicFilter {
    * `CLOSED`.
    */
   openAt?: { dayOfWeek: number; minute: number; exceptIds: readonly number[] } | undefined;
-  /** Closes at `EVENING_FROM_MINUTE` or later on at least one open day of its week. */
+  /** «مفتوحة مساءً»: its owner declares it works in the evening (E7), whatever its week says. */
   evening?: boolean | undefined;
+  /**
+   * The women's hall's id, resolved by `lookups` from its key while it is active; `null` or none:
+   * no space has it. Each space answers whether it has it, and `womensHall` keeps only those that do.
+   */
+  womensHallId?: number | null | undefined;
+  /** «قاعة للنساء»: only the spaces that have the women's hall; none while it has no id. */
+  womensHall?: boolean | undefined;
   /** The search, with how well it matches each listed area's names. */
   search?: { q: string; areaMatches: readonly { id: number; score: number }[] } | undefined;
   /** The map's viewport. */
@@ -70,6 +74,10 @@ export interface PublicSpaceRecord {
   lat: number;
   lng: number;
   isVerified: boolean;
+  /** Its owner declares it works in the evening. */
+  worksEvenings: boolean;
+  /** It has the women's hall. */
+  womensHall: boolean;
   /** In metres, straight-line, only when ordered by distance. */
   distance: number | null;
   /** In agorot: the lowest general price of the filter's period within its bounds; only with it. */
@@ -100,6 +108,13 @@ const verifiedOf = (filter: Pick<PublicFilter, 'verifiedIds'>) =>
 /** The rule of `pricesHidden`, in the query: a verified space's prices, or fresh ones. */
 const pricesShownOf = (filter: Pick<PublicFilter, 'verifiedIds' | 'pricesStaleBefore'>) =>
   sql`(${verifiedOf(filter)} OR s.prices_updated_at >= ${filter.pricesStaleBefore})`;
+
+/** Whether the space has the women's hall: never while it has no id (retired or missing). */
+const womensHallOf = ({ womensHallId }: Pick<PublicFilter, 'womensHallId'>) =>
+  womensHallId === undefined || womensHallId === null
+    ? sql`false`
+    : sql`EXISTS (SELECT 1 FROM space_amenities sa
+        WHERE sa.space_id = s.id AND sa.amenity_id = ${womensHallId})`;
 
 /** Publicly listed: not deleted, not hidden, in a listed area (data-model › Derived values). */
 const listedConditions = (filter: Pick<PublicFilter, 'areaIds'>) => [
@@ -147,11 +162,8 @@ function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
         AND h.opens_minute <= ${minute} AND ${minute} < h.closes_minute)
       AND NOT (s.id = ANY(${[...exceptIds]}::int[]))`);
   }
-  if (filter.evening) {
-    conditions.push(sql`EXISTS (
-      SELECT 1 FROM space_hours h
-      WHERE h.space_id = s.id AND NOT h.is_closed AND h.closes_minute >= ${EVENING_FROM_MINUTE})`);
-  }
+  if (filter.evening) conditions.push(sql`s.works_evenings`);
+  if (filter.womensHall) conditions.push(womensHallOf(filter));
   if (filter.bounds) {
     const { south, west, north, east } = filter.bounds;
     conditions.push(sql`s.lat BETWEEN ${south}::float8 AND ${north}::float8
@@ -171,7 +183,8 @@ function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
     : empty;
 
   return sql`
-    SELECT s.id, s.slug, s.name_en, s.name_ar, s.area_id, s.lat, s.lng,
+    SELECT s.id, s.slug, s.name_en, s.name_ar, s.area_id, s.lat, s.lng, s.works_evenings,
+      ${womensHallOf(filter)} AS womens_hall,
       GREATEST(s.profile_updated_at, s.hours_updated_at, s.prices_updated_at,
                s.amenities_updated_at, s.contacts_updated_at) AS last_updated,
       ${verified} AS is_verified,
@@ -215,6 +228,8 @@ interface Row {
   lat: number;
   lng: number;
   is_verified: boolean;
+  works_evenings: boolean;
+  womens_hall: boolean;
   distance: number | null;
   price: number | null;
 }
@@ -229,6 +244,8 @@ function toRecord(row: Row): PublicSpaceRecord {
     lat: row.lat,
     lng: row.lng,
     isVerified: row.is_verified,
+    worksEvenings: row.works_evenings,
+    womensHall: row.womens_hall,
     distance: row.distance,
     price: row.price,
   };
@@ -248,7 +265,8 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
       const spaces = listed(filter, order.by === 'distance' ? order.from : undefined);
       const [rows, [count]] = await Promise.all([
         db.$queryRaw<Row[]>`
-          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance, price
+          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, works_evenings,
+            womens_hall, distance, price
           FROM (${spaces}) listed ${matching(filter)}
           ORDER BY ${orderOf(order)}
           LIMIT ${take} OFFSET ${skip}`,
@@ -261,7 +279,8 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
     /** The first `limit` listed spaces that pass the filter, by id. */
     async findFirst(filter: PublicFilter, limit: number): Promise<PublicSpaceRecord[]> {
       const rows = await db.$queryRaw<Row[]>`
-        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance, price
+        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, works_evenings,
+          womens_hall, distance, price
         FROM (${listed(filter)}) listed ${matching(filter)}
         ORDER BY id
         LIMIT ${limit}`;

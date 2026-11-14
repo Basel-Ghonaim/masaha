@@ -44,6 +44,7 @@ describe('pricesTable', () => {
         ],
         hours: {
           days: [],
+          worksEvenings: false,
           shifts: [
             { id: 4, nameAr: 'المسائية', nameEn: null, startsMinute: 780, endsMinute: 1200 },
           ],

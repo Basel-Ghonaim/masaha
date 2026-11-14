@@ -72,15 +72,17 @@ export function useShiftsSheet(host: SectionHost, packageShifts: readonly number
   const hours: SpaceHours = space.hours ?? {
     days: Array.from({ length: 7 }, () => null),
     shifts: [],
+    worksEvenings: false,
   };
   const save = useSaveGroup(place, space.id, 'shifts', (request: UpdateSpaceHoursRequest) =>
     scope.repository.updateHours(space.id, request),
   );
   const valuesOf = (): Values => shiftsValues(hours);
-  // The saved week as last read: the shifts are sent with it, never with the one read at opening.
-  const week = useRef(hours.days);
+  // The saved week and evening switch as last read: the shifts are sent with them, never with those
+  // read at opening.
+  const week = useRef(hours);
   useEffect(() => {
-    week.current = hours.days;
+    week.current = hours;
   });
   const lines = words.fieldErrors;
   const form = useServerForm<Values, UpdateSpaceHoursRequest>({

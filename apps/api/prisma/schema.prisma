@@ -333,6 +333,9 @@ model Space {
   lat                Float
   lng                Float
   isHidden           Boolean   @default(false) @map("is_hidden")
+  /// The owner declares the space works in the evening; its hours say until when. Part of the hours
+  /// fact group (docs/features/spaces.md).
+  worksEvenings      Boolean   @default(false) @map("works_evenings")
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
   // Freshness per fact group: set when the group is saved or confirmed unchanged. A group that can
   // be empty is null, missing, until it is first saved (docs/architecture/data-model.md).

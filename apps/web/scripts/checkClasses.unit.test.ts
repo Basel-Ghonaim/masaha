@@ -188,6 +188,19 @@ describe('findSelectedTintHoverClasses', () => {
     expect(tintHoversIn(`cn('${className}')`)).toEqual([className]);
   });
 
+  it.each([
+    'data-[state=open]:bg-accent',
+    'data-[state=open]:text-accent-foreground',
+    'group-data-[state=open]:bg-accent',
+    'aria-[expanded=true]:bg-accent',
+    'data-[highlighted]:bg-accent',
+    'data-[highlighted=true]:text-accent-foreground',
+    'active:bg-sidebar-accent',
+    'active:text-sidebar-accent-foreground',
+  ])('flags the tint under another spelling of its states, and when pressed: %s', (className) => {
+    expect(tintHoversIn(`<div className="flex ${className} gap-2" />`)).toEqual([className]);
+  });
+
   it('flags the tint as a hover in a CSS @apply', () => {
     expect(tintHoversIn('.x { @apply bg-card hover:bg-accent; }')).toEqual(['hover:bg-accent']);
   });
@@ -203,6 +216,8 @@ describe('findSelectedTintHoverClasses', () => {
     'hover:bg-hover',
     'not-data-on:hover:text-hover-foreground',
     'hover:bg-hover-on-muted',
+    'aria-selected:bg-accent',
+    'data-[state=closed]:bg-accent',
   ])('does not flag %s, the tint at rest or selected, or the hover role', (className) => {
     expect(tintHoversIn(`<div className="${className}" />`)).toEqual([]);
   });

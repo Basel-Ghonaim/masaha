@@ -104,6 +104,7 @@ export const LOOKUPS = {
     users: 'People',
     presentation: 'Presentation board',
     'graduation-cap': 'Graduation cap',
+    venus: 'Women’s sign',
   } satisfies Record<AmenityIconKey, string>,
   /** The one field that chooses a governorate or one of its areas, such as a list's filter. */
   placeSelect: {

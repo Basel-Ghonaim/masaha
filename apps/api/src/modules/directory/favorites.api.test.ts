@@ -93,6 +93,36 @@ describe('GET /me/favorites', () => {
     expect(response.headers['cache-control']).not.toBe('no-store');
   });
 
+  it('a favourite’s card says whether it has the women’s hall, found by its key (X12)', async () => {
+    // Another amenity first, so the hall's id is never the first.
+    await prisma.amenity.create({
+      data: { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', sortOrder: 1 },
+    });
+    const hall = await prisma.amenity.create({
+      data: {
+        key: 'womens_hall',
+        nameAr: 'قاعة للنساء',
+        nameEn: 'Women’s hall',
+        icon: 'venus',
+        sortOrder: 2,
+      },
+    });
+    const withHall = await createPublicSpace(areaId, 'With Hall');
+    const without = await createPublicSpace(areaId, 'Without');
+    await prisma.spaceAmenity.create({ data: { spaceId: withHall.id, amenityId: hall.id } });
+    await saved(user.id, withHall.id, '2026-10-18T08:00:00+03:00');
+    await saved(user.id, without.id, '2026-10-18T09:00:00+03:00');
+
+    const response = await favorites(user);
+
+    expect(response.status).toBe(200);
+    const cards = dataOf(response) as { space: { nameEn: string; womensHall: boolean } }[];
+    expect(cards.map(({ space }) => [space.nameEn, space.womensHall])).toEqual([
+      ['Without', false],
+      ['With Hall', true],
+    ]);
+  });
+
   it('none saved is an empty list', async () => {
     const response = await favorites(user);
 

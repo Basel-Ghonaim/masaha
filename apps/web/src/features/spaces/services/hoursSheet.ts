@@ -4,7 +4,7 @@ import type { OpeningRange, Shift, SpaceHours } from '@masaha/shared/spaces';
  * The hours' Sheet as its form holds it (W2–W4): the simple view's two ranges — Saturday to Thursday
  * (`main`) and Friday's own, when it opens — or, customised, each day of the week, by the contract's
  * index, Sunday (0) to Saturday (6), open or closed with its own range. Every time is a minute after
- * midnight, chosen from the half-hour lists.
+ * midnight, chosen from the half-hour lists. `worksEvenings` is the owner's evening switch (E6).
  */
 export type HoursSheetValues = {
   custom: boolean;
@@ -12,6 +12,7 @@ export type HoursSheetValues = {
   fridayOpen: boolean;
   friday: OpeningRange;
   days: { open: boolean; opensMinute: number; closesMinute: number }[];
+  worksEvenings: boolean;
 };
 
 /** The week as a space's week runs in Gaza, Saturday first: the contract's day indexes, in order. */
@@ -21,6 +22,23 @@ export const SHOWN_DAYS = [6, 0, 1, 2, 3, 4, 5] as const;
 export const WEEKDAYS = [6, 0, 1, 2, 3, 4] as const;
 
 export const FRIDAY = 5;
+
+/** 18:00: most spaces have closed by then (E1); a day that closes after it is an evening's. */
+const EVENING_HINT_AFTER_MINUTE = 18 * 60;
+
+/**
+ * The gentle hint's one rule (E9): the evening switch is on, yet no open day closes after 18:00.
+ * It never blocks a save; the profile only says so.
+ */
+export function eveningEndsEarly(
+  week: readonly (OpeningRange | null)[],
+  worksEvenings: boolean,
+): boolean {
+  return (
+    worksEvenings &&
+    week.every((range) => range === null || range.closesMinute <= EVENING_HINT_AFTER_MINUTE)
+  );
+}
 
 /** The template a space without hours starts from: Saturday to Thursday 08:00–18:00 (D9). */
 const TEMPLATE: OpeningRange = { opensMinute: 480, closesMinute: 1080 };
@@ -68,6 +86,7 @@ export function sheetOf(hours: SpaceHours | null): HoursSheetValues {
     fridayOpen: friday !== null,
     friday: rangeOf(friday ?? opening),
     days: daysOf(week, opening),
+    worksEvenings: hours?.worksEvenings ?? false,
   };
 }
 

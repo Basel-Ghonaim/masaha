@@ -16,6 +16,7 @@ export type DirectoryRequest = {
   verified?: true;
   openNow?: true;
   evening?: true;
+  womensHall?: true;
   /** `distance` only with the point in `Masaha-Near`. */
   sort?: DirectorySort;
   lang?: Language;

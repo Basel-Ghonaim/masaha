@@ -112,6 +112,13 @@ describe('AccountLayout', () => {
     expect(within(navigation).getByRole('link', { name: 'Favourites' })).not.toHaveAttribute(
       'aria-current',
     );
+    // Selected is the spark's tint, kept under the pointer; the others hover (R1-F2 of #144).
+    expect(current).toHaveClass('bg-accent', 'text-accent-foreground');
+    expect(current).not.toHaveClass('bg-secondary');
+    expect(current).not.toHaveClass('hover:bg-hover');
+    expect(within(navigation).getByRole('link', { name: 'Favourites' })).toHaveClass(
+      'hover:bg-hover',
+    );
     expect(
       await screen.findByRole('heading', { level: 1, name: 'My reports' }),
     ).toBeInTheDocument();

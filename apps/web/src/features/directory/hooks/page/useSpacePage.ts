@@ -226,6 +226,7 @@ export function useSpacePage(slug: string): SpacePageView {
         shiftNames.length === 0
           ? null
           : words.hours.shifts({ list: shiftNames.join(english ? ', ' : '، ') }),
+      evening: space?.hours?.worksEvenings === true ? words.hours.evening : null,
     },
     amenities:
       space === undefined || space.amenities.length === 0

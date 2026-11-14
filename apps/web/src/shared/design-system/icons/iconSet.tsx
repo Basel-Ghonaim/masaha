@@ -63,6 +63,7 @@ import {
   TriangleAlert,
   UserCog,
   Users,
+  Venus,
   Wifi,
   WifiOff,
   X,
@@ -140,6 +141,10 @@ export function SearchXIcon(props: IconProps) {
 
 export function UsersIcon(props: IconProps) {
   return <Icon glyph={Users} {...props} />;
+}
+
+export function VenusIcon(props: IconProps) {
+  return <Icon glyph={Venus} {...props} />;
 }
 
 export function WifiIcon(props: IconProps) {

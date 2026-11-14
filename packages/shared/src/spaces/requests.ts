@@ -132,12 +132,14 @@ function refuseRepeats<T>(
  * The opening hours with the shifts, saved together (decision F3). `days[0]` is Sunday … `days[6]`
  * Saturday, `null` when closed. The shifts' order is the order they are shown in; a shift keeps
  * its `id`, a new one has none (decision F5). A shift lies inside the hours of at least one open
- * day (decision D4), and its Arabic name is its own.
+ * day (decision D4), and its Arabic name is its own. `worksEvenings` is the owner's evening switch,
+ * required, since the group is saved whole: a client that left it out would turn it off unseen.
  */
 export const updateSpaceHoursSchema = z
   .object({
     days: z.array(openingRange.nullable()).length(7),
     shifts: z.array(shift).max(MAX_SHIFTS),
+    worksEvenings: z.boolean(),
   })
   .superRefine(({ days, shifts }, ctx) => {
     refuseRepeats(

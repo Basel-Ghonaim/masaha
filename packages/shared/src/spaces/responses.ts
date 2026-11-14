@@ -53,6 +53,8 @@ export interface SpaceHours {
   days: (OpeningRange | null)[];
   /** In the order they are shown in. */
   shifts: Shift[];
+  /** The owner declares the space works in the evening; `days` say until when (E4). */
+  worksEvenings: boolean;
 }
 
 /** A space as the admin sees and edits it. */

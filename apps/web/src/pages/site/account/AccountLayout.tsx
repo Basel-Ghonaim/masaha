@@ -25,11 +25,17 @@ export function AccountLayout() {
             const current = pathname === link.to;
             return (
               <li key={link.key}>
+                {/* The current page is selected: the spark's tint, kept under the pointer, with no
+                    ghost hover (foundation §5), as the site's menu marks it. */}
                 <Button
                   asChild
                   size="sm"
-                  variant={current ? 'secondary' : 'ghost'}
-                  className="lg:w-full lg:justify-start"
+                  variant={current ? null : 'ghost'}
+                  className={
+                    current
+                      ? 'bg-accent text-accent-foreground lg:w-full lg:justify-start'
+                      : 'lg:w-full lg:justify-start'
+                  }
                 >
                   <Link to={link.to} aria-current={current ? 'page' : undefined}>
                     {copy.site.account[link.key]}

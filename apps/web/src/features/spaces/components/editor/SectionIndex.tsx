@@ -36,8 +36,12 @@ export function SectionIndex({ label, items }: { label: string; items: IndexItem
           key={item.id}
           asChild
           size="sm"
-          variant={item.current ? 'secondary' : 'ghost'}
-          className="w-full justify-between"
+          // The section in view is selected: the spark's tint, with no ghost hover (foundation §5).
+          variant={item.current ? null : 'ghost'}
+          className={cn(
+            'w-full justify-between',
+            item.current && 'bg-accent text-accent-foreground',
+          )}
         >
           <Link
             to={{ hash: item.id }}

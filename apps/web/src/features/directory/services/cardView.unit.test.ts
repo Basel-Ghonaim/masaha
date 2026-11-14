@@ -11,6 +11,8 @@ const SPACE: DirectorySpace = {
   area: { id: 2, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: true,
   days: null,
+  worksEvenings: false,
+  womensHall: false,
   cover: '/api/v1/files/spaces/x/card.webp',
   liveStatus: 'AVAILABLE',
   hoursStatus: null,
@@ -85,6 +87,21 @@ describe('cardViewOf', () => {
       name: { text: 'Focus Hub', lang: 'en', dir: 'ltr' },
       mark: 'F',
       verified: null,
+    });
+  });
+
+  it('marks «دوام مسائي» and «قاعة للنساء» only when the space has them (E6, W4, W6)', () => {
+    expect(card({ ...SPACE, worksEvenings: true, womensHall: true })).toMatchObject({
+      evening: 'دوام مسائي',
+      womensHall: 'قاعة للنساء',
+    });
+    expect(card({ ...SPACE, worksEvenings: false, womensHall: false })).toMatchObject({
+      evening: null,
+      womensHall: null,
+    });
+    expect(card({ ...SPACE, worksEvenings: true, womensHall: false })).toMatchObject({
+      evening: 'دوام مسائي',
+      womensHall: null,
     });
   });
 

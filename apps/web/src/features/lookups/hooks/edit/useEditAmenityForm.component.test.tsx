@@ -44,6 +44,7 @@ describe('useEditAmenityForm', () => {
       { value: 'users', label: 'People' },
       { value: 'presentation', label: 'Presentation board' },
       { value: 'graduation-cap', label: 'Graduation cap' },
+      { value: 'venus', label: 'Women’s sign' },
     ]);
     expect(result.current).not.toHaveProperty('filter');
     expect(result.current).not.toHaveProperty('active');

@@ -88,7 +88,7 @@ describe.each([
     name: 'PUT /spaces/:spaceId/hours',
     method: 'put',
     rest: '/hours',
-    body: { days: [null, null, null, null, null, null, null], shifts: [] },
+    body: { days: [null, null, null, null, null, null, null], shifts: [], worksEvenings: false },
     status: 200,
   },
   {

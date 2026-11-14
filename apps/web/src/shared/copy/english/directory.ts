@@ -76,6 +76,10 @@ export const DIRECTORY = {
   },
   card: {
     verified: 'Verified',
+    /** Its owner declares the evening (E6). */
+    evening: 'Evening hours',
+    /** It has the women's hall (W4). */
+    womensHall: 'Women’s hall',
     /** Today's opening hours, the range left to right. */
     today: ({ range }: { range: string }) => `Today ${range}`,
     closedToday: 'Closed today',
@@ -119,6 +123,7 @@ export const DIRECTORY = {
     schedule: 'Hours',
     openNow: 'Open now',
     evening: 'Open in the evening',
+    womensHall: 'Women’s hall',
     verified: 'Verified spaces only',
     price: 'Price',
     /** The segmented choice's name, read, not shown. */
@@ -335,6 +340,8 @@ export const DIRECTORY = {
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       /** The shifts' names, listed. */
       shifts: ({ list }: { list: string }) => `Shifts: ${list}`,
+      /** The owner declares the space works in the evening (E6). */
+      evening: 'Evening hours',
       none: 'Hours not available',
     },
     location: {

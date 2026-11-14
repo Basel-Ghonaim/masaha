@@ -1,7 +1,8 @@
-import type {
-  AdminAmenity,
-  CreateAmenityRequest,
-  UpdateAmenityRequest,
+import {
+  WOMENS_HALL_KEY,
+  type AdminAmenity,
+  type CreateAmenityRequest,
+  type UpdateAmenityRequest,
 } from '@masaha/shared/lookups';
 
 import type { RunInTransaction } from '../../../db/index.ts';
@@ -51,11 +52,18 @@ export function createAmenitiesService({ runInTransaction, audit }: Dependencies
       });
     },
 
-    /** Edits, retires or restores it. Its key never changes, whatever its new English name. */
+    /**
+     * Edits, retires or restores it. Its key never changes, whatever its new English name. The
+     * women's hall, which the directory filters by, is never retired (`AMENITY_IN_FILTER`): its
+     * names, its icon and its place stay the admin's.
+     */
     update(actorId: number, id: number, patch: UpdateAmenityRequest): Promise<AdminAmenity> {
       return runInTransaction(async (tx) => {
         const current = await repository.lock(id, tx);
         if (!current) throw AppError.notFound(undefined, 'Amenity not found');
+        if (current.key === WOMENS_HALL_KEY && patch.isActive === false && current.isActive) {
+          throw AppError.conflict('AMENITY_IN_FILTER', 'The directory filters by this amenity');
+        }
         const { data, entries } = lookupChange('amenity', current, patch);
         if (entries.length === 0) return toAdminAmenity(current);
 

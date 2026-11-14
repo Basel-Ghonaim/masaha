@@ -73,6 +73,8 @@ export const DIRECTORY = {
   },
   card: {
     verified: 'موثّقة',
+    evening: 'دوام مسائي',
+    womensHall: 'قاعة للنساء',
     today: ({ range }: { range: string }) => `اليوم ${range}`,
     closedToday: 'مغلقة اليوم',
     openAllDay: 'مفتوحة اليوم على مدار الساعة',
@@ -113,6 +115,7 @@ export const DIRECTORY = {
     schedule: 'الدوام',
     openNow: 'مفتوحة الآن',
     evening: 'مفتوحة مساءً',
+    womensHall: 'قاعة للنساء',
     verified: 'المساحات الموثّقة فقط',
     price: 'السعر',
     subscription: 'نوع الاشتراك',
@@ -297,6 +300,7 @@ export const DIRECTORY = {
       pair: ({ first, second }: { first: string; second: string }) => `${first}، ${second}`,
       run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
       shifts: ({ list }: { list: string }) => `الورديات: ${list}`,
+      evening: 'دوام مسائي',
       none: 'ساعات العمل غير متوفرة',
     },
     location: {

@@ -51,16 +51,17 @@ export function shiftsValues(hours: SpaceHours): ShiftsValues {
 }
 
 /**
- * What the shifts' Sheet sends, as the contract's schema reads it: the week exactly as saved (S5:
- * the hours and the shifts are one group, and a shifts' save leaves the hours as they are), and the
- * shifts, a saved one with its id, a blank English name as none (X1).
+ * What the shifts' Sheet sends, as the contract's schema reads it: the week and the evening switch
+ * exactly as saved (S5: the hours and the shifts are one group, and a shifts' save leaves the hours
+ * as they are), and the shifts, a saved one with its id, a blank English name as none (X1).
  */
 export function shiftsInput(
   values: ShiftsValues,
-  days: SpaceHours['days'],
+  { days, worksEvenings }: Pick<SpaceHours, 'days' | 'worksEvenings'>,
 ): Record<string, unknown> {
   return {
     days,
+    worksEvenings,
     shifts: values.shifts.map((shift) => ({
       ...(shift.id === null ? {} : { id: shift.id }),
       nameAr: shift.nameAr,

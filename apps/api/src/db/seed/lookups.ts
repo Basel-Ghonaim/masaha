@@ -115,6 +115,8 @@ export const AMENITIES = [
     nameEn: 'Technical training',
     icon: 'graduation-cap',
   },
+  // The one amenity the directory filters by; its migration adds it to a catalogue seeded before it.
+  { key: 'womens_hall', nameAr: 'قاعة للنساء', nameEn: "Women's hall", icon: 'venus' },
 ] as const satisfies readonly AmenitySeed[];
 
 /** Platform settings with a default. The contact settings have none: the admin sets them. */

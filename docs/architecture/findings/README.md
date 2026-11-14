@@ -26,6 +26,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [223. Finance › Occupancy scrolls sideways on a phone](223-finance-occupancy-scrolls-sideways-on-a-phone.md)
 - [224. The map's tooltip and two scrolling strips fail axe](224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)
 - [225. Four site test files render lazy routes without the warm-up](225-four-site-test-files-render-lazy-routes-without-the-warm-up.md)
+- [226. A ghost control inside a hovered table row has no hover of its own](226-a-ghost-control-inside-a-hovered-table-row-has-no-hover-of-its-own.md)
+- [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
 
 ## Accepted
 

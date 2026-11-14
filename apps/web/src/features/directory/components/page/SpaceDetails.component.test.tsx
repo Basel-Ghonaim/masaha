@@ -1,3 +1,4 @@
+import type { SpaceHours } from '@masaha/shared/spaces';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -166,6 +167,7 @@ describe('SpaceDetails', () => {
       1440,
       publicSpace({
         hours: {
+          worksEvenings: false,
           days: [
             { opensMinute: 480, closesMinute: 1320 },
             { opensMinute: 480, closesMinute: 1320 },
@@ -194,6 +196,38 @@ describe('SpaceDetails', () => {
       'aria-expanded',
       'true',
     );
+  });
+
+  it('says «دوام مسائي» in the hours while its owner declares the evening, and nothing otherwise', async () => {
+    const space = publicSpace();
+    renderDetails(
+      1440,
+      publicSpace({ hours: { ...(space.hours as SpaceHours), worksEvenings: true } }),
+    );
+    const hours = (await screen.findByRole('heading', { level: 2, name: 'ساعات العمل' })).closest(
+      'section',
+    ) as HTMLElement;
+    expect(within(hours).getByText('دوام مسائي')).toBeInTheDocument();
+    cleanup();
+
+    renderDetails(1440, space);
+    await screen.findByRole('heading', { level: 2, name: 'ساعات العمل' });
+    expect(screen.queryByText('دوام مسائي')).toBeNull();
+  });
+
+  it('says «Evening hours» in the hours in English, with no detectable accessibility violations', async () => {
+    startPreferences('en');
+    const space = publicSpace();
+    renderDetails(
+      1440,
+      publicSpace({ hours: { ...(space.hours as SpaceHours), worksEvenings: true } }),
+    );
+    const hours = (await screen.findByRole('heading', { level: 2, name: 'Opening hours' })).closest(
+      'section',
+    ) as HTMLElement;
+
+    expect(within(hours).getByText('Evening hours')).toBeInTheDocument();
+    expect(await axe(hours)).toHaveNoViolations();
   });
 
   it('shows the gallery pill for more than one photo and circles in its viewer', async () => {

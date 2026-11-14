@@ -10,6 +10,7 @@ export const AMENITY_ICON_KEYS = [
   'users',
   'presentation',
   'graduation-cap',
+  'venus',
 ] as const;
 
 export type AmenityIconKey = (typeof AMENITY_ICON_KEYS)[number];

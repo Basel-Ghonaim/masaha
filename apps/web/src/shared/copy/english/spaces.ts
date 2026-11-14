@@ -357,6 +357,13 @@ export const SPACES = {
       },
       noneOpen: 'Open at least one day.',
       after: '“To” comes after “From”',
+      /** The owner's evening switch (E4–E6), and its gentle hint when no day closes late (E9). */
+      evening: {
+        label: 'The space works in the evening',
+        help: 'Visitors see “Evening hours”; the opening hours above set until when the space stays open.',
+        line: 'Evening hours',
+        early: 'Evening hours are on, but the opening hours don’t go past 18:00 on any day.',
+      },
       /** A saved shift the new week no longer holds (DI-2). */
       shiftOutside: ({ name }: { name: string }) =>
         `The shift “${name}” is outside the new hours. Edit the shifts first, or choose hours that hold it.`,

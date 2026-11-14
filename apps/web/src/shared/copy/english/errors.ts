@@ -66,6 +66,8 @@ export const ERRORS = {
   FAVORITES_LIMIT_REACHED: 'Your favourites are full; remove a space first.',
   PUBLISHED_PRICE_CHANGED:
     'This price changed since the sheet opened. Check the new amount, then confirm.',
+  AMENITY_IN_FILTER:
+    'This amenity can’t be retired: the directory relies on it for the “Women’s hall” filter. You can still rename it, change its icon or move it.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

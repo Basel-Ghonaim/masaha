@@ -283,6 +283,7 @@ export {
   TriangleAlertIcon,
   UserCogIcon,
   UsersIcon,
+  VenusIcon,
   WifiIcon,
   WifiOffIcon,
   XIcon,

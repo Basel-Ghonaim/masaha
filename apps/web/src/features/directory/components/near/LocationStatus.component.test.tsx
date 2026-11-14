@@ -22,6 +22,8 @@ const space = (id: number): DirectorySpace => ({
   area: { id: 2, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: true,
   days: null,
+  worksEvenings: false,
+  womensHall: false,
   cover: null,
   liveStatus: 'AVAILABLE',
   hoursStatus: null,
@@ -107,6 +109,14 @@ describe('LocationStatus', () => {
       'aria-pressed',
       'true',
     );
+    // Pressed, it takes the chip's selected look, kept under the pointer (R1-F2 of #144).
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveClass(
+      'bg-accent',
+      'text-accent-foreground',
+      'border-spark',
+    );
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).not.toHaveClass('bg-secondary');
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).not.toHaveClass('hover:bg-hover');
     expect(screen.getByRole('button', { name: 'إيقاف الترتيب حسب المسافة' })).toBeInTheDocument();
 
     // Stopped, the point is kept but nothing is sent: no privacy line, and no header on the next ask.

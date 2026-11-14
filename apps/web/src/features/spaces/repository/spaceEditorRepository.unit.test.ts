@@ -33,7 +33,11 @@ describe('the space editor’s repository', () => {
       const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
       await editor.get(7);
       await editor.updateProfile(7, { nameEn: 'Focus Hub' });
-      await editor.updateHours(7, { days: [null, null, null, null, null, null, null], shifts: [] });
+      await editor.updateHours(7, {
+        days: [null, null, null, null, null, null, null],
+        shifts: [],
+        worksEvenings: false,
+      });
       await editor.updatePrices(7, { prices: [] });
       await editor.updateAmenities(7, { amenityIds: [], ownAmenities: [] });
       await editor.updateContacts(7, { contacts: [] });
@@ -91,6 +95,7 @@ describe('the space editor’s repository', () => {
           { id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 },
           { nameAr: 'ليلية', nameEn: 'Night', startsMinute: 1200, endsMinute: 1410 },
         ],
+        worksEvenings: true,
       };
 
       await repository().updateHours(7, request);

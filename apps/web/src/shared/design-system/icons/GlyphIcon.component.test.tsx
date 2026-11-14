@@ -13,6 +13,7 @@ const GLYPHS: { name: GlyphName; glyph: string }[] = [
   { name: 'users', glyph: 'lucide-users' },
   { name: 'presentation', glyph: 'lucide-presentation' },
   { name: 'graduation-cap', glyph: 'lucide-graduation-cap' },
+  { name: 'venus', glyph: 'lucide-venus' },
 ];
 
 function svgOf(name: GlyphName) {

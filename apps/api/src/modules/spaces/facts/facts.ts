@@ -39,8 +39,9 @@ export function createFactsReader() {
   return async function readFacts(spaceId: number, tx?: Tx): Promise<SpaceFacts> {
     const days = await hours.listFor(spaceId, tx);
     const shiftList = await shifts.listFor(spaceId, tx);
+    const worksEvenings = await hours.worksEveningsOf(spaceId, tx);
     return {
-      hours: days ? { days, shifts: shiftList } : null,
+      hours: days ? { days, shifts: shiftList, worksEvenings } : null,
       prices: await prices.listFor(spaceId, tx),
       amenityIds: await amenities.listFor(spaceId, tx),
       ownAmenities: await ownAmenities.listFor(spaceId, tx),
