@@ -1,6 +1,6 @@
-import { AMENITY_ICON_KEYS, type AmenityIconKey } from '@masaha/shared/lookups';
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
+import { knownAmenityIcon } from '@shared/lib';
 import type { LookupsSource } from '../../types/LookupsSource';
 import type { RetiredAmenity } from '../../types/RetiredAmenity';
 import { useCatalogueQuery } from '../area/useCatalogueQuery';
@@ -39,11 +39,14 @@ export function useAmenityChecklist({
   const query = source === 'admin' ? adminList : catalogue;
   const active = (catalogue.data?.amenities ?? []).map((amenity) => ({
     ...amenity,
+    icon: knownAmenityIcon(amenity.icon),
     isActive: true,
   }));
   const offered =
     source === 'admin'
-      ? (adminList.data ?? []).filter((amenity) => amenity.isActive || linked.includes(amenity.id))
+      ? (adminList.data ?? [])
+          .filter((amenity) => amenity.isActive || linked.includes(amenity.id))
+          .map((amenity) => ({ ...amenity, icon: knownAmenityIcon(amenity.icon) }))
       : catalogue.data === undefined
         ? []
         : [
@@ -55,7 +58,7 @@ export function useAmenityChecklist({
                 id,
                 nameAr,
                 nameEn,
-                icon: iconOf(iconKey),
+                icon: knownAmenityIcon(iconKey),
                 isActive: false,
               })),
           ];
@@ -77,7 +80,7 @@ export function useAmenityChecklist({
     items: offered.map((amenity) => ({
       id: amenity.id,
       name: english ? amenity.nameEn : amenity.nameAr,
-      /** Its glyph, or none for a retired one whose key the web no longer knows. */
+      /** Its glyph, or none when the running bundle does not know the key. */
       icon: amenity.icon,
       checked: value.includes(amenity.id),
       /** The badge of a retired amenity, or none. */
@@ -96,9 +99,4 @@ export function useAmenityChecklist({
       empty: copy.lookups.amenityChecklist.empty,
     },
   };
-}
-
-/** A retired amenity's icon key, as the space's read gives it, when it is one the web draws. */
-function iconOf(key: string | undefined): AmenityIconKey | null {
-  return AMENITY_ICON_KEYS.find((known) => known === key) ?? null;
 }

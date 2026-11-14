@@ -27,7 +27,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [224. The map's tooltip and two scrolling strips fail axe](224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)
 - [225. Four site test files render lazy routes without the warm-up](225-four-site-test-files-render-lazy-routes-without-the-warm-up.md)
 - [226. A ghost control inside a hovered table row has no hover of its own](226-a-ghost-control-inside-a-hovered-table-row-has-no-hover-of-its-own.md)
-- [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
 
 ## Accepted
 
@@ -173,3 +172,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
 - [213. A cron every 5 minutes keeps Neon's free database awake all month](213-a-cron-every-5-minutes-keeps-neons-free-database-awake-all-month.md)
 - [214. The Home test's wait finds Home's own search box](214-the-home-tests-wait-finds-homes-own-search-box.md)
+- [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
