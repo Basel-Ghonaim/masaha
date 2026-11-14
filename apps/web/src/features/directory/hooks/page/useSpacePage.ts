@@ -1,7 +1,14 @@
 import type { PublicSpace } from '@masaha/shared/directory';
 import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
-import { contactLinkOf, mapsLink, spaceNameOf, updatedAgo, weekRows } from '@shared/lib';
+import {
+  contactLinkOf,
+  knownAmenityIcon,
+  mapsLink,
+  spaceNameOf,
+  updatedAgo,
+  weekRows,
+} from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
 import type { PageTitle } from '@shared/routing';
 import { useState } from 'react';
@@ -237,7 +244,7 @@ export function useSpacePage(slug: string): SpacePageView {
             items: space.amenities.map((amenity, index) => ({
               key: `${String(index)}-${amenity.nameAr}`,
               text: localText(amenity.nameAr, amenity.nameEn, english) ?? { text: amenity.nameAr },
-              icon: amenity.icon,
+              icon: knownAmenityIcon(amenity.icon),
             })),
           },
     about: (() => {

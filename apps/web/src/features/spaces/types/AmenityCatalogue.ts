@@ -1,4 +1,4 @@
-import type { AmenityIconKey } from '@masaha/shared/lookups';
+import type { GlyphName } from '@shared/design-system';
 
 /**
  * The platform's amenities, in the list's order, as the page hands them from another capability
@@ -11,7 +11,7 @@ export type AmenityCatalogue = {
         id: number;
         nameAr: string;
         nameEn: string;
-        icon: AmenityIconKey;
+        icon: GlyphName | null;
         isActive: boolean;
       }[]
     | undefined;
