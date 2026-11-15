@@ -176,6 +176,28 @@ describe('the contacts’ Sheet', () => {
     expect(writes()).toEqual([]);
   });
 
+  it('refuses a website on an IP address and a Facebook video on their rows, sending nothing', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile();
+    const sheet = await openContacts(user);
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    const [, , site, video] = rows(sheet) as [HTMLElement, HTMLElement, HTMLElement, HTMLElement];
+
+    await choose(user, site, 'Type', 'Website');
+    await user.type(within(site).getByRole('textbox', { name: 'Website' }), 'http://10.0.0.1');
+    await choose(user, video, 'Type', 'Facebook');
+    await user.type(
+      within(video).getByRole('textbox', { name: 'Facebook' }),
+      'facebook.com/watch?v=1',
+    );
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    expect(await within(site).findByText('Not a valid link')).toBeInTheDocument();
+    expect(within(video).getByText('Not a valid page name or link')).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+  });
+
   it('shows the form a value is saved in once it differs from what was typed', async () => {
     const user = userEvent.setup({ delay: null });
     renderProfile();

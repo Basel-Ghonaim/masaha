@@ -94,6 +94,74 @@ describe('updateSpaceContactsSchema', () => {
     expect(one('WEBSITE', 'localhost')).toEqual(INVALID);
     expect(one('WEBSITE', 'ftp://masaha.ps')).toEqual(INVALID);
     expect(one('WEBSITE', 'https://user:secret@masaha.ps')).toEqual(INVALID);
+    expect(one('WEBSITE', 'javascript:alert(1)')).toEqual(INVALID);
+  });
+
+  it.each([
+    ['a bare number', '123'],
+    ['a longer bare number', '599123456'],
+    ['an IP address', 'http://10.0.0.1'],
+    ['an IP address without its scheme', '10.0.0.1/menu'],
+    ['a short IP address', 'http://127.1'],
+    ['an IPv6 address', 'https://[::1]/'],
+    ['localhost with a port', 'http://localhost:5173'],
+    ['a bare word', 'example'],
+    ['a one-letter top-level domain', 'masaha.p'],
+    ['a name that starts with a dash', 'https://-masaha.ps'],
+  ])('refuses a website that is %s: %s', (_case, value) => {
+    expect(one('WEBSITE', value)).toEqual(INVALID);
+  });
+
+  it.each([
+    ['www.masaha.ps/about', 'https://www.masaha.ps/about'],
+    ['https://Masaha-Hub.co.uk', 'https://masaha-hub.co.uk'],
+    ['123.ps', 'https://123.ps'],
+  ])('stores a website on a domain with a top-level domain: %s', (value, url) => {
+    expect(one('WEBSITE', value)).toBe(url);
+  });
+
+  it.each([
+    [
+      'facebook.com/people/Masaha-Hub/100012345678',
+      'https://www.facebook.com/people/Masaha-Hub/100012345678',
+    ],
+    ['https://m.facebook.com/Masaha-Space-123456/', 'https://www.facebook.com/Masaha-Space-123456'],
+    ['www.facebook.com/masaha.gaza?ref=bookmarks', 'https://www.facebook.com/masaha.gaza'],
+  ])('stores a Facebook page or profile: %s', (value, url) => {
+    expect(one('FACEBOOK', value)).toBe(url);
+  });
+
+  it.each([
+    'facebook.com/watch?v=1',
+    'https://www.facebook.com/watch/?v=123',
+    'facebook.com/reel/123',
+    'facebook.com/masaha/videos/123',
+    'facebook.com/masaha.gaza/posts/pfbid02abc',
+    'facebook.com/permalink.php?story_fbid=1&id=2',
+    'facebook.com/story.php?story_fbid=1&id=2',
+    'facebook.com/groups/gazafreelancers',
+    'facebook.com/events/123',
+    'facebook.com/photo/?fbid=123',
+    'facebook.com/photo.php?fbid=123',
+    'facebook.com/masaha/photos/a.1/2',
+    'facebook.com/share/p/abc',
+    'facebook.com/sharer/sharer.php?u=x',
+    'facebook.com/search/top?q=masaha',
+    'facebook.com/search/?q=x',
+    'facebook.com/events',
+    'facebook.com/share',
+    'facebook.com/reels',
+    'facebook.com/videos',
+    'facebook.com/posts',
+    'facebook.com/masaha/about',
+    'facebook.com/profile.php',
+    'notfacebook.com/masaha',
+    'facebook.com/people/Masaha-Hub',
+    'facebook.com/people/Masaha-Hub/abc',
+    'watch',
+    '@groups',
+  ])('refuses a Facebook link or handle that names no page or profile: %s', (value) => {
+    expect(one('FACEBOOK', value)).toEqual(INVALID);
   });
 
   it('refuses an unknown type', () => {
@@ -220,6 +288,10 @@ describe('a contact of another kind («وسيلة أخرى»)', () => {
       { type: 'OTHER', value: '+970569123456', label: 'ديسكورد' },
     ]);
     expect(other('١٢٣')).toEqual(INVALID);
+  });
+
+  it('refuses a link to an IP address', () => {
+    expect(other('http://10.0.0.1')).toEqual(INVALID);
   });
 
   it('needs its own name, trimmed, of one to forty characters, without bidi controls', () => {
