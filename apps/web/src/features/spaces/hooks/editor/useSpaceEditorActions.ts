@@ -25,7 +25,8 @@ export function useSpaceEditorActions(spaceId: number, deletedLink: string) {
   const hold = useSpaceActionsHold();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
-  const space = query.data;
+  // A 404 on a later read means the space is gone; stale data must not keep its actions.
+  const space = query.error?.status === 404 ? undefined : query.data;
   if (space === undefined) return null;
 
   const name = spaceNameOf(space, english);

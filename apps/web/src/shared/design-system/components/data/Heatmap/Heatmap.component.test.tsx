@@ -21,6 +21,8 @@ describe('Heatmap', () => {
     render(<Heatmap {...sample} />);
 
     const table = screen.getByRole('table', { name: 'Busy hours (visits)' });
+    expect(table.className).not.toContain('sr-only');
+    expect(table.parentElement).toHaveClass('sr-only');
     expect(
       within(table)
         .getAllByRole('columnheader')

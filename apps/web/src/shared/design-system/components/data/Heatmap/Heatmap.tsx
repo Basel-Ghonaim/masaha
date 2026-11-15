@@ -50,7 +50,11 @@ export function Heatmap({
   const highest = Math.max(1, ...rows.flatMap((row) => row.values));
 
   return (
-    <figure data-slot="heatmap" className={cn('flex flex-col gap-3', className)} {...props}>
+    <figure
+      data-slot="heatmap"
+      className={cn('relative flex flex-col gap-3', className)}
+      {...props}
+    >
       <figcaption className="sr-only">{title}</figcaption>
       <div
         aria-hidden
@@ -85,31 +89,33 @@ export function Heatmap({
         ))}
         {more}
       </div>
-      <table className="sr-only">
-        <caption>
-          {title} ({unit})
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">{dayLabel}</th>
-            {columns.map((column) => (
-              <th key={column} scope="col">
-                {column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label}>
-              <th scope="row">{row.label}</th>
-              {row.values.map((value, index) => (
-                <td key={index}>{value}</td>
+      <div className="sr-only">
+        <table>
+          <caption>
+            {title} ({unit})
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{dayLabel}</th>
+              {columns.map((column) => (
+                <th key={column} scope="col">
+                  {column}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.label}</th>
+                {row.values.map((value, index) => (
+                  <td key={index}>{value}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

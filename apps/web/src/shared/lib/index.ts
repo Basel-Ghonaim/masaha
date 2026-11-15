@@ -15,3 +15,4 @@ export { contactLinkOf, type ContactLink, type ContactWords } from './contacts/c
 export { mapsLink } from './map/mapsLink';
 export { csvOf, type CsvValue } from './csv/csvOf';
 export { downloadFile } from './csv/downloadFile';
+export { knownAmenityIcon } from './amenity/knownAmenityIcon';

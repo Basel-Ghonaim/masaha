@@ -7,7 +7,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { findToast } from '../../../../test/findToast';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { SPACE } from '../../../../test/spaceFixtures';
@@ -147,4 +147,89 @@ describe('the admin’s actions in the profile’s top bar (H4)', () => {
     await user.keyboard('{Enter}');
     expect(writes()).toHaveLength(1);
   });
+
+  it('offers nothing once the space is found deleted on a later read', async () => {
+    stubScreenWidth(1440);
+    let reads = 0;
+    fakeTransport((request) => {
+      if (request.method === 'get' && request.url === '/admin/spaces/7') {
+        reads += 1;
+        return reads === 1
+          ? ok({ ...SPACE, isHidden: false })
+          : refused(404, { type: 'notFound', code: 'SPACE_NOT_FOUND' });
+      }
+      return ok([]);
+    });
+    const queryClient = createQueryClient();
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/spaces/7',
+          element: <SpaceEditorActions spaceId={7} deletedLink="/spaces?status=deleted" />,
+        },
+      ],
+      { initialEntries: ['/spaces/7'] },
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByRole('button', { name: 'Hide from visitors' });
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['admin', 'spaces', 'space', 7] });
+    });
+
+    await waitFor(() => {
+      expect(reads).toBe(2);
+      expect(queryClient.getQueryState(['admin', 'spaces', 'space', 7])?.status).toBe('error');
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Hide from visitors' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Delete the space' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps the actions when a later read fails with something other than a 404', async () => {
+    stubScreenWidth(1440);
+    let reads = 0;
+    fakeTransport((request) => {
+      if (request.method === 'get' && request.url === '/admin/spaces/7') {
+        reads += 1;
+        return reads === 1 ? ok({ ...SPACE, isHidden: false }) : refused(500, { type: 'server' });
+      }
+      return ok([]);
+    });
+    const queryClient = createQueryClient();
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/spaces/7',
+          element: <SpaceEditorActions spaceId={7} deletedLink="/spaces?status=deleted" />,
+        },
+      ],
+      { initialEntries: ['/spaces/7'] },
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByRole('button', { name: 'Hide from visitors' });
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['admin', 'spaces', 'space', 7] });
+    });
+
+    await waitFor(
+      () => {
+        expect(reads).toBe(4);
+        expect(queryClient.getQueryState(['admin', 'spaces', 'space', 7])?.status).toBe('error');
+      },
+      { timeout: 10000 },
+    );
+    expect(screen.getByRole('button', { name: 'Hide from visitors' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete the space' })).toBeInTheDocument();
+  }, 15000);
 });

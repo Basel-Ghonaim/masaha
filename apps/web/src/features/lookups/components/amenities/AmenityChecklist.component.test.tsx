@@ -70,6 +70,15 @@ describe('AmenityChecklist', () => {
     expect(onValueChange).toHaveBeenLastCalledWith([2, 1]);
   });
 
+  it('renders an active amenity with an unknown icon key, with no icon', async () => {
+    renderChecklist(() => ok([{ ...amenity(1, 'Internet', 'إنترنت'), icon: 'not-a-real-key' }]));
+
+    await screen.findByRole('checkbox', { name: 'Internet' });
+    const label = screen.getByText('Internet').closest('label');
+    expect(label).not.toBeNull();
+    expect(label?.querySelector('svg')).toBeNull();
+  });
+
   it('hands back the amenities as one is ticked', async () => {
     const user = userEvent.setup();
     const { onValueChange } = renderChecklist();

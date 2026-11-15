@@ -1,4 +1,5 @@
-import type { AmenityIconKey } from '@masaha/shared/lookups';
+import type { GlyphName } from '@shared/design-system';
+import { knownAmenityIcon } from '@shared/lib';
 import { useCatalogueQuery } from '../area/useCatalogueQuery';
 import { useAmenitiesQuery } from '../list/useAmenitiesQuery';
 import type { LookupsSource } from '../../types/LookupsSource';
@@ -8,7 +9,7 @@ export type CatalogueEntry = {
   id: number;
   nameAr: string;
   nameEn: string;
-  icon: AmenityIconKey;
+  icon: GlyphName | null;
   isActive: boolean;
 };
 
@@ -39,14 +40,14 @@ export function useAmenityCatalogue(source: LookupsSource): AmenityCatalogueRead
           id,
           nameAr,
           nameEn,
-          icon,
+          icon: knownAmenityIcon(icon),
           isActive,
         }))
       : catalogue.data?.amenities.map(({ id, nameAr, nameEn, icon }) => ({
           id,
           nameAr,
           nameEn,
-          icon,
+          icon: knownAmenityIcon(icon),
           isActive: true,
         }));
   return {

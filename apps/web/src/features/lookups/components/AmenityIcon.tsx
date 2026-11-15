@@ -1,10 +1,11 @@
-import type { AmenityIconKey } from '@masaha/shared/lookups';
 import { GlyphIcon } from '@shared/design-system';
+import { knownAmenityIcon } from '@shared/lib';
 
 /**
- * An amenity's icon, beside the words that name it. Each icon key is a glyph's name, and handing it to
- * `GlyphIcon` checks that at compile time: a key the design system cannot draw fails the typecheck.
+ * An amenity's icon, beside the words that name it. A key the running bundle does not know draws
+ * nothing, so an amenity added by a newer migration still renders in the code before it.
  */
-export function AmenityIcon({ icon }: { icon: AmenityIconKey }) {
-  return <GlyphIcon name={icon} aria-hidden />;
+export function AmenityIcon({ icon }: { icon: string }) {
+  const name = knownAmenityIcon(icon);
+  return name === null ? null : <GlyphIcon name={name} aria-hidden />;
 }

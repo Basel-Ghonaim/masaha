@@ -1,13 +1,9 @@
-import { AMENITY_ICON_KEYS, type AmenityIconKey } from '@masaha/shared/lookups';
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
+import { knownAmenityIcon } from '@shared/lib';
 import type { AmenityCatalogue } from '../../types/AmenityCatalogue';
 import type { SectionHost } from '../../types/SectionHost';
 import { useSectionFrame } from '../editor/useSectionFrame';
-
-/** A retired amenity's icon key, as the space's read gives it, when it is one the web draws. */
-const iconOf = (key: string): AmenityIconKey | null =>
-  AMENITY_ICON_KEYS.find((known) => known === key) ?? null;
 
 /**
  * «المرافق», read first (A1): only what the space offers, as the public page shows it — the
@@ -60,7 +56,7 @@ export function useAmenitiesSection(host: SectionHost, catalogue: AmenityCatalog
         key: `platform-${String(amenity.id)}`,
         name: named(amenity),
         lang: undefined,
-        icon: iconOf(amenity.iconKey),
+        icon: knownAmenityIcon(amenity.iconKey),
       })),
       ...space.ownAmenities.map((own, index) => ({
         key: `own-${String(index)}`,

@@ -289,3 +289,22 @@ describe('ordering the photos (P4)', () => {
     ).toEqual(['/files/3-card.webp', '/files/4-card.webp', '/files/5-card.webp']);
   });
 });
+
+describe('the photo’s focus ring', () => {
+  it('carries the inside ring on a focused photo and the spark, not the ring, on a lifted one', async () => {
+    const user = userEvent.setup();
+    renderProfile();
+    const section = await manage(user);
+    const list = within(section).getByRole('list', { name: 'The photos, in order' });
+    const photo = within(list).getByRole('button', { name: 'Photo 2' });
+
+    photo.focus();
+    expect(photo).toHaveClass('focus-visible:outline-2');
+    expect(photo).toHaveClass('focus-visible:-outline-offset-2');
+    expect(photo).toHaveClass('focus-visible:outline-ring');
+
+    await user.keyboard(' ');
+    expect(photo).toHaveClass('outline-spark');
+    expect(photo).toHaveClass('focus-visible:outline-spark');
+  });
+});

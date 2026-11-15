@@ -120,7 +120,7 @@ export function PhotosEdit({
                       {...handleProps}
                       aria-label={tile.cover ? coverName(tile.label) : tile.label}
                       className={cn(
-                        'cursor-grab select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                        'cursor-grab select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
                         // Drawn inside the picture: the tile's frame clips what lies outside it. While
                         // lifted the spark edge stands in for the focus ring.
                         (lifted || dragging) &&

@@ -1,4 +1,4 @@
-import type { AmenityIconKey } from '@masaha/shared/lookups';
+import type { GlyphName } from '@shared/design-system';
 import type { Location } from '@masaha/shared/spaces';
 import type { ContactLink, SpaceNameView, WeekRow } from '@shared/lib';
 import type { LocalText } from '../services/localText';
@@ -78,7 +78,7 @@ export type SpacePageView = {
   amenities: {
     title: string;
     meta: SectionMeta;
-    items: { key: string; text: LocalText; icon: AmenityIconKey | null }[];
+    items: { key: string; text: LocalText; icon: GlyphName | null }[];
   } | null;
   about: { title: string; text: LocalText } | null;
   location: {

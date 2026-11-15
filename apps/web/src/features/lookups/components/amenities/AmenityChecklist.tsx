@@ -1,4 +1,4 @@
-import { Badge, Button, Checkbox, CircleCheckIcon, Field } from '@shared/design-system';
+import { Badge, Button, Checkbox, Field } from '@shared/design-system';
 import { useAmenityChecklist } from '../../hooks/amenities/useAmenityChecklist';
 import type { LookupsSource } from '../../types/LookupsSource';
 import type { RetiredAmenity } from '../../types/RetiredAmenity';
@@ -56,9 +56,7 @@ export function AmenityChecklist({
                 orientation="horizontal"
                 label={
                   <span className="inline-flex flex-wrap items-center gap-2">
-                    {item.icon === null ? (
-                      <CircleCheckIcon aria-hidden className="text-primary" />
-                    ) : (
+                    {item.icon !== null && (
                       <span className="inline-flex text-primary">
                         <AmenityIcon icon={item.icon} />
                       </span>
