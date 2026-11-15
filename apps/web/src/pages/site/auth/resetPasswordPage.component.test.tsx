@@ -5,13 +5,24 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MASKED_EMAIL } from '../../../test/fakeRecovery';
 import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
 import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
+import { warm } from '../../../test/warmLazy';
 import { siteRoutes } from '../routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('../shell/FocusLayout'),
+      () => import('./ResetPasswordPage'),
+    ),
+  60_000,
+);
 
 const PASSWORD: RecoveryPosition = { step: 'password', email: MASKED_EMAIL };
 
