@@ -214,7 +214,7 @@ Documentation only. It records the approved backend architecture and adds the de
 - [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md) (a modular monolith) and [ADR 0013](../architecture/decisions/0013-identity-modules.md) (identity as three modules);
 - the rewritten [backend conventions](../backend/conventions.md): modules, levels, rules and placements;
 - the frontend capability names in [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
-- the [design archive](../design/README.md).
+- the [design archive](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/README.md).
 
 ---
 
@@ -308,7 +308,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
 - **F-5b2 — The session and the guards**:
   - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards)), wired into F-5b1's transport at bootstrap: the token getter and the refresh;
   - writes `architecture/system-overview.md` if restoring the session is the first request from web to API to database.
-- **F-5b3 — The auth screens**, the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9, split in its plan step (2026-10-04) into three Work Items, each its own conversation and PR. The first is the project's first feature, so its shape sets the pattern the others follow:
+- **F-5b3 — The auth screens**, the screens of [SCREENS.md](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md) rows 5–7 and the forced password change of row 9, split in its plan step (2026-10-04) into three Work Items, each its own conversation and PR. The first is the project's first feature, so its shape sets the pattern the others follow:
 - **F-5b3a — Sign in and register by email** (`feat/auth-email`):
   - `shared/forms`, the forms platform, with `react-hook-form` and `@hookform/resolvers` (approved in its plan step);
   - sign in, with the too-many-attempts state;
@@ -345,7 +345,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - adds `space-links` to [architecture.md §3](../frontend/architecture.md#3-capabilities-features)'s capability table, and decides whether it is dashboard-only;
   - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): the dashboard group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
   - acceptance: a guest's download holds no dashboard code, and `pages/site` importing a dashboard-only capability fails `lint`.
-- **The account settings page** ([SCREENS.md](../design/SCREENS.md) row 9) is no longer part of F-6. It needs `GET`/`PATCH /me` on the API, and becomes its own later item; it belongs to the `users` capability.
+- **The account settings page** ([SCREENS.md](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md) row 9) is no longer part of F-6. It needs `GET`/`PATCH /me` on the API, and becomes its own later item; it belongs to the `users` capability.
 
 ### F-7 — First public deployment · `chore/deployment`
 

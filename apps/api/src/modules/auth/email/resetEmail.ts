@@ -1,11 +1,12 @@
 import type { EmailMessage } from './emailSender.ts';
 import { ARABIC as ar, ENGLISH as en } from './resetEmail.copy.ts';
 
-// The identity's colours, ink + berry's neutrals (ADR 0019), as the design draws them (docs/design:
-// Reset email.html), written inline: an email client reads no stylesheet and no custom property, so
-// the web's tokens cannot reach it, and a change of the brand or the neutrals is carried here by hand
-// (finding 19). Each pair is one the web verifies: the primary's label on the primary, the text and
-// the muted text on the card and the background. No spark and no image.
+// The identity's colours, ink + berry's neutrals (ADR 0019), as the design draws them
+// (masaha-prototype: prototype/Reset email.html), written inline: an email client reads no
+// stylesheet and no custom property, so the web's tokens cannot reach it, and a change of the brand
+// or the neutrals is carried here by hand (finding 19). Each pair is one the web verifies: the
+// primary's label on the primary, the text and the muted text on the card and the background. No
+// spark and no image.
 const COLOR = {
   page: '#f7fbff', // neutral-50, the background
   card: '#ffffff',

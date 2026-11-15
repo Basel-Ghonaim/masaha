@@ -1,8 +1,9 @@
 // The words of the reset email, the only email Masaha sends (docs/backend/security.md › Passwords).
 // The email is sent by the API, which has no copy catalogue, so its words live here, in both
 // languages, held to one shape as the web's catalogues are (docs/frontend/localisation.md). The
-// Arabic is the design's (docs/design: Reset email.html), except the greeting, which names no one. A translation may leave a line unused: the
-// English block of the design is shorter.
+// Arabic is the design's (masaha-prototype: prototype/Reset email.html), except the greeting,
+// which names no one. A translation may leave a line unused: the English block of the design is
+// shorter.
 
 export interface ResetEmailCopy {
   subject: string;
