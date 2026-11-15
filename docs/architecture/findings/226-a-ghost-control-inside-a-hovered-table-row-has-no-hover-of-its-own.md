@@ -1,6 +1,6 @@
 # 226. A ghost control inside a hovered table row has no hover of its own
 
-**Status:** Open · **Date:** 2026-11-14
+**Status:** Resolved · **Date:** 2026-11-14
 
 **Evidence:** a table's row hovers with the `hover` fill, and keeps it while one of its menus is open
 (`apps/web/src/shared/design-system/components/data/Table/Table.tsx`, `hover:bg-hover
@@ -13,3 +13,5 @@ identity (accent on accent), so #144 did not cause it; its review found it (R1-F
 
 **Resolves when:** the owner decides how a ghost control inside a hovered row is seen — for example, the ink's
 wash (`hover-on-muted`) over the row's hover — and the layer draws it so.
+
+**Resolution (2026-11-15, #149):** the owner decided the ink's wash. A ghost button inside a table row hovers, and marks its open menu, with `hover-on-muted` over the row's `hover`, in both themes (`Button.tsx`, by a rule that names the row and so outweighs the plain hover by specificity). `semantic.unit.test.ts` checks the wash seen from `hover` and `foreground` over it in both themes; `Button.component.test.tsx` checks the classes.

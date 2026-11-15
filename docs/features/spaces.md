@@ -308,8 +308,6 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 - [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
 - [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
-- [217](../architecture/findings/217-contacts-and-every-phone-refuse-arabic-indic-digits.md): contacts and every phone refuse Arabic-Indic digits.
-- [218](../architecture/findings/218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md): a website's bare number is stored as an IP address; a Facebook video link loses its id.
 
 ## History
 
