@@ -1,6 +1,6 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-15 · **Owner:** Basel Ghoneim
 > **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, [desk](desk.md) shows the customers.
 > **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature of its own: [desk](desk.md)'s screens read and write it.
 
@@ -74,3 +74,4 @@
 - #109 — a whole phone is also found stored under the other country code (by its national digits); the contacts of a set of customers, for the check-ins' lists.
 - #132 — a whole phone matches on its national digits without the trunk 0, so `+970…` and `+972…` find each other both ways (finding 126); the file carries the space's payment reminder (`reminderTemplate`), read by the staff; a row's current subscription carries its limits and its progress.
 - #131 — the contacts answer whether each customer is archived, for finance's debts.
+- 2026-11-15, #149 — a customer's phone typed in Arabic-Indic or Eastern digits is read by `core`'s phone rule, and a whole phone so typed is searched as a phone (finding 217); and a phone's last digits so typed search the end of the phone (finding 228).

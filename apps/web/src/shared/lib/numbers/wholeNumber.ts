@@ -1,4 +1,4 @@
-import { toWesternDigits } from './westernDigits';
+import { toWesternDigits } from '@masaha/shared/core';
 
 /**
  * A whole number as typed, for a form's schema to read: blank is none (`undefined`); digits, Western

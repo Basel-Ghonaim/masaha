@@ -194,6 +194,19 @@ describe('PUT /admin/spaces/:spaceId/contacts', () => {
     expect(await stored()).toEqual({ contacts: [], contactsUpdatedAt: BEFORE });
   });
 
+  it('stores a number typed in Arabic-Indic or Eastern digits in its international form', async () => {
+    const response = await save([
+      { type: 'WHATSAPP', value: '٠٥٩٩١٢٣٤٥٦' },
+      { type: 'OTHER', value: '۰۵۶۹۱۲۳۴۵۶', label: 'رقم آخر' },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect((await stored()).contacts).toEqual([
+      { type: 'WHATSAPP', value: '+970599123456', label: null, sortOrder: 0 },
+      { type: 'OTHER', value: '+970569123456', label: 'رقم آخر', sortOrder: 1 },
+    ]);
+  });
+
   it('dates the contacts at their first save, even with none, and a repeat writes nothing', async () => {
     await prisma.space.update({ where: { id: spaceId }, data: { contactsUpdatedAt: null } });
 

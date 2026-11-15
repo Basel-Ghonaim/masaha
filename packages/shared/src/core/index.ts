@@ -1,3 +1,4 @@
+export * from './digits.ts';
 export * from './envelope.ts';
 export * from './errors.ts';
 export * from './fieldErrors.ts';

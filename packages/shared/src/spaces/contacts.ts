@@ -1,4 +1,4 @@
-import { emailSchema, normalisePhone } from '../core/index.ts';
+import { emailSchema, normalisePhone, toWesternDigits } from '../core/index.ts';
 
 // A space's contacts are a typed list (docs/architecture/data-model.md › Conventions, Contacts),
 // each stored in one form, whatever form it was typed in (decision F6): a phone or WhatsApp number
@@ -173,10 +173,12 @@ export function normaliseContact(type: ContactType, input: string): string | nul
       return networkAddress(NETWORKS[type], value);
     case 'WEBSITE':
       return websiteAddress(value);
-    // A number takes the platform's phone rule, so one number has one form; anything else is a
-    // link on the web, as a website's. A number the rule refuses is refused, never read as a link
-    // (a URL reads a bare number as an IP address).
+    // A number, in any digits people type, takes the platform's phone rule, so one number has one
+    // form; anything else is a link on the web, as a website's. A number the rule refuses is
+    // refused, never read as a link (a URL reads a bare number as an IP address).
     case 'OTHER':
-      return LIKE_A_NUMBER.test(value) ? normalisePhone(value) : websiteAddress(value);
+      return LIKE_A_NUMBER.test(toWesternDigits(value))
+        ? normalisePhone(value)
+        : websiteAddress(value);
   }
 }

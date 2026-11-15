@@ -212,6 +212,16 @@ describe('a contact of another kind («وسيلة أخرى»)', () => {
     expect(other('+44.20.7946.0000')).toEqual(INVALID);
   });
 
+  it('reads a number typed in Arabic-Indic or Eastern digits by the phone rule', () => {
+    expect(other('٠٥٩-٩١٢ ٣٤٥٦')).toEqual([
+      { type: 'OTHER', value: '+970599123456', label: 'ديسكورد' },
+    ]);
+    expect(other('۰۵۶۹۱۲۳۴۵۶')).toEqual([
+      { type: 'OTHER', value: '+970569123456', label: 'ديسكورد' },
+    ]);
+    expect(other('١٢٣')).toEqual(INVALID);
+  });
+
   it('needs its own name, trimmed, of one to forty characters, without bidi controls', () => {
     expect(other('discord.gg/focushub', null)).toEqual({ 'contacts.0.label': ['required'] });
     expect(stored([{ type: 'OTHER', value: 'discord.gg/focushub' }])).toEqual({

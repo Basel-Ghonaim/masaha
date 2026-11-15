@@ -101,6 +101,32 @@ describe('useEditDialog', () => {
     expect(bodyOf(patches(requests)[0])).toEqual({ phone: null });
   });
 
+  it('reads a phone typed in Arabic-Indic digits, and sends its international form', async () => {
+    const user = userEvent.setup();
+    const { requests } = renderDialog(() => ok({ ...SARA, phone: '+970599000304' }));
+
+    const phone = screen.getByRole('textbox', { name: /Mobile number/ });
+    await user.clear(phone);
+    await user.type(phone, '٠٥٩٩٠٠٠٣٠٤');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await findToast(heard('Sara Khalid’s details saved'));
+    expect(bodyOf(patches(requests)[0])).toEqual({ phone: '+970599000304' });
+  });
+
+  it('refuses in the browser a phone the rule refuses, sending nothing', async () => {
+    const user = userEvent.setup();
+    const { requests } = renderDialog(() => ok(SARA));
+
+    const phone = screen.getByRole('textbox', { name: /Mobile number/ });
+    await user.clear(phone);
+    await user.type(phone, '١٢٣');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('This isn’t in a valid format.')).toBeVisible();
+    expect(patches(requests)).toHaveLength(0);
+  });
+
   it('is never sent again by itself after no answer; the user retries', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });

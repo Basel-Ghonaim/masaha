@@ -191,6 +191,27 @@ describe('the contacts’ Sheet', () => {
     );
   });
 
+  it('reads a number typed in Arabic-Indic digits, and sends it in its international form', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ write: () => ok(SPACE) });
+    const sheet = await openContacts(user);
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    const added = rows(sheet).at(-1) as HTMLElement;
+
+    await user.type(within(added).getByRole('textbox', { name: 'WhatsApp' }), '٠٥٩٩٧٧٧٨٨٨');
+    expect(within(added).getByRole('textbox', { name: 'WhatsApp' })).toHaveAccessibleDescription(
+      /Saved as .*\+970599777888/,
+    );
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({
+      contacts: [...SPACE.contacts, { type: 'WHATSAPP', value: '+970599777888', label: null }],
+    });
+  });
+
   it('moves a contact by its handle from the keyboard, the order sent on «حفظ»', async () => {
     const user = userEvent.setup({ delay: null });
     const { writes } = renderProfile({ write: () => ok(SPACE) });

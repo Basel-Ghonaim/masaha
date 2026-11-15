@@ -1,4 +1,4 @@
-import { toWesternDigits } from '@shared/lib';
+import { toWesternDigits } from '@masaha/shared/core';
 import type { MapPoint } from '../types/MapPoint';
 
 // A point as text, the way a map application copies it ("31.5205, 34.4535"): latitude, then

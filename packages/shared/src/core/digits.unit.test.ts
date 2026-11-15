@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { toWesternDigits } from './westernDigits';
+
+import { toWesternDigits } from './digits.ts';
 
 describe('toWesternDigits', () => {
   it('reads both Arabic-Indic sets as Western digits', () => {

@@ -16,10 +16,12 @@ describe('phoneSchema', () => {
   it.each([
     ['+970599123456', '+970599123456'],
     ['00970599123456', '+970599123456'],
+    ['00972599123456', '+970599123456'],
     ['0599123456', '+970599123456'],
     ['0569123456', '+970569123456'],
     ['+972521234567', '+972521234567'],
     ['00972521234567', '+972521234567'],
+    ['022981234', '+97022981234'],
   ])('stores %s in its international form, %s', (input, phone) => {
     expect(stored(input)).toBe(phone);
   });
@@ -48,13 +50,28 @@ describe('phoneSchema', () => {
   });
 
   it.each([
+    ['Arabic-Indic', '٠٥٩٩١٢٣٤٥٦', '+970599123456'],
+    ['Eastern', '۰۵۹۹۱۲۳۴۵۶', '+970599123456'],
+    ['Arabic-Indic, after +970,', '+٩٧٠ ٥ ٩ ٩١٢ ٣٤٥٦', '+970599123456'],
+    ['Arabic-Indic, after 00972,', '٠٠٩٧٢٥٢١٢٣٤٥٦٧', '+972521234567'],
+    ['Arabic-Indic and Western', '٠٥٩-٩١٢ 3456', '+970599123456'],
+    ['Eastern, a landline’s,', '(۰۸) ۲ ۸ ۲ ۱۲۳۴', '+97082821234'],
+  ])('reads %s digits as Western ones: %s', (_digits, input, phone) => {
+    expect(stored(input)).toBe(phone);
+  });
+
+  it.each([
     ['another country', '+12025550100'],
     ['a number too short', '05991234'],
     ['a number too long', '05991234567'],
     ['a mobile prefix at the length of a landline', '051234567'],
     ['another separator', '059_912_3456'],
     ['letters', '059 912 3456 ext 2'],
+    ['too few Arabic-Indic digits', '١٢٣'],
+    ['another country in Arabic-Indic digits', '+١٢٠٢٥٥٥٠١٠٠'],
     ['nothing', ''],
+    ['a foreign number with spaces', '+1 202 555 0100'],
+    ['letters only', 'abc'],
   ])('refuses %s', (_case, input) => {
     expect(stored(input)).toEqual({ phone: ['invalid_format'] });
   });

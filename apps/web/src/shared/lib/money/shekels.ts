@@ -1,4 +1,4 @@
-import { toWesternDigits } from '../numbers/westernDigits';
+import { toWesternDigits } from '@masaha/shared/core';
 
 /** An amount in agorot as shekels: `1500` → `15`, `1250` → `12.50`. */
 export function shekelsOf(agorot: number): string {

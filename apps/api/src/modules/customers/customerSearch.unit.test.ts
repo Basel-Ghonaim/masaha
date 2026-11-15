@@ -33,6 +33,9 @@ describe('searchTermsOf', () => {
     expect(searchTermsOf('059-900')).toEqual({ phoneDigits: '059900' });
     expect(searchTermsOf('(059) 9.00')).toEqual({ phoneDigits: '059900' });
     expect(searchTermsOf('12')).toEqual({ phoneDigits: '12' });
+    expect(searchTermsOf('٥٦٧٨')).toEqual({ phoneDigits: '5678' });
+    expect(searchTermsOf('۵۶۷۸')).toEqual({ phoneDigits: '5678' });
+    expect(searchTermsOf('٠٥٩ ١٢٣')).toEqual({ phoneDigits: '059123' });
   });
 
   it('anything else searches the name: one digit, a letter among digits, a name', () => {
@@ -40,5 +43,6 @@ describe('searchTermsOf', () => {
     expect(searchTermsOf('سارة 1')).toEqual({ name: 'سارة 1' });
     expect(searchTermsOf('059/900')).toEqual({ name: '059/900' });
     expect(searchTermsOf('Sara')).toEqual({ name: 'Sara' });
+    expect(searchTermsOf('أحمد')).toEqual({ name: 'أحمد' });
   });
 });
