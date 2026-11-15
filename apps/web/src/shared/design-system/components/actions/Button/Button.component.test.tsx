@@ -62,6 +62,24 @@ describe('Button', () => {
     expect(link).not.toHaveClass('hover:underline');
   });
 
+  it('hovers, and marks its open menu, with the ink’s wash inside a table row, when ghost', () => {
+    render(<Button variant="ghost">More</Button>);
+
+    expect(screen.getByRole('button', { name: 'More' })).toHaveClass(
+      '[[data-slot=table-row]_&]:hover:bg-hover-on-muted',
+      '[[data-slot=table-row]_&]:aria-expanded:bg-hover-on-muted',
+    );
+  });
+
+  it.each(['primary', 'secondary', 'outline', 'destructive', 'link'] as const)(
+    'keeps the %s variant’s hover inside a table row',
+    (variant) => {
+      render(<Button variant={variant}>Save</Button>);
+
+      expect(screen.getByRole('button', { name: 'Save' }).className).not.toMatch(/table-row/);
+    },
+  );
+
   it.each(['primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const)(
     'draws the %s variant without the spark, which never marks an action',
     (variant) => {
