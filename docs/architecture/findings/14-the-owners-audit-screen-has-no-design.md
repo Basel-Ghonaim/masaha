@@ -7,8 +7,8 @@
 - A reader exists for it: [conventions §6](../../backend/conventions.md#6-audit) gives the `audit` module a `manage` router.
 - No design covers it:
   - [foundation §13](../../frontend/design-system/foundation.md#13-screens-to-design-33) lists owner screens 12–24, none of them an audit log. Screen 31, *Audit log*, is the admin's.
-  - The [design archive](../../design/SCREENS.md) has only `Admin audit.html`.
-  - The owner's navigation in the [design brief](../../design/prototype/BRIEF.md) has no audit entry.
+  - The [design archive](https://github.com/Basel-Ghonaim/masaha-prototype/blob/b16cbf8d2d894f983e1ffb031c87cdd9d5ebb40f/SCREENS.md) has only `Admin audit.html`.
+  - The owner's navigation in the [design brief](https://github.com/Basel-Ghonaim/masaha-prototype/blob/b16cbf8d2d894f983e1ffb031c87cdd9d5ebb40f/prototype/BRIEF.md) has no audit entry.
 
 **Resolves when:** the audit slice (step 11 of the build sequence in [v1-mvp.md](../../plans/v1-mvp.md#sequence-inside-the-build)) designs the owner's audit screen, with its place in the owner's navigation, and builds it.
 

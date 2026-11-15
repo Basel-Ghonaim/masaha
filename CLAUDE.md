@@ -68,7 +68,7 @@ Any override must be **stated, never silent.**
 - **Frontend architecture** → `docs/frontend/architecture.md`
 - **Design system** → `docs/frontend/design-system/foundation.md`
 - **Architectural decisions** → `docs/architecture/decisions/`
-- **Design archive** → `docs/design/` (screens, prototypes)
+- **Design archive and prototype** → the public repository [masaha-prototype](https://github.com/Basel-Ghonaim/masaha-prototype) (screens, prototypes), read-only from here ([ADR 0020](docs/architecture/decisions/0020-design-archive-own-repository.md))
 
 ## Commands
 

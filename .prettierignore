@@ -4,6 +4,3 @@
 package-lock.json
 dist/
 coverage/
-
-# The design archive: a frozen prototype with vendored code (docs/design/README.md)
-docs/design/

@@ -26,7 +26,7 @@ The project started on 27 September 2026 and has **16 January 2027** as v1's tar
 This is the **build map**: the direction the build follows, not a contract. It changes as the project learns, through a PR like any document.
 
 Each step names its goal and points to what supports it:
-- its screens, as numbered in [SCREENS.md](../design/SCREENS.md);
+- its screens, as numbered in [SCREENS.md](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md);
 - the decisions and the owning documents it builds on;
 - the findings it closes;
 - the deferred decisions it settles, from [foundation.md › A-3](foundation.md#a-3--cross-cutting-decisions--docscross-cutting).
@@ -37,8 +37,8 @@ Each step names its goal and points to what supports it:
 
 **Goal:** a user signs in and lands in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 - **Screens:**
-  - [public site](../design/SCREENS.md#public-site-9): 5 Sign in, 6 Register, 7 Forgot / reset password, 8 404 / error / offline;
-  - [my account](../design/SCREENS.md#my-account-3): 9 Profile & settings; its forced password change belongs to F-5.
+  - [public site](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#public-site-9): 5 Sign in, 6 Register, 7 Forgot / reset password, 8 404 / error / offline;
+  - [my account](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#my-account-3): 9 Profile & settings; its forced password change belongs to F-5.
 - **Supported by:** the contracts of F-5, F-6 and F-7 in the [foundation plan](foundation.md#5-work-items).
 - **Settles:** the reset-email provider (F-5).
 - **Built:** the site's and the dashboard's shells (#30, #39); screens 5 and 6 (#35), with Google (#42), 7 (#40), 8, and the forced password change (#38); screen 9, «إعدادات حسابي»: the profile, the preferences and the ways of signing in (2026-10-29, #132).
@@ -46,7 +46,7 @@ Each step names its goal and points to what supports it:
 ### 2. Lookups and the admin's spaces
 
 **Goal:** the admin keeps the lookup lists and enters the surveyed spaces, so the directory starts with real data.
-- **Screens:** [admin](../design/SCREENS.md#admin-8): 26 Spaces, 30 Lookups.
+- **Screens:** [admin](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#admin-8): 26 Spaces, 30 Lookups.
 - **Supported by:**
   - [ADR 0007](../architecture/decisions/0007-soft-delete.md) (soft delete) and [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md) (access to a space);
   - conventions §9: [new-space defaults](../backend/conventions.md#new-space-defaults) and [composed reads](../backend/conventions.md#composed-reads) (the admin's spaces list).
@@ -59,7 +59,7 @@ Each step names its goal and points to what supports it:
 ### 3. Public directory
 
 **Goal:** anyone finds a space, in the list or on the map, near them or by filter, and sees its page and how to contact Masaha.
-- **Screens:** [public site](../design/SCREENS.md#public-site-9): 1 Home, 2 Directory, 3 Space details, 4 About / Contact.
+- **Screens:** [public site](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#public-site-9): 1 Home, 2 Directory, 3 Space details, 4 About / Contact.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md) (live status);
   - conventions §9: [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads);
@@ -70,7 +70,7 @@ Each step names its goal and points to what supports it:
 ### 4. Owners and users
 
 **Goal:** the admin manages accounts: owners are created or upgraded and linked to their spaces, which become verified, and users are suspended, given a role or a temporary password.
-- **Screens:** [admin](../design/SCREENS.md#admin-8): 27 Space owners, 29 Users.
+- **Screens:** [admin](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#admin-8): 27 Space owners, 29 Users.
 - **Supported by:**
   - [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md) and [ADR 0013](../architecture/decisions/0013-identity-modules.md);
   - conventions [§7](../backend/conventions.md#the-modules) (`space-links`, `users`) and §9 [composed reads](../backend/conventions.md#composed-reads) (the space owners list);
@@ -80,7 +80,7 @@ Each step names its goal and points to what supports it:
 ### 5. The owner's space profile and packages
 
 **Goal:** an owner keeps the space's public facts and prices true, and confirms them.
-- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 20 Space profile, 21 Prices & packages.
+- **Screens:** [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 20 Space profile, 21 Prices & packages.
 - **Supported by:**
   - conventions [§7](../backend/conventions.md#the-modules) (`spaces`, `packages`);
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the request size limit).
@@ -91,14 +91,14 @@ Each step names its goal and points to what supports it:
 
 **Goal:** an owner adds and deactivates reception accounts.
 - **Built:** its API (#90, [api-contract › Staff (managed)](../api/api-contract.md#staff-managed)) and screen 22, Staff (#99), with each person's start and month (2026-10-29, #132).
-- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 22 Staff.
+- **Screens:** [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 22 Staff.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions [§7](../backend/conventions.md#the-modules) (`space-links`).
 
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits: collecting one, its debt by phone, and its write-off.
 - **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the auto check-out of open visits and subscription check-ins at their due time, run every 5 minutes (#97, [api-contract › Internal](../api/api-contract.md#internal)); the unpriced visits and their pricing, and the uncollected visits (#97); a visit's payment after its check-out, its debt to a customer by phone, and the owner's write-off with its undo (#100); the written-off visits listed, and a visit's check-in for its customer (2026-10-29, #132). The step's API is built, and so is screen 13, the front desk: who is present, the live status and its override, a visit's check-in and check-out with its payment (#116); the uncollected and unpriced visits, collected, left as a debt, priced or written off (#117); the subscribers found and checked in and out (#119); «السجل», a day's visits and check-ins beside who is present, and the owner's «لن تُحصَّل», the written-off visits with their undo (2026-10-29, #132).
-- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
+- **Screens:** [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk), [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads) (uncollected visits);
@@ -110,7 +110,7 @@ Each step names its goal and points to what supports it:
 ### 8. Customers and subscriptions
 
 **Goal:** the staff keep customers on file and run their subscriptions: limits, billing, progress, statement, renewal, ending early, and subscription check-ins.
-- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 14 Customers, 15 Customer details, 16 New / renew subscription.
+- **Screens:** [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 14 Customers, 15 Customer details, 16 New / renew subscription.
 - **Supported by:**
   - [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md), and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md): subscriptions and customers gain their idempotency key;
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk) and [composed reads](../backend/conventions.md#composed-reads) (the customers list and file);
@@ -121,7 +121,7 @@ Each step names its goal and points to what supports it:
 ### 9. Payments and debts
 
 **Goal:** payments are voided, and balances, credit, debts and each staff member's collections today are seen; a visit's payment after its check-out is received since step 7 (#100), a subscription's with step 8.
-- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 17 Payments.
+- **Screens:** [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 17 Payments.
 - **Supported by:** [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md); conventions §13: [the ledger's rules](../backend/conventions.md#the-ledgers-rules).
 - **Built:** payments voided by the owner, a written-off visit's once the write-off is undone; the payments list, the owner's and reception's own of today (#114, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)) — step 9's API is complete; and screen 17: the owner's «الدفعات» with its void, and reception's «دفعاتي اليوم» (#127), the ledger's staff filter naming the space's other owners (2026-10-29, #132).
 
@@ -129,9 +129,9 @@ Each step names its goal and points to what supports it:
 
 **Goal:** a space tells its users what changes, with the closure extension; users report wrong information and see the resolution note; users keep their favourite spaces.
 - **Screens:**
-  - [my account](../design/SCREENS.md#my-account-3): 10 Favourites, 11 My reports;
-  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 18 Announcements, 23 Data reports;
-  - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
+  - [my account](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#my-account-3): 10 Favourites, 11 My reports;
+  - [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 18 Announcements, 23 Data reports;
+  - [admin](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#admin-8): 28 Data reports.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
 - **Closes:** [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md), at the start of the step: the removable filter tag.
 - **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)); data reports, on the API: a signed-in user's report (10 an hour, a repeat answering the open one), the user's own with the replies, the owner's and the admin's lists and decisions, the reporter anonymous to the owner (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); favourites, on the API: saved and removed, idempotent, at most 200, read whole as the directory's cards, newest saved first or nearest first (#121, [api-contract › Favourites](../api/api-contract.md#favourites)); the closure extension, on the API: its preview, and the owner's extension of the subscriptions a closure covered, once per closure under one key, an extended closure guarded by the database (#123, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)). So are the screens: 10 and 11, the account's favourites and reports; 18, the announcements, with the closure extension; 23 and 28, the owner's and the admin's data reports (#129); a report opened beside its field (2026-10-29, #132).
@@ -140,8 +140,8 @@ Each step names its goal and points to what supports it:
 
 **Goal:** the owner reads the space's money and occupancy; the owner and the admin read their audit logs; the space's and the platform's settings are edited.
 - **Screens:**
-  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 19 Finance & statistics, 24 Settings;
-  - [admin](../design/SCREENS.md#admin-8): 31 Audit log, 32 Settings.
+  - [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 19 Finance & statistics, 24 Settings;
+  - [admin](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#admin-8): 31 Audit log, 32 Settings.
 - **Supported by:**
   - conventions [§6](../backend/conventions.md#6-audit) (audit), [§8](../backend/conventions.md#8-module-rules) (R7, read models) and §9 [settings](../backend/conventions.md#settings-three-screens-three-owners);
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the response size limit);
@@ -158,8 +158,8 @@ Each step names its goal and points to what supports it:
 
 **Goal:** the owner and the admin see their figures at a glance.
 - **Screens:**
-  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 12 Overview;
-  - [admin](../design/SCREENS.md#admin-8): 25 Overview.
+  - [owner and reception dashboard](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#owner-and-reception-dashboard-13): 12 Overview;
+  - [admin](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md#admin-8): 25 Overview.
 - **Supported by:** conventions §9: [overview](../backend/conventions.md#overview).
 - **Built:** both overviews, on the API: the owner's work queue — the fact groups missing or stale, the open reports, the uncollected and unpriced visits, the closures awaiting their extension, capacity, how many customers owe (a count, no amount), present now with the live status, the subscriptions ending soon and the running announcements; and the admin's — the spaces by status, the open reports by who handles them, the new users of the last 30 days and the spaces whose data is incomplete; each figure read from its owning module and equal to the list it links to ([api-contract › Overview](../api/api-contract.md#overview), 2026-10-29, #131). So are screens 12 and 25, «نظرة عامة»: the owner's landing, a work queue of counts with no amount, and the admin's, the platform at a glance (2026-10-29, #132).
 

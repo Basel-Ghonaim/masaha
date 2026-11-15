@@ -94,6 +94,7 @@ The threshold and the format are [workflow §7](../development/workflow.md#7-doc
 - **A move updates every link to the moved text in the same PR,** records' links included (§1).
 - `npm run check:links` checks, in CI, every relative link, image path and anchor of the Markdown files, and every document path cited in a source file ([finding 37](findings/37-links-between-documents-are-checked-by-hand.md)). A heading cited in a comment, written `docs/x.md › heading`, is not checked. External links are not checked.
 - A document never cites a path outside the repository.
+- The design lives in masaha-prototype: a document cites its files by URL ([ADR 0020](decisions/0020-design-archive-own-repository.md)), which `check:links` does not check.
 
 ## 9. One entry point
 

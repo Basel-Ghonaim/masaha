@@ -172,7 +172,7 @@ export function checkLinks({ markdown, sources, entries }: LinkInput) {
 
 const NOT_ENTRIES = new Set(['.git', 'node_modules', 'dist']);
 // Entries (links may point into them) that are not scanned for links.
-const NOT_SCANNED = ['.design-sync/', 'docs/design/prototype/'];
+const NOT_SCANNED = ['.design-sync/'];
 // Folders whose files may cite a document path, and what in them is generated or this check's own.
 const SOURCE_ROOTS = ['apps/', 'packages/'];
 const SOURCE_EXTENSIONS = new Set([

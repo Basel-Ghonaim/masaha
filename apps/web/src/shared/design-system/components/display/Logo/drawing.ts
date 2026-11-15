@@ -1,6 +1,7 @@
 // The logo's drawing (docs/frontend/design-system/foundation.md §16): the owner's paths, copied
-// verbatim from docs/design/prototype/masaha/logo/masaha-logo-berry.svg, with the frames and clips of
-// masaha-mark-berry.svg. Coordinates are the drawing's own; no colour lives here.
+// verbatim from prototype/masaha/logo/masaha-logo-berry.svg in the masaha-prototype repository,
+// with the frames and clips of masaha-mark-berry.svg. Coordinates are the drawing's own; no
+// colour lives here.
 
 /** «مساحة» over "MASAHA", without the ة's dots. */
 export const WORDS =

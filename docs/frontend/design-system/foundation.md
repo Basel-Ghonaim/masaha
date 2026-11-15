@@ -471,7 +471,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 Every screen: phone and desktop, light and dark. Key screens also in LTR (English). States: default, loading (skeleton), empty, error.
 
-The final designs are archived in [docs/design/](../../design/README.md): [SCREENS.md](../../design/SCREENS.md) maps each screen below to its prototype page and screenshots.
+The final designs and the prototype are in their own repository, [masaha-prototype](https://github.com/Basel-Ghonaim/masaha-prototype) ([ADR 0020](../../architecture/decisions/0020-design-archive-own-repository.md)): its [SCREENS.md](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md) maps each screen below to its prototype page and screenshots.
 
 ### Public site (9)
 1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «مفتوحة الآن»
@@ -559,7 +559,7 @@ The identity's mark, drawn with ink + berry ([ADR 0019](../../architecture/decis
 - **Clear space.** 20% of its height on every side: 8 px around the 40 px logo.
 - **Never** mirrored (the same drawing in both directions), cropped, stretched, recoloured, or set on a photo without a plain ground.
 - **Its name** is «مساحة» / "Masaha" in the interface's language. Where the name is written beside it, the logo is decorative, so the name is read once.
-- **The source files**, the owner's: `docs/design/prototype/masaha/logo/` (`*-berry.svg`: the full logo and the mark, light and dark, and the app icon).
+- **The source files**, the owner's: [`prototype/masaha/logo/`](https://github.com/Basel-Ghonaim/masaha-prototype/tree/main/prototype/masaha/logo) in masaha-prototype (`*-berry.svg`: the full logo and the mark, light and dark, and the app icon).
 - **The browser's icons** (`apps/web/public/`, linked from `index.html`):
   - `favicon.svg`: the small mark with no background, in the light theme's ink and spark, and in the dark theme's by the browser's own scheme (the tab is the browser's, not the app's toggle).
   - `favicon.ico`: the app icon (the mark on its white tile) at 16, 32 and 48 px, for a browser that takes no SVG and for a dark tab bar.
