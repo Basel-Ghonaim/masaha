@@ -4,3 +4,6 @@
 package-lock.json
 dist/
 coverage/
+
+# Google Search Console's proof of the site's ownership, kept byte for byte (docs/development/setup.md, step 5)
+apps/web/public/google17f1cc2beeef3f62.html
