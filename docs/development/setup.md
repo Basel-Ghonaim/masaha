@@ -228,7 +228,7 @@ All in the Vercel project's **Production** environment (Settings, Environment Va
 | `CORS_ORIGIN` | the public address, `https://<project>.vercel.app`, no trailing slash | Vercel, the project's domain. The reset email's link leads there too |
 | `JWT_SECRET`, `JOBS_SECRET` | each a new random value | `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"`, once for each; never a development value, never the same twice |
 | `TRUST_PROXY` | `1` | Vercel overwrites `x-forwarded-for` with the visitor's address and forwards none a client sends: trusting that one hop gives the visitor's address, and a forged header picks no rate-limit bucket ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)) |
-| `GOOGLE_CLIENT_ID` | Masaha's OAuth client id | Google Cloud console: the one client, with both origins. Its consent screen stays in *Testing* (step 5) |
+| `GOOGLE_CLIENT_ID` | Masaha's OAuth client id | Google Cloud console: the one client, with both origins. Its consent screen is published (step 5) |
 | `VITE_GOOGLE_CLIENT_ID` | the same value | read by the web's **build**: a change takes a redeploy |
 | `EMAIL_MODE` | `smtp` | |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | `smtp.gmail.com`, `465`, `true` | |
@@ -253,7 +253,7 @@ Not set online: `PORT`, `TEST_DATABASE_URL` and the `SEED_*` variables.
 2. **Vercel:** import the GitHub repository as a new project, its root directory the repository's root. Leave the framework, install, build and output settings as they come: `vercel.json` sets them. The project's name gives the address, `https://<project>.vercel.app`.
 3. **The variables:** every one of the table above, in the Production environment, before the first deploy (the import screen takes them).
 4. **The first deploy.** Its build log shows Node.js 24, the build, the migration step applying every migration over the direct host, and the function built.
-5. **Google:** add the public address to the OAuth client's authorised JavaScript origins, beside `http://localhost:5320`. If the address differs from `CORS_ORIGIN`, correct the variable and redeploy. **The consent screen stays in *Testing*:** publishing it needs a homepage and a privacy-policy address, and Masaha has no privacy page (outside v1). So online, Google sign-in works only for the test users listed on the consent screen (at most 100); everyone else registers by email. Add each test user's Google account there (the owner's decision, 2026-11-01; its branding and publishing are discussed with the owner on 2026-11-02).
+5. **Google:** add the public address to the OAuth client's authorised JavaScript origins, beside `http://localhost:5320`. If the address differs from `CORS_ORIGIN`, correct the variable and redeploy. **The consent screen is published** (*In production*, the owner, 2026-11-05): its homepage is the public address and its privacy policy the site's `/privacy` page, so any Google account signs in. Google shows the app's name and logo on that screen only once it has verified the branding; until then it shows the address. That verification needs the site's ownership proved in Google Search Console, by the file `apps/web/public/google17f1cc2beeef3f62.html` served at the site's root: never remove or edit it, since Google checks it again (`.prettierignore` keeps it byte for byte).
 6. **The first admin,** from the owner's machine, at the repository's root, in a new PowerShell window:
 
    ```
