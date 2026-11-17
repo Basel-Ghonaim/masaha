@@ -1,6 +1,7 @@
+import { toWesternDigits } from '@masaha/shared/core';
 import type { SpacePackage, SUBSCRIPTION_BILLINGS } from '@masaha/shared/packages';
 import type { PRICE_AUDIENCES } from '@masaha/shared/spaces';
-import { agorotOf, shekelsOf, toWesternDigits } from '@shared/lib';
+import { agorotOf, shekelsOf } from '@shared/lib';
 
 /** A package's optional limits, in the order the sheet offers them. */
 export const LIMIT_NAMES = ['totalDays', 'daysPerWeek', 'hoursPerDay', 'totalHours'] as const;

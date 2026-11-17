@@ -7,11 +7,14 @@ import { cn } from '../../../lib/cn';
 // A hover never fades a fill: fading primary to 90% would leave its label below AA. The ink's
 // hover is a role of its own (`primary-hover`); secondary and destructive mix their fill toward
 // the foreground, which raises the contrast with the label in both themes. Outline and ghost
-// hover, and mark their open menu, with the neutral `hover` fill, never the selected tint. The
-// outline variant is edged like a card, so the edge stays visible in the dark theme, where the
-// plain border is faint. The link variant is underlined at rest, as a link in running text is: in
-// ink, it would read as text. A button marked `aria-disabled`, which waits but keeps its place in
-// the focus order, looks disabled too.
+// hover, and mark their open menu, with the neutral `hover` fill, never the selected tint. A ghost
+// inside a table row, which already takes `hover` under the pointer and while its menu is open,
+// takes the ink's wash (`hover-on-muted`) instead: its rule names the row, so it outweighs the
+// plain hover by specificity, never by the order Tailwind emits them in. The outline variant is
+// edged like a card, so the edge stays visible in the dark theme, where the plain border is faint.
+// The link variant is underlined at rest, as a link in running text is: in ink, it would read as
+// text. A button marked `aria-disabled`, which waits but keeps its place in the focus order, looks
+// disabled too.
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-(--radius-control) border border-transparent text-label whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -23,7 +26,7 @@ const buttonVariants = cva(
         outline:
           'border-(--card-border) bg-card text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground',
         ghost:
-          'text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground',
+          'text-foreground hover:bg-hover hover:text-hover-foreground aria-expanded:bg-hover aria-expanded:text-hover-foreground [[data-slot=table-row]_&]:hover:bg-hover-on-muted [[data-slot=table-row]_&]:aria-expanded:bg-hover-on-muted',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]',
         link: 'text-primary underline underline-offset-4',

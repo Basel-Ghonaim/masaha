@@ -73,10 +73,10 @@ const THEMED_TOKENS = [
 const COLOUR_TOKENS = [...ROLES, 'card-border', 'overlay-scrim', 'skeleton'];
 
 // A translucent colour is only ever drawn over a ground, so it is measured composited over that
-// ground: the wash over the muted track, the scrim over a photo's lightest and darkest pixel, the
-// overlay's scrim over the page.
+// ground: the wash over the muted track and over a hovered table row, the scrim over a photo's
+// lightest and darkest pixel, the overlay's scrim over the page.
 const GROUNDS: Record<string, string[]> = {
-  'hover-on-muted': ['muted'],
+  'hover-on-muted': ['muted', 'hover'],
   scrim: ['#ffffff', '#000000'],
   'overlay-scrim': ['background'],
 };
@@ -113,6 +113,7 @@ const TEXT_PAIRS: Pair[] = [
   // A state takes its surface's text: the ink's label on its hover, a control's over the wash.
   { text: 'primary-foreground', surface: 'primary-hover', minimum: TEXT },
   { text: 'foreground', surface: 'hover-on-muted', over: 'muted', minimum: TEXT },
+  { text: 'foreground', surface: 'hover-on-muted', over: 'hover', minimum: TEXT },
   ...(GROUNDS.scrim ?? []).map((photo) => ({
     text: 'scrim-foreground',
     surface: 'scrim',
@@ -165,6 +166,8 @@ const FILLS = [
     minimum: SEEN,
   })),
   { fill: 'hover-on-muted', ground: 'muted', minimum: SEEN },
+  // A ghost control inside a hovered table row (finding 226).
+  { fill: 'hover-on-muted', ground: 'hover', minimum: SEEN },
   ...['card', 'background'].map((ground) => ({ fill: 'skeleton', ground, minimum: SEEN })),
   { fill: 'accent', ground: 'card', minimum: SELECTED_SEEN },
   { fill: 'sidebar-accent', ground: 'sidebar', minimum: SELECTED_SEEN },

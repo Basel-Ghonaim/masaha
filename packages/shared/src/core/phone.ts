@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
+import { toWesternDigits } from './digits.ts';
+
 // One phone number has one form (docs/architecture/data-model.md › Conventions, Contacts): E.164,
 // for a Palestinian (+970) or an Israeli (+972) number. It may arrive international (+970…,
-// 00970…) or local (0…), with the separators people type between its digits.
+// 00970…) or local (0…), in Western, Arabic-Indic or Eastern digits, with the separators people
+// type between its digits.
 
 /** What people type between digits: spaces, dashes, dots and parentheses. Nothing else. */
 const SEPARATORS = /[\s\-.()]/g;
@@ -19,7 +22,9 @@ const TRUNK_AFTER_COUNTRY = /^((?:\+|00)97[02])\s*\(0\)/;
 
 /** The number in its E.164 form, or null when it is not a Palestinian or Israeli number. */
 export function normalisePhone(input: string): string | null {
-  const digits = input.trim().replace(TRUNK_AFTER_COUNTRY, '$1').replace(SEPARATORS, '');
+  const digits = toWesternDigits(input.trim())
+    .replace(TRUNK_AFTER_COUNTRY, '$1')
+    .replace(SEPARATORS, '');
   const match = /^(?:(?:\+|00)(970|972)|0)(\d+)$/.exec(digits);
   if (!match) return null;
   const [, given, national = ''] = match;

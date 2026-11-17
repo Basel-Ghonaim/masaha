@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import 'vitest-axe/extend-expect';
 import { cleanup, configure } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterAll, afterEach } from 'vitest';
+
+import { waitOutToastRemoval } from './toastRemoval.ts';
 
 // Testing Library waits 1 s by default for what a test finds, and under a full run Vite's first
 // transform of a lazily imported page or shell can take longer (finding 28). 3 s holds under load
@@ -26,6 +28,14 @@ globalThis.ResizeObserver = class {
 // pushed a test past 5 s. It is the environment's start-up, so it is paid here, before any test.
 getComputedStyle(document.documentElement);
 
+let drewToast = false;
+
 afterEach(() => {
+  drewToast ||= document.querySelector('[data-sonner-toast]') !== null;
   cleanup();
+});
+
+afterAll(async () => {
+  if (!drewToast) return;
+  await waitOutToastRemoval();
 });

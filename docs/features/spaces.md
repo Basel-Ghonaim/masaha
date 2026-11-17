@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-15 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space profile — the owner's «ملف المساحة» and the admin's space editor, one page — and the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -151,6 +151,8 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - **Contacts are validated per type and stored in one form** (F6), the forms the [data model](../architecture/data-model.md#conventions) gives. *Why:* one number or address has one form, so a repeat is found and a link always opens. 2026-10-07, #48.
 - **A network link keeps its path only, but a Facebook profile keeps its numeric `id`** ([data model](../architecture/data-model.md#conventions)). *Why:* a query is mostly tracking, but a profile with no username has no other address (the owner's refinement). 2026-10-07, #48.
 - **The phone rule is the platform's, in `core`** (D6). *Why:* every phone number in the database has one form; the customers will use it. 2026-10-07, #48.
+- **A number is read whatever digits it is typed in** (C1): Arabic-Indic (`٠–٩`) and Eastern (`۰–۹`) digits become Western before the phone rule reads them, for every phone of the platform, a «وسيلة أخرى» number included; the reader is `core`'s `toWesternDigits`, the web's too. *Why:* an Arabic keyboard types them, and the browser and the server read one rule ([finding 217](../architecture/findings/217-contacts-and-every-phone-refuse-arabic-indic-digits.md)). 2026-11-15, #149.
+- **A link is on a real domain, and a Facebook link names a page or a profile** (C3): a link's host is a domain with a top-level domain, never an IP address, `localhost` or a bare word; a Facebook link is a username, `/profile.php?id=<digits>` or `/people/<name>/<id>`, never a video, `/watch`, a post, a group, an event, a photo, a share or a search. The Sheet refuses such a value on its row before sending, by the same shared rule (C4). *Why:* a URL reads a bare number as an IP address, and a Facebook link that names no page opens none ([finding 218](../architecture/findings/218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md)). 2026-11-15, #149.
 - **A contact may be of another kind, with a name of its own** (M4): `OTHER`, its `label` required and kept by a `CHECK`, its value a number by the phone rule (D6) or else a web link; Telegram, X, LinkedIn and YouTube are networks like the others, LinkedIn by a link only. *Why:* the owner's «any contact the owner has»; a number keeps one form, and a foreign messenger is reached by its link. 2026-11-10, #140.
 - **Only an active amenity can be added; a retired one already linked stays until it is removed** (F7). *Why:* a retired amenity keeps its links (data-model). 2026-10-07, #48.
 - **The space's reads name the retired amenities it holds** (`retiredAmenities`, named by `lookups` in the read's transaction, in the platform's order). *Why:* the owner's checklist shows each, marked, until a save leaves it out (the owner's 99). 2026-10-29, #132.
@@ -306,8 +308,6 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 - [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
 - [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
-- [217](../architecture/findings/217-contacts-and-every-phone-refuse-arabic-indic-digits.md): contacts and every phone refuse Arabic-Indic digits.
-- [218](../architecture/findings/218-a-websites-bare-number-is-stored-as-an-ip-address-a-facebook-video-link-loses-its-id.md): a website's bare number is stored as an IP address; a Facebook video link loses its id.
 
 ## History
 
@@ -328,6 +328,8 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - 2026-11-08, #139 — the public listing's hours filters (open now, open in the evening), its price per period (the lateral lowest price, the card's price and the price orders) and the price ranges.
 - 2026-11-10, #140 — contacts of any kind: Telegram, X, LinkedIn and YouTube, and another kind with its own name, stored, audited and answered in every read.
 - 2026-11-12, #145 — the owner's evening switch in the hours group, switched on once for the spaces closing at 20:00 or later.
+- 2026-11-15, #149 — a phone or a «وسيلة أخرى» number typed in Arabic-Indic or Eastern digits is read (finding 217).
+- 2026-11-15, #149 — a website only on a domain with a top-level domain, never an IP address; a Facebook link only to a page or a profile (finding 218).
 
 ### Web history
 

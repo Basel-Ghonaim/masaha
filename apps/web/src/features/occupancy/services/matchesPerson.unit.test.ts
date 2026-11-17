@@ -31,6 +31,7 @@ describe('matchesPerson', () => {
   it('matches a check-in by its customer’s phone’s last two digits or more, separators removed', () => {
     expect(matchesPerson(SARA, '01', PHONES)).toBe(true);
     expect(matchesPerson(SARA, '0 201', PHONES)).toBe(true);
+    expect(matchesPerson(SARA, '٠١', PHONES)).toBe(true);
     expect(matchesPerson(SARA, '1', PHONES)).toBe(false);
     expect(matchesPerson(SARA, '0599', PHONES)).toBe(false);
   });

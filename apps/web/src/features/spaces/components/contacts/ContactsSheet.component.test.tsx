@@ -176,6 +176,28 @@ describe('the contacts’ Sheet', () => {
     expect(writes()).toEqual([]);
   });
 
+  it('refuses a website on an IP address and a Facebook video on their rows, sending nothing', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile();
+    const sheet = await openContacts(user);
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    const [, , site, video] = rows(sheet) as [HTMLElement, HTMLElement, HTMLElement, HTMLElement];
+
+    await choose(user, site, 'Type', 'Website');
+    await user.type(within(site).getByRole('textbox', { name: 'Website' }), 'http://10.0.0.1');
+    await choose(user, video, 'Type', 'Facebook');
+    await user.type(
+      within(video).getByRole('textbox', { name: 'Facebook' }),
+      'facebook.com/watch?v=1',
+    );
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    expect(await within(site).findByText('Not a valid link')).toBeInTheDocument();
+    expect(within(video).getByText('Not a valid page name or link')).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+  });
+
   it('shows the form a value is saved in once it differs from what was typed', async () => {
     const user = userEvent.setup({ delay: null });
     renderProfile();
@@ -189,6 +211,27 @@ describe('the contacts’ Sheet', () => {
     expect(within(added).getByRole('textbox', { name: 'Telegram' })).toHaveAccessibleDescription(
       /Saved as .*https:\/\/t\.me\/masaha_ps/,
     );
+  });
+
+  it('reads a number typed in Arabic-Indic digits, and sends it in its international form', async () => {
+    const user = userEvent.setup({ delay: null });
+    const { writes } = renderProfile({ write: () => ok(SPACE) });
+    const sheet = await openContacts(user);
+    await user.click(within(sheet).getByRole('button', { name: 'Add a contact' }));
+    const added = rows(sheet).at(-1) as HTMLElement;
+
+    await user.type(within(added).getByRole('textbox', { name: 'WhatsApp' }), '٠٥٩٩٧٧٧٨٨٨');
+    expect(within(added).getByRole('textbox', { name: 'WhatsApp' })).toHaveAccessibleDescription(
+      /Saved as .*\+970599777888/,
+    );
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(1);
+    });
+    expect(bodyOf(writes()[0])).toEqual({
+      contacts: [...SPACE.contacts, { type: 'WHATSAPP', value: '+970599777888', label: null }],
+    });
   });
 
   it('moves a contact by its handle from the keyboard, the order sent on «حفظ»', async () => {

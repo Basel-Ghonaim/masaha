@@ -1,4 +1,4 @@
-import { emailSchema, normalisePhone } from '../core/index.ts';
+import { emailSchema, normalisePhone, toWesternDigits } from '../core/index.ts';
 
 // A space's contacts are a typed list (docs/architecture/data-model.md › Conventions, Contacts),
 // each stored in one form, whatever form it was typed in (decision F6): a phone or WhatsApp number
@@ -36,6 +36,13 @@ const HANDLE = /^@?([A-Za-z0-9._]{1,50})$/;
  */
 const LIKE_A_LINK = /\.(com|net|org|php)$/i;
 
+/**
+ * A host that is a domain with a top-level domain (`masaha.ps`, `t.me`; an internationalised one in
+ * its `xn--` form): never an IP address, which a URL reads a bare number as, `localhost` or a bare
+ * word.
+ */
+const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/i;
+
 interface Network {
   /** The hosts its addresses are on, without `www.`. */
   hosts: readonly string[];
@@ -43,7 +50,7 @@ interface Network {
   base: string;
   /** Its address for a handle; a network without one is reached by a link only. */
   handlePath?: (handle: string) => string;
-  /** The paths a link may have, when only some name what the contact is (a channel, not a video). */
+  /** The paths a handle or a link may have, when only some name what the contact is (a channel, a page). */
   paths?: RegExp;
   /** Whether a country's two-letter subdomain of its host (`ps.linkedin.com`) is its host too. */
   countrySubdomains?: boolean;
@@ -61,6 +68,8 @@ const NETWORKS: Record<NetworkType, Network> = {
     hosts: ['facebook.com', 'm.facebook.com', 'fb.com'],
     base: 'https://www.facebook.com',
     handlePath: (handle) => `/${handle}`,
+    paths:
+      /^\/(?:(?!(?:watch|reels?|videos?|posts?|groups|events|photos?|share|sharer|search|stories|story|hashtag|live|gaming|marketplace|pages|people|permalink)$)(?![^/]*\.php$)[\w.-]+|people\/[^/]+\/\d+)$/i,
   },
   TELEGRAM: {
     hosts: ['t.me', 'telegram.me'],
@@ -94,7 +103,10 @@ const NETWORKS: Record<NetworkType, Network> = {
   },
 };
 
-/** A link typed with or without its scheme, as a URL; null when it is none, or not on the web. */
+/**
+ * A link typed with or without its scheme, as a URL on a domain; null when it is none, not on the
+ * web, or on an IP address, `localhost` or a bare word.
+ */
 function linkOf(input: string): URL | null {
   if (/\s/.test(input)) return null;
   const text = /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `https://${input}`;
@@ -105,7 +117,7 @@ function linkOf(input: string): URL | null {
     return null;
   }
   const onTheWeb = url.protocol === 'https:' || url.protocol === 'http:';
-  return onTheWeb && !url.username && !url.password && url.hostname.includes('.') ? url : null;
+  return onTheWeb && !url.username && !url.password && DOMAIN.test(url.hostname) ? url : null;
 }
 
 /** Whether a link's host, without `www.`, is one of the network's. */
@@ -126,22 +138,24 @@ function pathOf(url: URL): string {
 /**
  * A network's handle or link as its full address. A link must be on the network's own host, and
  * keeps its path only: its query and fragment are dropped, except a Facebook profile's numeric
- * `id`, the only address of a profile with no username.
+ * `id`, the only address of a profile with no username. A network that names its paths takes a
+ * handle or a link only on one of them.
  */
 function networkAddress(network: Network, input: string): string | null {
   const handle = HANDLE.exec(input)?.[1];
   if (network.handlePath && handle && !LIKE_A_LINK.test(handle)) {
-    return `${network.base}${network.handlePath(handle)}`;
+    const path = network.handlePath(handle);
+    return network.paths && !network.paths.test(path) ? null : `${network.base}${path}`;
   }
 
   const url = linkOf(input);
   if (!url || !onHostOf(network, url)) return null;
   const path = pathOf(url);
-  if (!path || (network.paths && !network.paths.test(path))) return null;
   if (network === NETWORKS.FACEBOOK && path === '/profile.php') {
     const id = url.searchParams.get('id');
     return id && /^\d+$/.test(id) ? `${network.base}${path}?id=${id}` : null;
   }
+  if (!path || (network.paths && !network.paths.test(path))) return null;
   return `${network.base}${path}`;
 }
 
@@ -173,10 +187,12 @@ export function normaliseContact(type: ContactType, input: string): string | nul
       return networkAddress(NETWORKS[type], value);
     case 'WEBSITE':
       return websiteAddress(value);
-    // A number takes the platform's phone rule, so one number has one form; anything else is a
-    // link on the web, as a website's. A number the rule refuses is refused, never read as a link
-    // (a URL reads a bare number as an IP address).
+    // A number, in any digits people type, takes the platform's phone rule, so one number has one
+    // form; anything else is a link on the web, as a website's. A number the rule refuses is
+    // refused, never read as a link (a URL reads a bare number as an IP address).
     case 'OTHER':
-      return LIKE_A_NUMBER.test(value) ? normalisePhone(value) : websiteAddress(value);
+      return LIKE_A_NUMBER.test(toWesternDigits(value))
+        ? normalisePhone(value)
+        : websiteAddress(value);
   }
 }
