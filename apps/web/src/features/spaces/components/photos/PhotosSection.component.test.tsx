@@ -77,16 +77,19 @@ describe('the photos, read first', () => {
     expect(within(grid).getByRole('img', { name: 'and 2 more' })).toBeInTheDocument();
   });
 
-  it('shows the cover with its count on a phone, then one row of the others (M1)', async () => {
+  it('shows the cover with its count on a phone, then one named strip of the others (M1)', async () => {
     stubScreenWidth(390);
     renderProfile();
     await screen.findByRole('img', { name: 'Photo 1' });
 
     const section = sectionOf('Photos');
     expect(within(section).getByText('3 photos')).toBeInTheDocument();
-    const strip = within(section).getByRole('list', { name: 'The other photos' });
+    // The strip that scrolls is named once; the list inside it keeps its role with no name.
+    const strip = within(section).getByRole('group', { name: 'The other photos' });
+    const list = within(strip).getByRole('list');
+    expect(list).not.toHaveAccessibleName();
     expect(
-      within(strip)
+      within(list)
         .getAllByRole('img')
         .map((image) => image.getAttribute('src')),
     ).toEqual(['/files/4-card.webp', '/files/5-card.webp']);

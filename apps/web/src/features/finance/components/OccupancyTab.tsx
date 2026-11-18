@@ -6,6 +6,7 @@ import {
   CardTitle,
   EmptyState,
   Heatmap,
+  ScrollRegion,
   Skeleton,
   StatCard,
 } from '@shared/design-system';
@@ -15,8 +16,8 @@ import { ChartCard } from './ChartCard';
 import { LoadFailure } from './LoadFailure';
 
 /**
- * Finance › Occupancy (D5.5): the three tiles, «ساعات الذروة» — its content scrolling sideways below
- * 768 px — and visits and members per day. While it loads, blocks in their places; a failure, its
+ * Finance › Occupancy (D5.5): the three tiles, «ساعات الذروة» — its heatmap scrolling sideways below
+ * 768 px, reached by the keyboard — and visits and members per day. While it loads, blocks in their places; a failure, its
  * retry.
  */
 export function OccupancyTab({ spaceId, asked }: { spaceId: number; asked: string | undefined }) {
@@ -58,11 +59,13 @@ export function OccupancyTab({ spaceId, asked }: { spaceId: number; asked: strin
           </CardTitle>
           <CardDescription>{heatmap.description}</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent>
           {heatmap.empty !== null ? (
             <EmptyState title={heatmap.empty} titleAs="h3" />
           ) : (
-            <Heatmap {...heatmap.chart} className="min-w-xl md:min-w-0" />
+            <ScrollRegion aria-labelledby={headingId}>
+              <Heatmap {...heatmap.chart} className="min-w-xl md:min-w-0" />
+            </ScrollRegion>
           )}
         </CardContent>
       </Card>

@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-15 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-18 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space profile — the owner's «ملف المساحة» and the admin's space editor, one page — and the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -357,3 +357,4 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - 2026-11-11, #143 — the admin's hide and delete in the profile's top bar (`SpaceEditorActions`).
 - 2026-11-11, #143 — every link that edits the prices lands on the profile's «الأسعار المعلنة»: the owner's overview, the settings' visit pricing and a prices report's «تعديل الحقل»; a prices report's notice shows there.
 - 2026-11-12, #145 — «ساعات العمل»: the box «المساحة تعمل مساءً» in its Sheet, «دوام مسائي» in its view, and the gentle hint in both; the shifts' Sheet sends the switch as read.
+- 2026-11-18, #150 — the phone's row of photos in the layer's `ScrollRegion`, named «باقي الصور», reached by the keyboard while it overflows ([finding 224](../architecture/findings/224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)).
