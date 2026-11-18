@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked**: the colours are *ink + berry* ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md), 2026-11-12, #144); the type, radius, shadow and density are the Claude Design direction *1a Sea*'s (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-11-15
+> **Last Updated:** 2026-11-18
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus), its colours then replaced by *ink + berry* after a measured trial ([ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md)), and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -77,7 +77,7 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker · Sortable |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo · ScrollRegion |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
@@ -339,6 +339,7 @@ Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
 - Every control has a programmatic label; errors are linked with `aria-describedby`.
 - Form submit buttons stay **enabled**; validation runs on submit and moves focus to the first invalid field. A button is disabled only while its request is in flight, or when an action is unavailable for a reason shown next to it.
 - Full keyboard use in dashboards (tables, dialogs, menus).
+- A region that scrolls sideways is reached by the keyboard: `ScrollRegion` (`display`) is a named group and a tab stop while its content overflows (2026-11-18, #150).
 - `prefers-reduced-motion` respected.
 
 ---
@@ -424,6 +425,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch, hovering with `hover-on-muted` ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
 | Logo | hand-built | Masaha's logo (§16), drawn inline on `foreground` and `spark`, so it follows the theme · `form="full"` («مساحة» over "MASAHA") or `"mark"` (the ة with its dots) · named by `label`, in the interface's language, as an image; without one it is decorative, hidden from assistive technology where its name is beside it · sized by its height (`h-10`, `size-9`), its width following the drawing · never mirrored · in the layer as the identity the tokens draw, not a domain concept (§2) |
 | Meter | hand-built | A share of a whole as a bar: a `muted` track 12px high, `radius-pill`, filled from the start side in `primary` or `warning` (`tone`) · `kind="meter"` (a measure, such as occupancy) or `"progress"` (a task on its way, such as a photo's upload), with `aria-valuemin/max/now`, an optional `valueText`, and named by `label` · the value kept inside 0…max; the fill's width is set inside the layer, so no page draws a bar |
+| ScrollRegion | hand-built | Content that scrolls sideways, reached by the keyboard (§10): a `group`, not a region, so a card that is already a region of the same name can hold it, named by a required `aria-label` or `aria-labelledby` (one of them, never both) · a tab stop only while its content overflows (its scroll width over its client width), so the arrow keys scroll it, measured again when it or one of its direct children resizes, so its content sizes itself (a row as wide as its items) · the one focus style (§11) · no words (2026-11-18, #150) |
 
 ### `data`
 

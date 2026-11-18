@@ -12,6 +12,7 @@ import { CardSection } from './sections/display/CardSection';
 import { FilterTagSection } from './sections/display/FilterTagSection';
 import { LogoSection } from './sections/display/LogoSection';
 import { MeterSection } from './sections/display/MeterSection';
+import { ScrollRegionSection } from './sections/display/ScrollRegionSection';
 import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
 import { AlertSection } from './sections/feedback/AlertSection';
@@ -182,6 +183,9 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   )),
   entry('data', 'Heatmap', 'heatmap', (samples) => <HeatmapSection samples={samples} />),
   entry('fields', 'Sortable', 'sortable', (samples) => <SortableSection samples={samples} />),
+  entry('display', 'ScrollRegion', 'scrollRegion', (samples) => (
+    <ScrollRegionSection samples={samples} />
+  )),
 ];
 
 export type ShowcaseView =
