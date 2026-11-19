@@ -1,6 +1,6 @@
 # Finance
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-18 · **Owner:** Basel Ghoneim
 > **Authority:** The `finance` capability: the owner's read models of a space's money and occupancy. Its endpoints are owned by the [API contract](../api/api-contract.md#finance); what income, collections and the occupancy statistics count by the [data model](../architecture/data-model.md#front-desk-and-money); the ledger's aggregates by [payments](payments.md). The API is built; on the web, the owner's Finance (screen 19).
 > **Scope:** the API module `finance` (L5); `@masaha/shared/finance`; the web feature `features/finance`, dashboard-only.
 
@@ -86,3 +86,4 @@
 ### Web history
 
 - 2026-10-29, #132 — Finance (screen 19): its tabs and month, and the income with its export; the debts, with the WhatsApp reminder and their export; the occupancy.
+- 2026-11-18, #150 — «ساعات الذروة»'s heatmap in the layer's `ScrollRegion`, named by its heading, reached by the keyboard below 768 px ([finding 224](../architecture/findings/224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)).

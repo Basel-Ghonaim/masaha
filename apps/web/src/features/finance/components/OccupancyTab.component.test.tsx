@@ -113,11 +113,13 @@ describe('Finance › Occupancy', () => {
     expect(heard(values[0] as Element)).toBe('4:12 س');
   });
 
-  it('leaves out of the heatmap the weekdays and hours with no presence', async () => {
+  it('leaves out of the heatmap the weekdays and hours with no presence; the heatmap scrolls in a named strip', async () => {
     renderOccupancy(aReport());
 
     const card = await screen.findByRole('region', { name: 'Peak hours' });
-    const table = within(card).getByRole('table', { hidden: true });
+    // The heatmap alone scrolls, in a strip named by the card's heading.
+    const strip = within(card).getByRole('group', { name: 'Peak hours' });
+    const table = within(strip).getByRole('table', { hidden: true });
     const headers = within(table)
       .getAllByRole('columnheader', { hidden: true })
       .map((cell) => cell.textContent);
@@ -128,7 +130,7 @@ describe('Finance › Occupancy', () => {
     expect(rows).toEqual(['Sunday', 'Monday']);
   });
 
-  it('shows «—» and its line for the month’s nulls, and the heatmap’s empty state', async () => {
+  it('shows «—» and its line for the month’s nulls, and the heatmap’s empty state outside a strip', async () => {
     const { container } = renderOccupancy(
       aReport({
         averageStayMinutes: { all: null, members: null, visits: null },
@@ -138,13 +140,15 @@ describe('Finance › Occupancy', () => {
       }),
     );
 
-    await screen.findByRole('region', { name: 'Peak hours' });
+    const card = await screen.findByRole('region', { name: 'Peak hours' });
     const tiles = [...container.querySelectorAll('[data-slot="stat-card"]')].map(heard);
     expect(tiles).toEqual([
       'Average stay—No closed stays in October 2026',
       'Peak hour—No closed stays in October 2026',
       'Average daily attendance—No closed stays in October 2026',
     ]);
-    expect(screen.getByText('No closed stays in the last 4 weeks')).toBeInTheDocument();
+    // Nothing to scroll: the empty state stands in the card, in no strip.
+    expect(within(card).getByText('No closed stays in the last 4 weeks')).toBeInTheDocument();
+    expect(within(card).queryByRole('group')).toBeNull();
   });
 });

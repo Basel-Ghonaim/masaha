@@ -912,6 +912,23 @@
         "refreshingCaption": "أثناء تحميل الصفحة التالية: البطاقات باقية، باهتة، والقائمة مشغولة",
         "list": "المساحات",
         "cards": ["مساحة التركيز", "مساحة النخيل", "مساحة الزيتون"]
+      },
+      "scrollRegion": {
+        "title": "شريط يمرّ جانبيًا",
+        "overflowCaption": "يفيض عن عرضه: يصله المفتاح Tab وتمرّره الأسهم، بحلقة التركيز",
+        "fitsCaption": "يتّسع لما فيه: لا يقف عنده المفتاح Tab",
+        "label": "المساحات القريبة",
+        "fitsLabel": "المساحتان المحفوظتان",
+        "cards": [
+          "مساحة التركيز",
+          "مساحة النخيل",
+          "مساحة الزيتون",
+          "ركن الدرج",
+          "مساحة الميناء",
+          "مساحة الرمال",
+          "مساحة الكرمة",
+          "مساحة السوق"
+        ]
       }
     },
     "en": {
@@ -1822,6 +1839,23 @@
         "refreshingCaption": "While the next page loads: the cards stay, dimmed, and the list is busy",
         "list": "Spaces",
         "cards": ["Focus Hub", "Palm Hub", "Olive Desk"]
+      },
+      "scrollRegion": {
+        "title": "A strip that scrolls sideways",
+        "overflowCaption": "Wider than its box: Tab reaches it and the arrow keys scroll it, with the focus ring",
+        "fitsCaption": "All of it fits: Tab does not stop on it",
+        "label": "Spaces nearby",
+        "fitsLabel": "The two saved spaces",
+        "cards": [
+          "Focus Hub",
+          "Palm Hub",
+          "Olive Desk",
+          "Stair Corner",
+          "Harbour Desk",
+          "Dune Hub",
+          "Vine Desk",
+          "Market Hub"
+        ]
       }
     }
   }

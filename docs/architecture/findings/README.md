@@ -18,7 +18,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
 - [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 - [221. The README's screenshots show Sea](221-the-readmes-screenshots-show-sea.md)
-- [224. The map's tooltip and two scrolling strips fail axe](224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)
 
 ## Accepted
 
@@ -170,6 +169,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [220. The admin's top bar still offers to hide and delete a space found deleted](220-the-admins-top-bar-still-offers-to-hide-and-delete-a-space-found-deleted.md)
 - [222. A focused photo in the photo editor shows no focus ring](222-a-focused-photo-in-the-photo-editor-shows-no-focus-ring.md)
 - [223. Finance › Occupancy scrolls sideways on a phone](223-finance-occupancy-scrolls-sideways-on-a-phone.md)
+- [224. The map's tooltip and two scrolling strips fail axe](224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)
 - [225. Four site test files render lazy routes without the warm-up](225-four-site-test-files-render-lazy-routes-without-the-warm-up.md)
 - [226. A ghost control inside a hovered table row has no hover of its own](226-a-ghost-control-inside-a-hovered-table-row-has-no-hover-of-its-own.md)
 - [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)

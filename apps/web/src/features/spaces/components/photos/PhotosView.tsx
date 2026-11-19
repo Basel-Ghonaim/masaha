@@ -1,4 +1,4 @@
-import { Badge, cn, useMediaQuery } from '@shared/design-system';
+import { Badge, cn, ScrollRegion, useMediaQuery } from '@shared/design-system';
 import type { PhotoGalleryView } from '../../types/PhotoGalleryView';
 import type { PhotoTileView } from '../../types/PhotoTileView';
 
@@ -18,7 +18,8 @@ function Picture({ tile, className }: { tile: PhotoTileView; className?: string 
 /**
  * The photos as a visitor sees them (P1, M1): from 768 px the cover about two thirds wide beside a
  * 2×2 grid, its last tile «+N» past five; below it the cover 16:9 with «الغلاف» and the count, then
- * one row of small thumbnails scrolling sideways. The cover is always marked (P6).
+ * one row of small thumbnails scrolling sideways, reached by the keyboard while it overflows. The
+ * cover is always marked (P6).
  */
 export function PhotosView({ gallery }: { gallery: PhotoGalleryView }) {
   const wide = useMediaQuery('(min-width: 768px)');
@@ -41,13 +42,20 @@ export function PhotosView({ gallery }: { gallery: PhotoGalleryView }) {
           </Badge>
         </div>
         {rest.length > 0 && (
-          <ul aria-label={gallery.view.others} className="flex gap-2 overflow-x-auto pb-1">
-            {rest.map((tile) => (
-              <li key={tile.key} className="h-18 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
-                <Picture tile={tile} />
-              </li>
-            ))}
-          </ul>
+          // The strip is named once: the list inside it has no name of its own, and is as wide as
+          // its photos, so the strip sees it grow.
+          <ScrollRegion aria-label={gallery.view.others}>
+            <ul className="flex w-max gap-2 pb-1">
+              {rest.map((tile) => (
+                <li
+                  key={tile.key}
+                  className="h-18 w-24 shrink-0 overflow-hidden rounded-md bg-muted"
+                >
+                  <Picture tile={tile} />
+                </li>
+              ))}
+            </ul>
+          </ScrollRegion>
         )}
       </div>
     );
