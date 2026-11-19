@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Marker } from 'leaflet';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 import { startPreferences } from '../../../test/startPreferences';
 import type { MapPoint } from '../types/MapPoint';
 import type { MapMarker, MarkerMapProps } from '../types/MarkerMapProps';
@@ -99,6 +100,49 @@ describe('MarkerMap', () => {
     fireEvent.keyDown(sea, { key: 'Enter' });
     expect(onSelect).toHaveBeenLastCalledWith(2);
     expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a selected mark’s name beside it for the eye only: hidden, describing nothing; axe-clean', async () => {
+    startPreferences('en');
+    const { container } = renderMap({ selectedId: 2 });
+
+    const sea = await screen.findByRole('button', { name: 'Sea Desk — No live status' });
+    // The permanent tooltip beside the selected mark.
+    const tooltip = await waitFor(() => {
+      const shown = [...container.querySelectorAll('.map-tooltip')].find(
+        (element) => element.textContent === 'Sea Desk',
+      );
+      expect(shown).toBeDefined();
+      return shown as Element;
+    });
+    expect(tooltip).toHaveAttribute('aria-hidden', 'true');
+    // Leaflet points the mark at its tooltip as it opens; the tooltip is seen open above, so this
+    // wait cannot pass before that.
+    await waitFor(() => {
+      expect(sea).not.toHaveAttribute('aria-describedby');
+    });
+    expect(sea).not.toHaveAccessibleDescription();
+    expect(sea).toHaveAccessibleName('Sea Desk — No live status');
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('keeps a passing name, on the focus, for the eye only too', async () => {
+    startPreferences('en');
+    const { container } = renderMap();
+
+    const focus = await screen.findByRole('button', { name: 'Focus Hub — Available' });
+    fireEvent.focus(focus);
+    const tooltip = await waitFor(() => {
+      const shown = [...container.querySelectorAll('.map-tooltip')].find(
+        (element) => element.textContent === 'Focus Hub',
+      );
+      expect(shown).toBeDefined();
+      return shown as Element;
+    });
+    expect(tooltip).toHaveAttribute('aria-hidden', 'true');
+    await waitFor(() => {
+      expect(focus).not.toHaveAttribute('aria-describedby');
+    });
   });
 
   it('draws each mark on the light theme, as the tiles always are', async () => {

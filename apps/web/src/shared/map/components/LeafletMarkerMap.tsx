@@ -4,9 +4,11 @@ import { useLanguage } from '@shared/localisation';
 import {
   divIcon,
   latLng,
+  type LeafletEvent,
   type LeafletKeyboardEvent,
   type Map as LeafletMap,
   type Marker as LeafletMarker,
+  type Tooltip as LeafletTooltip,
 } from 'leaflet';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
@@ -22,6 +24,17 @@ import { MapLayers, MAX_ZOOM } from './MapLayers';
 const MARK_SIZE = 16;
 /** How close «مركّز على موقعي» brings the map, at least. */
 const USER_ZOOM = 14;
+
+/**
+ * A mark's name beside it is for the eye: the mark is a button its own label already names, so the
+ * tooltip is hidden from assistive technology each time Leaflet adds it (its `role="tooltip"`
+ * would otherwise need a name, and the name be heard twice).
+ */
+const TOOLTIP_EVENTS = {
+  add: ({ target }: LeafletEvent) => {
+    (target as LeafletTooltip).getElement()?.setAttribute('aria-hidden', 'true');
+  },
+};
 
 const USER_ICON = divIcon({
   className: 'map-user',
@@ -202,6 +215,17 @@ const PlaceMark = memo(function PlaceMark({
     element.setAttribute('tabindex', picking ? '-1' : '0');
     if (picking) element.setAttribute('aria-hidden', 'true');
     else element.removeAttribute('aria-hidden');
+    // Leaflet points the mark at its tooltip each time the tooltip opens, after its own events, and
+    // never takes it back; the tooltip is hidden, so the mark is described by nothing.
+    const undescribe = () => {
+      if (element.hasAttribute('aria-describedby')) element.removeAttribute('aria-describedby');
+    };
+    undescribe();
+    const observer = new MutationObserver(undescribe);
+    observer.observe(element, { attributeFilter: ['aria-describedby'] });
+    return () => {
+      observer.disconnect();
+    };
   }, [icon, marker.label, selected, picking]);
 
   return (
@@ -213,9 +237,10 @@ const PlaceMark = memo(function PlaceMark({
       zIndexOffset={selected ? 1000 : 0}
       eventHandlers={handlers}
     >
-      {/* A permanent tooltip cannot become a passing one: each state has its own. */}
+      {/* A permanent tooltip cannot become a passing one: each state has its own, each hidden. */}
       <Tooltip
         key={String(selected)}
+        eventHandlers={TOOLTIP_EVENTS}
         className="map-tooltip"
         direction="top"
         offset={[0, -MARK_SIZE / 2]}
