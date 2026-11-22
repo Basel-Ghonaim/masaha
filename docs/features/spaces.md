@@ -358,3 +358,4 @@ profile, on the dashboard's «ملف المساحة» page, its prices included;
 - 2026-11-11, #143 — every link that edits the prices lands on the profile's «الأسعار المعلنة»: the owner's overview, the settings' visit pricing and a prices report's «تعديل الحقل»; a prices report's notice shows there.
 - 2026-11-12, #145 — «ساعات العمل»: the box «المساحة تعمل مساءً» in its Sheet, «دوام مسائي» in its view, and the gentle hint in both; the shifts' Sheet sends the switch as read.
 - 2026-11-18, #150 — the phone's row of photos in the layer's `ScrollRegion`, named «باقي الصور», reached by the keyboard while it overflows ([finding 224](../architecture/findings/224-the-maps-tooltip-and-two-scrolling-strips-fail-axe.md)).
+- 2026-11-22, #152 — the prices' table scrolls in the layer's `ScrollRegion`, under the table's one name, reached by the keyboard while it overflows ([finding 229](../architecture/findings/229-a-table-that-scrolls-sideways-cannot-be-reached-by-the-keyboard.md)).

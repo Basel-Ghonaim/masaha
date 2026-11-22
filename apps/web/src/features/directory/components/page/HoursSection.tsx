@@ -6,7 +6,6 @@ import {
   MoonIcon,
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -28,8 +27,7 @@ export function HoursSection({ hours }: { hours: SpacePageView['hours'] }) {
       ) : (
         <div className="flex flex-col gap-2">
           <Card className="py-0">
-            <Table>
-              <TableCaption className="sr-only">{hours.caption}</TableCaption>
+            <Table aria-label={hours.caption}>
               <TableHeader>
                 <TableRow>
                   <TableHead>{hours.head.days}</TableHead>

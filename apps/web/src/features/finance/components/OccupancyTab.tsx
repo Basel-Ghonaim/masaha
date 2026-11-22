@@ -16,9 +16,9 @@ import { ChartCard } from './ChartCard';
 import { LoadFailure } from './LoadFailure';
 
 /**
- * Finance › Occupancy (D5.5): the three tiles, «ساعات الذروة» — its heatmap scrolling sideways below
- * 768 px, reached by the keyboard — and visits and members per day. While it loads, blocks in their places; a failure, its
- * retry.
+ * Finance › Occupancy (D5.5): the three tiles, «ساعات الذروة» — its heatmap scrolling sideways
+ * below 768 px, reached by the keyboard — and visits and members per day. While it loads, blocks in
+ * their places; a failure, its retry.
  */
 export function OccupancyTab({ spaceId, asked }: { spaceId: number; asked: string | undefined }) {
   const occupancy = useOccupancyTab(spaceId, asked);

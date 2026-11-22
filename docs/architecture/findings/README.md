@@ -174,3 +174,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [226. A ghost control inside a hovered table row has no hover of its own](226-a-ghost-control-inside-a-hovered-table-row-has-no-hover-of-its-own.md)
 - [227. The web crashes on an amenity icon key it does not know](227-the-web-crashes-on-an-amenity-icon-key-it-does-not-know.md)
 - [228. Customers' search reads a phone's Arabic-Indic last digits as a name](228-customers-search-reads-a-phones-arabic-indic-last-digits-as-a-name.md)
+- [229. A table that scrolls sideways cannot be reached by the keyboard](229-a-table-that-scrolls-sideways-cannot-be-reached-by-the-keyboard.md)
