@@ -50,6 +50,10 @@ describe('the published prices on Packages & prices', () => {
     ).closest('[data-slot=card]') as HTMLElement;
 
     expect(within(card).getByRole('table')).toHaveTextContent('Daily');
+    // The table and the group it scrolls in share its one name.
+    expect(within(card).getByRole('group', { name: 'Published prices' })).toContainElement(
+      within(card).getByRole('table', { name: 'Published prices' }),
+    );
     expect(within(card).getByText('Updated 3 days ago')).toBeInTheDocument();
     expect(within(card).queryAllByRole('textbox')).toEqual([]);
     expect(within(card).queryAllByRole('combobox')).toEqual([]);

@@ -229,3 +229,4 @@ The page shows its announcements: a running closure's notice at its top, the oth
 - 2026-11-12, #145 — a space's page says «دوام مسائي» in its hours.
 - 2026-11-12, #145 — «قاعة للنساء» in the panel's «أخرى», the address's `women`, counted and cleared with the others.
 - 2026-11-14, #145 — the card's «دوام مسائي» and «قاعة للنساء» marks.
+- 2026-11-22, #152 — a space's page's hours table scrolls in the layer's `ScrollRegion`, reached by the keyboard while it overflows ([finding 229](../architecture/findings/229-a-table-that-scrolls-sideways-cannot-be-reached-by-the-keyboard.md)).

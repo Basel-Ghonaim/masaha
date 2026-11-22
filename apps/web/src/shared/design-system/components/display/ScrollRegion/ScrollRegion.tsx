@@ -2,7 +2,7 @@ import { type ComponentProps, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../lib/cn';
 
 /** The strip's name: one of its own words or the element that names it, never neither or both. */
-type ScrollRegionName =
+export type ScrollRegionName =
   | { 'aria-label': string; 'aria-labelledby'?: never }
   | { 'aria-labelledby': string; 'aria-label'?: never };
 

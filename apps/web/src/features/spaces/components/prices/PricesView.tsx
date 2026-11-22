@@ -13,8 +13,7 @@ export function PricesView({ table }: { table: PricesTableView }) {
   const { columns } = table;
   return (
     <div className="rounded-lg border border-border">
-      <Table>
-        <caption className="sr-only">{table.caption}</caption>
+      <Table aria-label={table.caption}>
         <TableHeader>
           <TableRow>
             <TableHead scope="col">{columns.period}</TableHead>

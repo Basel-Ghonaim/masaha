@@ -1,1 +1,1 @@
-export { ScrollRegion, type ScrollRegionProps } from './ScrollRegion';
+export { ScrollRegion, type ScrollRegionName, type ScrollRegionProps } from './ScrollRegion';
