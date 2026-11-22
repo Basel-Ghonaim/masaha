@@ -77,9 +77,9 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · SegmentedControl · Switch · ToggleGroup · Calendar · DatePicker · Sortable |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo · ScrollRegion |
-| `data` | shows records in rows and columns | Table · DataTable |
-| `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo · Meter · ScrollRegion |
+| `data` | shows records in rows and columns | Table · DataTable · BarChart · Heatmap |
+| `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState · Refreshing |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
 | `navigation` | moves between places | Breadcrumb · Tabs · Pagination · Sidebar |
 
