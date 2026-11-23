@@ -92,7 +92,18 @@ describe('Table', () => {
     expect(within(table).getByRole('cell', { name: 'Monthly' })).toBeInTheDocument();
   });
 
-  it('scrolls in a group of the same one name, by its label or by the element it names', () => {
+  it('says its name once while it fits: one named table and no group', () => {
+    render(<Members />);
+    resize(300, 300);
+
+    expect(screen.getByRole('table', { name: 'Members of the space' })).toBeVisible();
+    expect(screen.queryByRole('group')).toBeNull();
+    const container = screen.getByRole('table').parentElement;
+    expect(container).not.toHaveAttribute('aria-label');
+    expect(container).not.toHaveAttribute('aria-labelledby');
+  });
+
+  it('scrolls in a group of the same one name once it overflows, by its label or by the element it names', () => {
     render(
       <>
         <Members />
@@ -102,6 +113,7 @@ describe('Table', () => {
         </Table>
       </>,
     );
+    resize(600, 300);
 
     const members = screen.getByRole('group', { name: 'Members of the space' });
     expect(within(members).getByRole('table', { name: 'Members of the space' })).toBeVisible();
@@ -114,7 +126,7 @@ describe('Table', () => {
     render(<Members />);
     resize(300, 300);
 
-    expect(screen.getByRole('group')).not.toHaveAttribute('tabindex');
+    expect(screen.getByRole('table').parentElement).not.toHaveAttribute('tabindex');
     await user.tab();
     expect(document.body).toHaveFocus();
   });

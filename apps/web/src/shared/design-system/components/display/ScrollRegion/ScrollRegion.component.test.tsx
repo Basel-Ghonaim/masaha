@@ -97,6 +97,48 @@ describe('ScrollRegion', () => {
     expect(strip).not.toHaveAttribute('tabindex');
   });
 
+  it('stays a named group while its content fits, by default', () => {
+    render(<Strip />);
+    resize(300, 300);
+
+    expect(screen.getByRole('group', { name: 'The other photos' })).toBeInTheDocument();
+  });
+
+  it('when asked to be quiet, is a plain box while its content fits and a named tab stop while it overflows', () => {
+    render(
+      <>
+        <h2 id="peak">Peak hours</h2>
+        <ScrollRegion aria-labelledby="peak" quietWhileFits data-testid="by-element">
+          <p>The heatmap</p>
+        </ScrollRegion>
+        <ScrollRegion aria-label="The photos" quietWhileFits data-testid="by-label">
+          <p>The row</p>
+        </ScrollRegion>
+      </>,
+    );
+    const plain = (element: HTMLElement) => {
+      for (const attribute of ['role', 'aria-label', 'aria-labelledby', 'tabindex']) {
+        expect(element).not.toHaveAttribute(attribute);
+      }
+    };
+    const byElement = screen.getByTestId('by-element');
+    const byLabel = screen.getByTestId('by-label');
+
+    resize(300, 300);
+    plain(byElement);
+    plain(byLabel);
+
+    resize(600, 300);
+    expect(screen.getByRole('group', { name: 'Peak hours' })).toBe(byElement);
+    expect(screen.getByRole('group', { name: 'The photos' })).toBe(byLabel);
+    expect(byElement).toHaveAttribute('tabindex', '0');
+    expect(byLabel).toHaveAttribute('tabindex', '0');
+
+    resize(300, 300);
+    plain(byElement);
+    plain(byLabel);
+  });
+
   it('watches its own box and its content’s, so either one’s resize measures it again', () => {
     render(<Strip />);
 

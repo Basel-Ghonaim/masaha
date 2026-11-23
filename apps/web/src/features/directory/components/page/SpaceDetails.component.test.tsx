@@ -183,8 +183,8 @@ describe('SpaceDetails', () => {
     );
 
     const table = await screen.findByRole('table', { name: 'ساعات العمل الأسبوعية' });
-    // It scrolls in a group of the same name.
-    expect(screen.getByRole('group', { name: 'ساعات العمل الأسبوعية' })).toContainElement(table);
+    // While it fits, the table alone says the name.
+    expect(screen.queryByRole('group', { name: 'ساعات العمل الأسبوعية' })).toBeNull();
     expect(within(table).getAllByRole('row')).toHaveLength(5);
     const today = table.querySelector('[aria-current="date"]');
     expect(today).toHaveTextContent('الثلاثاء – الخميس');
