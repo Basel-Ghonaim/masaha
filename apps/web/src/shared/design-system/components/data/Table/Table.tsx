@@ -117,13 +117,3 @@ export function TableCell({ className, ...props }: ComponentProps<'td'>) {
     />
   );
 }
-
-export function TableCaption({ className, ...props }: ComponentProps<'caption'>) {
-  return (
-    <caption
-      data-slot="table-caption"
-      className={cn('mt-4 text-body-sm text-muted-foreground', className)}
-      {...props}
-    />
-  );
-}
