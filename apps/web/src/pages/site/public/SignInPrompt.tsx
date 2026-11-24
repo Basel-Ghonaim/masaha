@@ -1,12 +1,12 @@
 import { useCopy } from '@shared/copy';
 import {
+  AdaptiveDialog,
+  AdaptiveDialogContent,
+  AdaptiveDialogDescription,
+  AdaptiveDialogFooter,
+  AdaptiveDialogHeader,
+  AdaptiveDialogTitle,
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@shared/design-system';
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
@@ -17,7 +17,9 @@ export type SignInReason = 'favorite' | 'report';
 /**
  * A guest's sign-in, asked for an action that needs an account (C4, DI-60): titled and worded by
  * `reason`, with «إنشاء حساب» and «تسجيل الدخول», each carrying this page as the one to return to,
- * where the held action then runs. Closed with neither, `onClose`.
+ * where the held action then runs. The layer's adaptive dialog: the whole screen on a phone, Back
+ * closing it; its links replace its history entry, so Back from the sign-in returns to this page.
+ * Closed with neither, by any way, `onClose`.
  */
 export function SignInPrompt({
   reason,
@@ -33,28 +35,32 @@ export function SignInPrompt({
   const lines = reason === null ? null : words[reason];
 
   return (
-    <Dialog
+    <AdaptiveDialog
       open={lines !== null}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
     >
       {lines !== null && (
-        <DialogContent closeLabel={words.close}>
-          <DialogHeader>
-            <DialogTitle>{lines.title}</DialogTitle>
-            <DialogDescription>{lines.text}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+        <AdaptiveDialogContent closeLabel={words.close}>
+          <AdaptiveDialogHeader>
+            <AdaptiveDialogTitle>{lines.title}</AdaptiveDialogTitle>
+            <AdaptiveDialogDescription>{lines.text}</AdaptiveDialogDescription>
+          </AdaptiveDialogHeader>
+          <AdaptiveDialogFooter>
             <Button asChild variant="outline">
-              <Link to={`${SITE_PATHS.register}${next}`}>{words.register}</Link>
+              <Link replace to={`${SITE_PATHS.register}${next}`}>
+                {words.register}
+              </Link>
             </Button>
             <Button asChild>
-              <Link to={`${SITE_PATHS.signIn}${next}`}>{words.signIn}</Link>
+              <Link replace to={`${SITE_PATHS.signIn}${next}`}>
+                {words.signIn}
+              </Link>
             </Button>
-          </DialogFooter>
-        </DialogContent>
+          </AdaptiveDialogFooter>
+        </AdaptiveDialogContent>
       )}
-    </Dialog>
+    </AdaptiveDialog>
   );
 }
