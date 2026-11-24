@@ -39,6 +39,7 @@ import { BreadcrumbSection } from './sections/navigation/BreadcrumbSection';
 import { PaginationSection } from './sections/navigation/PaginationSection';
 import { SidebarSection } from './sections/navigation/SidebarSection';
 import { TabsSection } from './sections/navigation/TabsSection';
+import { AdaptiveDialogSection } from './sections/overlays/AdaptiveDialogSection';
 import { AlertDialogSection } from './sections/overlays/AlertDialogSection';
 import { DialogSection } from './sections/overlays/DialogSection';
 import { PopoverSection } from './sections/overlays/PopoverSection';
@@ -185,6 +186,9 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   entry('fields', 'Sortable', 'sortable', (samples) => <SortableSection samples={samples} />),
   entry('display', 'ScrollRegion', 'scrollRegion', (samples) => (
     <ScrollRegionSection samples={samples} />
+  )),
+  entry('overlays', 'AdaptiveDialog', 'adaptiveDialog', (samples) => (
+    <AdaptiveDialogSection samples={samples} />
   )),
 ];
 

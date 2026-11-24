@@ -2,6 +2,16 @@
 // inside it (docs/frontend/design-system/foundation.md §3). The data components that carry a heavy
 // library have an entry of their own, ./data.ts, so only the pages that draw them download it.
 export {
+  AdaptiveDialog,
+  AdaptiveDialogContent,
+  AdaptiveDialogDescription,
+  AdaptiveDialogFooter,
+  AdaptiveDialogHeader,
+  AdaptiveDialogTitle,
+  type AdaptiveDialogContentProps,
+  type AdaptiveDialogProps,
+} from './components/overlays/AdaptiveDialog';
+export {
   Alert,
   AlertAction,
   AlertDescription,

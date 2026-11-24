@@ -80,7 +80,7 @@ apps/web/src/shared/design-system/
 | `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag · Logo · Meter · ScrollRegion |
 | `data` | shows records in rows and columns | Table · DataTable · BarChart · Heatmap |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState · Refreshing |
-| `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
+| `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip · AdaptiveDialog |
 | `navigation` | moves between places | Breadcrumb · Tabs · Pagination · Sidebar |
 
 A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
@@ -450,7 +450,8 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) |
+| Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) · a task a phone gives the whole screen to takes AdaptiveDialog |
+| AdaptiveDialog | hand-built (Radix dialog) | A modal dialog whose form follows the width, made for the guest's sign-in over the page ([ADR 0021](../../architecture/decisions/0021-sign-in-where-the-action-is.md)): from 768 px the dialog's surface, 30 rem wide, its close button in the corner; below it a full-screen panel (`100dvh`, no radius, no edge) that rises and fades in on `--duration-medium` and `--easing-standard`, so reduced motion shows it at once, with a top bar that stays while the body scrolls under it, holding the close button, 44 px, at its inline start; the bar and the body's end keep clear of the safe areas · the caller's content sits in one body at both widths, so a change of width restyles it without remounting it · `AdaptiveDialogTitle` is `heading-1` in the panel (24 px) and `heading-2` from 768 px · the focus is trapped; it opens on the title in the panel, so the keyboard does not cover the screen at once, and from 768 px as the caller's `onOpenAutoFocus` says, else on the first control; however it closes, it goes back to what opened it: the element focused as it opened, or, where a press focuses nothing (Safari), the control last pressed · `busy` holds every way of closing and turns the close button off · open and closed by its caller (no trigger part); `closeLabel` is required (2026-11-24, #155) |
 | Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) · a side sheet takes the whole width below 768 px and three quarters (at most 24 rem) from there on, its body letting its content shrink · a modal dialog by default (a scrim; the focus trapped, then returned to its trigger); non-modal on request (`modal={false}`): no scrim and no trap, the page behind it still used, as the directory's chosen space on a phone |
 | Tooltip | shadcn | |
 | Popover | shadcn | The floating panel under Combobox and DatePicker, and for features' small panels · on `--z-dropdown`, `rounded-lg`, bordered, `shadow-floating` · a dialog, so it is named by `aria-label` or its title |
