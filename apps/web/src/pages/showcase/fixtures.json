@@ -372,6 +372,22 @@
           "value": 3
         }
       },
+      "adaptiveDialog": {
+        "title": "النافذة المتكيّفة",
+        "caption": "نافذة من 768 بكسل، وشاشة كاملة على الهاتف بشريط علوي فيه زر الإغلاق؛ الرجوع يغلقها",
+        "trigger": "حفظ في المفضّلة",
+        "dialogTitle": "سجّل الدخول لحفظ المساحات في المفضّلة",
+        "description": "تجد المساحات التي تحفظها في حسابك على أي جهاز.",
+        "paragraphs": [
+          "على الهاتف تملأ النافذة الشاشة، ويبقى شريطها العلوي ظاهرًا بينما يُمرَّر ما تحته.",
+          "يبدأ التركيز على العنوان، فلا تُفتح لوحة المفاتيح قبل أن يُقرأ السبب.",
+          "زر الرجوع في المتصفح أو الهاتف يغلقها، وتبقى الصفحة كما كانت.",
+          "مهما أُغلقت يعود التركيز إلى ما فتحها."
+        ],
+        "secondary": "إنشاء حساب",
+        "primary": "تسجيل الدخول",
+        "closeLabel": "إغلاق"
+      },
       "dialog": {
         "title": "النوافذ الحوارية",
         "caption": "مهمة قصيرة في نافذة، مع زر إغلاق في الزاوية",
@@ -1282,6 +1298,22 @@
           "label": "New data reports",
           "value": 3
         }
+      },
+      "adaptiveDialog": {
+        "title": "Adaptive dialogs",
+        "caption": "A dialog from 768 px, the whole screen on a phone with a top bar holding its close button; Back closes it",
+        "trigger": "Save to favourites",
+        "dialogTitle": "Sign in to save spaces to your favourites",
+        "description": "The spaces you save are in your account on any device.",
+        "paragraphs": [
+          "On a phone it fills the screen, and its top bar stays while what is under it scrolls.",
+          "The focus starts on the title, so the keyboard does not open before the reason is read.",
+          "The browser's or the phone's Back closes it, and the page stays as it was.",
+          "However it closes, the focus goes back to what opened it."
+        ],
+        "secondary": "Create account",
+        "primary": "Sign in",
+        "closeLabel": "Close"
       },
       "dialog": {
         "title": "Dialogs",

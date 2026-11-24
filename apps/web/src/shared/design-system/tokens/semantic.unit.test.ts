@@ -601,3 +601,20 @@ describe('the spark carries no text', () => {
     expect(css.match(/var\(--spark\)/g) ?? []).toHaveLength(sparkUtilities.length);
   });
 });
+
+describe('motion', () => {
+  it('stops every animation timed by the tokens under reduced motion: both durations 0 ms', () => {
+    const reduced =
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*:root\s*\{([^{}]*)\}/.exec(
+        primitivesCss,
+      );
+    const durations = new Map(
+      Array.from((reduced?.[1] ?? '').matchAll(/--([\w-]+)\s*:\s*([^;]+);/g), ([, name, value]) => [
+        name,
+        value?.trim(),
+      ]),
+    );
+    expect(durations.get('duration-short')).toBe('0ms');
+    expect(durations.get('duration-medium')).toBe('0ms');
+  });
+});
