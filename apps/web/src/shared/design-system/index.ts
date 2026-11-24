@@ -187,7 +187,6 @@ export { Switch, type SwitchProps } from './components/fields/Switch';
 export {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableFooter,
   TableHead,

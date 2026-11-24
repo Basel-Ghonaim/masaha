@@ -65,8 +65,8 @@ describe('DataTable', () => {
   it('shows a table named by its label, with its summary and pagination under it', () => {
     render(<Members />);
     const table = screen.getByRole('table', { name: 'Members of the space' });
-    // It scrolls in a group of the same name.
-    expect(screen.getByRole('group', { name: 'Members of the space' })).toContainElement(table);
+    // While it fits, the table alone says the name.
+    expect(screen.queryByRole('group', { name: 'Members of the space' })).toBeNull();
 
     expect(
       within(table)

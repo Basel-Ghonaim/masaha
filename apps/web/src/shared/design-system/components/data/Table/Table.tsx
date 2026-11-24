@@ -9,10 +9,11 @@ export type TableProps = Omit<ComponentProps<'table'>, 'aria-label' | 'aria-labe
  * A table of records, as in the Owner › Members stress test: a muted header row, dense rows with a
  * divider, and a row that takes the hover fill while hovered or while its row menu is open. It
  * scrolls sideways when it is wider than its place, in a ScrollRegion, so the keyboard reaches it
- * while it overflows (foundation §10). Its one name, a label or the element that names it, names
- * the table and the region alike, so the caller writes it once. It has no frame of its own:
- * DataTable frames it as a card with its toolbar and pagination, and a table on its own sits in a
- * Card. Both frames clip what overflows them, so the region's focus ring is drawn inside it.
+ * while it overflows (foundation §10). The caller writes its one name once, a label or the
+ * element that names it: it names the table, and the region too only while the table overflows,
+ * since a focused element needs a name. It has no frame of its own: DataTable frames it as a card
+ * with its toolbar and pagination, and a table on its own sits in a Card. Both frames clip what
+ * overflows them, so the region's focus ring is drawn inside it.
  */
 export function Table({
   className,
@@ -27,6 +28,7 @@ export function Table({
     <ScrollRegion
       data-slot="table-container"
       className="relative w-full focus-visible:-outline-offset-2"
+      quietWhileFits
       {...name}
     >
       <table
@@ -111,16 +113,6 @@ export function TableCell({ className, ...props }: ComponentProps<'td'>) {
     <td
       data-slot="table-cell"
       className={cn('py-(--table-row-padding-block) align-middle', EDGE_PADDING, className)}
-      {...props}
-    />
-  );
-}
-
-export function TableCaption({ className, ...props }: ComponentProps<'caption'>) {
-  return (
-    <caption
-      data-slot="table-caption"
-      className={cn('mt-4 text-body-sm text-muted-foreground', className)}
       {...props}
     />
   );
