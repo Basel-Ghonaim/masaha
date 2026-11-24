@@ -60,6 +60,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
   - [0018](architecture/decisions/0018-capability-documents.md) capability documents own each capability's application of the platform
   - [0019](architecture/decisions/0019-ink-and-spark-brand.md) the brand: an ink for actions and a spark for what matters now
   - [0020](architecture/decisions/0020-design-archive-own-repository.md) the design archive and the prototype in their own repository
+  - [0021](architecture/decisions/0021-sign-in-where-the-action-is.md) sign in where the action is: over the page for an action that needs an account, the pages for direct visits
 - [documentation.md](architecture/documentation.md) — the documentation rules: one home per fact, what each kind of document owns, the classes, the capability documents' template, link integrity · read it when your task writes, moves or reviews documentation.
 - [shared-package.md](architecture/shared-package.md) — `packages/shared`, the web–API contract in code: its structure by capability and its rules · read it when your task adds or changes a request, a response, or a rule both apps compute.
 - [findings/](architecture/findings/README.md) — recorded divergences from the intended design, one file each, with an index by status · at the start of every Work Item, read the open findings' titles in the index, then open the file of each that may touch it ([workflow §4](development/workflow.md#4-scope-control)).
