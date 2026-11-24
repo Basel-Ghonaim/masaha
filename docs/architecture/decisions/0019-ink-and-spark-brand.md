@@ -1,6 +1,7 @@
 # ADR 0019 — The brand: an ink for actions and a spark for what matters now
 
 > **Status:** Accepted · **Date:** 2026-11-12
+> **Revised:** 2026-11-24 — the main action takes the berry; links, controls and structure keep the ink; the berry-to-plum scale on a few brand surfaces ([ADR 0022](0022-the-berry-on-the-main-action.md)). The body below is left as first written.
 
 ## Context
 The first identity, *Sea*, gave one petrol teal every role: actions, links, focus, hover and the selected state alike. Hover and selected looked the same, and on a card the hover was barely seen. The owner wanted a warm colour. Every warm primary tried (coral, a sea sunset) failed beside the destructive red: they differed from it by hue alone, and under colour blindness they looked the same.
