@@ -14,6 +14,7 @@ import { cn } from '../../../lib/cn';
 import { useMediaQuery } from '../../../lib/useMediaQuery';
 import { Button } from '../../actions/Button';
 import { modalContentClasses, overlayClasses } from '../Dialog';
+import { useHistoryEntry, watchStaleEntries } from './historyEntry';
 import { listenForPresses, openerNow } from './opener';
 
 /** The width from which it is a dialog; below it, a full-screen panel. Tailwind's `md`. */
@@ -47,7 +48,8 @@ export type AdaptiveDialogProps = {
  * A modal dialog whose form follows the width: from 768 px the layer's centred dialog, below it a
  * full-screen panel with a top bar that holds its close button, made for a task a phone gives the
  * whole screen to (a sign-in over the page). It traps the focus while open and gives it back to
- * whatever opened it, however it closes. Open and closed by its caller.
+ * whatever opened it, however it closes. Open, it holds one history entry at the same address, so
+ * Back closes it. Open and closed by its caller.
  */
 export function AdaptiveDialog({
   open,
@@ -58,6 +60,16 @@ export function AdaptiveDialog({
   const opener = useRef<HTMLElement | null>(null);
 
   useEffect(listenForPresses, []);
+  // Back closes it, unless it is busy (architecture §2, *An overlay's history entry*).
+  useHistoryEntry(
+    open,
+    () => {
+      onOpenChange(false);
+    },
+    () => busy,
+  );
+  // After the entry's own effect, so a second run of both (StrictMode) finds its entry held again.
+  useEffect(watchStaleEntries, []);
   // Read before the dialog moves the focus inside it, which Radix does in an effect of its own.
   useLayoutEffect(() => {
     if (open) opener.current = openerNow();
