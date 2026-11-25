@@ -12,7 +12,8 @@ import type { SignInReason } from '../../public/signInView';
  */
 export function SentNote({ reason }: { reason: SignInReason }) {
   const words = useCopy().site.signInPrompt.sentNote;
-  const [held] = useState(heldIntentPreview);
+  // This tab's own action, as the note shows: one another tab held over it is not this guest's.
+  const [held] = useState(() => heldIntentPreview('tab'));
 
   if (held?.kind !== reason || held.name === undefined) return null;
   const space = isolate(held.name.text);

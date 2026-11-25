@@ -1,14 +1,15 @@
 import { useCopy } from '@shared/copy';
 import { Button, Field } from '@shared/design-system';
 import { FormFailure, PasswordInput, PasswordRules } from '@shared/forms';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useResetPasswordForm } from '../../hooks/reset-password/useResetPasswordForm';
 
 /**
- * The new password: the field, its rules ticking as the user types, the submit, and why the reset
- * failed, all from `useResetPasswordForm`. `saved` once the server has set it.
+ * The new password: the field, its condition as one line under it, the submit, and why the reset
+ * failed, all from `useResetPasswordForm`, and the page's `note` before the submit. `saved` once
+ * the server has set it.
  */
-export function ResetPasswordForm({ saved }: { saved: () => void }) {
+export function ResetPasswordForm({ saved, note }: { saved: () => void; note?: ReactNode }) {
   const copy = useCopy();
   const rulesId = useId();
   const { field, submit, isPending, blocked, errors, failure, passwordRules } =
@@ -27,6 +28,7 @@ export function ResetPasswordForm({ saved }: { saved: () => void }) {
         </Field>
         <PasswordRules id={rulesId} view={passwordRules} />
       </div>
+      {note}
       <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
         {copy.auth.resetPassword.submit}
       </Button>

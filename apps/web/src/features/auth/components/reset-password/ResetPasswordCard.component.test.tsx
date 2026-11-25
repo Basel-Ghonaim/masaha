@@ -29,7 +29,7 @@ function renderCard(
       <MemoryRouter initialEntries={[address]}>
         <ResetPasswordCard
           requestLinkLink={<a href="/forgot-password">Request a new link</a>}
-          signInLink={<a href="/login">Sign in</a>}
+          signIn={<a href="/login">Sign in</a>}
           backLink={<a href="/login">Back to sign in</a>}
         />
       </MemoryRouter>
@@ -89,6 +89,37 @@ describe('ResetPasswordCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Sign in with your new password.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('says the page’s note before the submit, and the page’s line once the password is set', async () => {
+    window.history.replaceState(null, '', '/reset-password');
+    fakeTransport((config) => (config.method === 'get' ? ok(PASSWORD) : { status: 204 }));
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={['/reset-password']}>
+          <ResetPasswordCard
+            requestLinkLink={<a href="/forgot-password">Request a new link</a>}
+            signIn={<a href="/login">Sign in</a>}
+            backLink={<a href="/login">Back to sign in</a>}
+            returnNote={<p>We take you back to Noor Hub.</p>}
+            doneDescription="Sign in, and we take you back to Noor Hub."
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+
+    const note = await screen.findByText('We take you back to Noor Hub.');
+    expect(
+      note.compareDocumentPosition(screen.getByRole('button', { name: 'Save password' })),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await user.type(screen.getByLabelText('New password'), 'gaza2026x');
+    await user.click(screen.getByRole('button', { name: 'Save password' }));
+
+    expect(
+      await screen.findByText('Sign in, and we take you back to Noor Hub.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Sign in with your new password.')).toBeNull();
   });
 
   it('says the link can no longer be used, and offers a new one', async () => {

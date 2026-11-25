@@ -109,5 +109,17 @@ export const AUTH = {
     doneTitle: 'تم تغيير كلمة المرور، وسُجّل خروجك من كل الأجهزة',
     doneDescription: 'سجّل الدخول بكلمة المرور الجديدة.',
     signIn: 'تسجيل الدخول',
+    returnNote: {
+      favorite: ({ space }: { space: string }) =>
+        `بعد الحفظ سجّل الدخول هنا، ونعيدك إلى ${space} لنكمل حفظها في مفضّلتك.`,
+      report: ({ space }: { space: string }) =>
+        `بعد الحفظ سجّل الدخول هنا، ونعيدك إلى ${space} لتكمل بلاغك.`,
+    },
+    doneReturn: {
+      favorite: ({ space }: { space: string }) =>
+        `سجّل الدخول بكلمة المرور الجديدة، ونعيدك إلى ${space} لنكمل حفظها في مفضّلتك.`,
+      report: ({ space }: { space: string }) =>
+        `سجّل الدخول بكلمة المرور الجديدة، ونعيدك إلى ${space} لتكمل بلاغك.`,
+    },
   },
 } satisfies Catalogue['auth'];
