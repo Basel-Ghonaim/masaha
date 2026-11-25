@@ -36,7 +36,13 @@ export function SignInForm({ forgotPasswordLink, ...options }: SignInFormProps) 
         </Field>
         {forgotPasswordLink !== undefined && <div className="self-end">{forgotPasswordLink}</div>}
       </div>
-      <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
+      <Button
+        type="submit"
+        variant="main"
+        className="w-full"
+        loading={isPending}
+        disabled={blocked}
+      >
         <LogInIcon aria-hidden />
         {copy.auth.signIn.submit}
       </Button>

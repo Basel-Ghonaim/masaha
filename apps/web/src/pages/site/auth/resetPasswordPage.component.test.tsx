@@ -130,10 +130,9 @@ describe('the reset password page', () => {
       refused(400, { type: 'bad_request', code: 'RESET_TOKEN_INVALID' }),
     );
 
-    expect(await screen.findByRole('link', { name: 'Request a new link' })).toHaveAttribute(
-      'href',
-      '/forgot-password',
-    );
+    const link = await screen.findByRole('link', { name: 'Request a new link' });
+    expect(link).toHaveAttribute('href', '/forgot-password');
+    expect(link).toHaveClass('bg-main-action');
   });
 
   it('offers the sign-in on the card once the password is set, the email to type and focused, the way back gone', async () => {
@@ -152,6 +151,7 @@ describe('the reset password page', () => {
       expect(email).toHaveFocus();
     });
     expect(screen.getByRole('button', { name: 'Sign in' })).toHaveAttribute('type', 'submit');
+    expect(screen.getByRole('button', { name: 'Sign in' })).toHaveClass('bg-main-action');
     expect(screen.queryByRole('link', { name: 'Back to sign in' })).not.toBeInTheDocument();
   });
 
@@ -251,7 +251,9 @@ describe('the reset password page', () => {
     await user.type(await screen.findByLabelText('New password'), 'gaza2026x');
     await user.click(screen.getByRole('button', { name: 'Save password' }));
 
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    const signIn = await screen.findByRole('link', { name: 'Sign in' });
+    expect(signIn).toHaveAttribute('href', '/login');
+    expect(signIn).toHaveClass('bg-main-action');
     expect(screen.queryByLabelText('Email')).toBeNull();
   });
 

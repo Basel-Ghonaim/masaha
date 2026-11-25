@@ -42,6 +42,12 @@ afterEach(() => {
 });
 
 describe('SignInForm', () => {
+  it('draws its submit as the main action', () => {
+    renderSignIn(() => ok(aSession()));
+
+    expect(screen.getByRole('button', { name: 'Sign in' })).toHaveClass('bg-main-action');
+  });
+
   it('shows a refusal above the fields, with its title and line', async () => {
     renderSignIn(() => refused(401, { type: 'unauthorized', code: 'INVALID_CREDENTIALS' }));
 

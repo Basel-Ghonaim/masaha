@@ -59,6 +59,7 @@ describe('ForgotPasswordCard', () => {
     expect(await screen.findByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Forgot password' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send reset link' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Send reset link' })).toHaveClass('bg-main-action');
   });
 
   it('shows the link sent, the masked address and the resend held by its window', async () => {

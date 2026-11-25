@@ -32,7 +32,13 @@ export function ForgotPasswordForm({
           {...field('email')}
         />
       </Field>
-      <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
+      <Button
+        type="submit"
+        variant="main"
+        className="w-full"
+        loading={isPending}
+        disabled={blocked}
+      >
         {copy.auth.forgotPassword.submit}
       </Button>
     </form>

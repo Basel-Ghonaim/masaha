@@ -67,7 +67,7 @@ export function ResetPasswordPage() {
           : undefined
       }
       requestLinkLink={
-        <Button asChild className="w-full">
+        <Button asChild variant="main" className="w-full">
           <Link to={`${SITE_PATHS.forgotPassword}${nextSearch(search)}`}>
             {words.requestNewLink}
           </Link>
@@ -82,7 +82,7 @@ export function ResetPasswordPage() {
         guest ? (
           <SignInForm focus="email" />
         ) : (
-          <Button asChild className="w-full">
+          <Button asChild variant="main" className="w-full">
             <Link to={signIn}>
               <LogInIcon aria-hidden />
               {words.signIn}
