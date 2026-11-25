@@ -1,6 +1,7 @@
 # ADR 0022 — The berry on the main action
 
 > **Status:** Accepted · **Date:** 2026-11-24
+> **Revised:** 2026-11-25 — the berry main action is the light theme's; in the dark theme the main action keeps the ink's light step with dark text, as before (the owner, after seeing both on the real screens). The body below is left as first written.
 
 ## Context
 [ADR 0019](0019-ink-and-spark-brand.md) gave the brand two roles: an ink for actions, links and structure, and a berry spark for what matters now, never on an action. Built across the site, it kept the pages clear, but the berry became almost invisible: two dots in the logo and a few selected states. Design rounds on the public pages kept reading as grey and empty, and the owner found the identity missing from the screens people see first.
