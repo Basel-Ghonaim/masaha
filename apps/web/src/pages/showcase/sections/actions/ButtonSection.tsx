@@ -9,7 +9,15 @@ import { ShowcaseGroup, ShowcaseSection } from '../../ShowcaseSection';
 
 type Variant = NonNullable<ButtonProps['variant']>;
 
-const VARIANTS: Variant[] = ['primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'];
+const VARIANTS: Variant[] = [
+  'main',
+  'primary',
+  'secondary',
+  'outline',
+  'ghost',
+  'destructive',
+  'link',
+];
 
 type ButtonSamples = {
   title: string;

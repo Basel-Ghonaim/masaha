@@ -37,7 +37,8 @@
         "iconsCaption": "أيقونة قبل النص أو بعده",
         "statesCaption": "الحالات: قيد التحميل، معطّل، ورابط بشكل زر",
         "variants": {
-          "primary": "إجراء أساسي",
+          "main": "الإجراء الرئيسي",
+          "primary": "إجراء ممتلئ",
           "secondary": "إجراء ثانوي",
           "outline": "إجراء بإطار",
           "ghost": "إجراء بلا خلفية",
@@ -960,7 +961,8 @@
         "iconsCaption": "An icon before or after the text",
         "statesCaption": "States: loading, disabled, and a link styled as a button",
         "variants": {
-          "primary": "Primary action",
+          "main": "Main action",
+          "primary": "Filled action",
           "secondary": "Secondary action",
           "outline": "Outline action",
           "ghost": "Ghost action",
