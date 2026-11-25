@@ -211,14 +211,15 @@ describe('a customer’s state actions', () => {
     expect(within(menu).queryByRole('menuitem', { busy: true })).toBeNull();
   });
 
-  it('the file’s header holds the state’s buttons, the first primary, then «⋯»; axe-clean', async () => {
+  it('the file’s header holds the state’s buttons, the first the main action, then «⋯»; axe-clean', async () => {
     const { container } = renderFile({ ...OWING, customer: { ...PRESENT.customer } });
 
     const buttons = await headerActions();
     expect(
       buttons.map((button) => plain(button.getAttribute('aria-label') ?? button.textContent)),
     ).toEqual(['Check in Sara Khalid', 'Receive ₪15', 'More actions: Sara Khalid']);
-    expect(buttons[0]).toHaveClass('bg-primary');
+    expect(buttons[0]).toHaveClass('bg-main-action');
+    expect(buttons[1]).not.toHaveClass('bg-main-action');
     expect(buttons[1]).not.toHaveClass('bg-primary');
     expect(await axe(container)).toHaveNoViolations();
   });

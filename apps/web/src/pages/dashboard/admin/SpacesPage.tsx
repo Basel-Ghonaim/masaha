@@ -40,7 +40,7 @@ export function SpacesPage() {
       <div className="flex flex-col gap-4">
         {/* The way to the add page, above the list at its end, at every width. */}
         <div className="flex justify-end">
-          <Button asChild>
+          <Button variant="main" asChild>
             <Link to={ADMIN_ADD_SPACE_PATH}>{copy.dashboard.addSpace.title}</Link>
           </Button>
         </div>

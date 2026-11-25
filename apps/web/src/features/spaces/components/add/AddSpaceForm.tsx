@@ -43,7 +43,7 @@ export function AddSpaceForm({
       </Card>
       {form.failure && <FormFailure view={form.failure} />}
       <div>
-        <Button type="submit" loading={form.isPending} disabled={form.blocked}>
+        <Button variant="main" type="submit" loading={form.isPending} disabled={form.blocked}>
           {form.submitLabel}
         </Button>
       </div>

@@ -3,7 +3,7 @@ import type { SpacePageView } from '../../types/SpacePageView';
 
 /**
  * Below 768 px, the bar fixed at the page's foot, a region named «التواصل السريع»: «واتساب»
- * (primary, in a new tab) and «اتصال» (outline), each as wide as it can be.
+ * (the page's main action, in a new tab) and «اتصال» (outline), each as wide as it can be.
  */
 export function ContactBar({ bar }: { bar: NonNullable<SpacePageView['bar']> }) {
   return (
@@ -13,7 +13,7 @@ export function ContactBar({ bar }: { bar: NonNullable<SpacePageView['bar']> }) 
       className="fixed inset-x-0 bottom-0 z-sticky flex gap-3 border-t border-border bg-background px-4 py-3"
     >
       {bar.whatsapp !== null && (
-        <Button asChild className="flex-1">
+        <Button variant="main" asChild className="flex-1">
           <a href={bar.whatsapp.href} target="_blank" rel="noopener">
             {bar.whatsapp.label}
           </a>

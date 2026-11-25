@@ -145,6 +145,7 @@ export function DecideSheet({
           {view.resolve !== null && view.dismiss !== null && (
             <SheetFooter className="flex flex-row gap-2">
               <Button
+                variant="main"
                 type="button"
                 className="flex-1"
                 loading={view.resolve.busy}

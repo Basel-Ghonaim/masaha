@@ -71,6 +71,7 @@ export function IssuePasswordDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={dialog.confirm.busy}>{dialog.cancelLabel}</AlertDialogCancel>
           <Button
+            variant="main"
             type="button"
             loading={dialog.confirm.busy}
             disabled={dialog.confirm.blocked}

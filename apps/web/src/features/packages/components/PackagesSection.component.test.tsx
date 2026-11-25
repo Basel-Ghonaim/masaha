@@ -1,7 +1,7 @@
 import type { SpacePackage } from '@masaha/shared/packages';
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -134,6 +134,20 @@ describe('PackagesSection', () => {
       screen.getByText('Create a package like «10 days» or «20 hours» to pick at the desk.'),
     ).toBeInTheDocument();
   });
+  it('draws the header’s «New package» as the main action, and the empty state’s copy in the ink', async () => {
+    renderSection([]);
+    expect(await screen.findByRole('button', { name: 'New package' })).toHaveClass(
+      'bg-main-action',
+    );
+    cleanup();
+
+    renderSection([], []);
+    expect(await screen.findByText('No private packages')).toBeInTheDocument();
+    const repeat = screen.getByRole('button', { name: 'New package' });
+    expect(repeat).toHaveClass('bg-primary');
+    expect(repeat).not.toHaveClass('bg-main-action');
+  });
+
   it('announces the terms and the price as they change, never the name typed', async () => {
     const user = userEvent.setup();
     renderSection([]);

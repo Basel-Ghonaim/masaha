@@ -26,6 +26,16 @@ describe('Home’s parts', () => {
     expect(screen.getByRole('searchbox')).toHaveAttribute('maxLength', '61');
   });
 
+  it('draws the hero’s «Search» as the page’s main action', () => {
+    render(
+      <MemoryRouter>
+        <HomeSearch />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass('bg-main-action');
+  });
+
   it('tells owners their space’s live status shows automatically from the check-ins', () => {
     render(
       <MemoryRouter>

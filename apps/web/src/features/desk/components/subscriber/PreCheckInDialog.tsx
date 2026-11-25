@@ -82,7 +82,7 @@ export function PreCheckInDialog({
               {dialog.anyway.label}
             </Button>
           )}
-          <Button autoFocus loading={dialog.busy} onClick={dialog.asVisit.run}>
+          <Button variant="main" autoFocus loading={dialog.busy} onClick={dialog.asVisit.run}>
             {dialog.asVisit.label}
           </Button>
         </DialogFooter>

@@ -146,7 +146,13 @@ export function SubscriptionSheet({
             {view.failure !== null && <FormFailure view={view.failure} />}
           </SheetBody>
           <SheetFooter>
-            <Button type="submit" className="w-full" loading={busy} disabled={view.submit.blocked}>
+            <Button
+              variant="main"
+              type="submit"
+              className="w-full"
+              loading={busy}
+              disabled={view.submit.blocked}
+            >
               {view.submit.label}
             </Button>
           </SheetFooter>

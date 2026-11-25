@@ -30,10 +30,24 @@ import { AnnouncementCard } from './AnnouncementCard';
 
 type Open = (entry: SheetEntry, trigger: HTMLElement) => void;
 
-/** «إعلان جديد», which opens the sheet for a new announcement. */
-function NewButton({ label, open, className }: { label: string; open: Open; className?: string }) {
+/**
+ * «إعلان جديد», which opens the sheet for a new announcement: the page's main action in its header,
+ * the ink in the empty state that repeats it.
+ */
+function NewButton({
+  label,
+  open,
+  main = false,
+  className,
+}: {
+  label: string;
+  open: Open;
+  main?: boolean;
+  className?: string;
+}) {
   return (
     <Button
+      variant={main ? 'main' : 'primary'}
       className={className}
       onClick={(event) => {
         open({ mode: 'new' }, event.currentTarget);
@@ -134,7 +148,7 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
             </TabsTrigger>
           ))}
         </TabsList>
-        <NewButton label={list.create.label} open={open} className="ms-auto" />
+        <NewButton label={list.create.label} open={open} main className="ms-auto" />
       </div>
       <TabsContent value={list.tab} className="flex flex-col gap-4">
         {list.refreshFailure !== null && (

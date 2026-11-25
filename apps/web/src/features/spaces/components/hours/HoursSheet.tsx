@@ -158,7 +158,9 @@ export function HoursSheet({ host }: { host: SectionHost }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{view.unify.back}</AlertDialogCancel>
-            <AlertDialogAction onClick={view.unify.go}>{view.unify.confirm}</AlertDialogAction>
+            <AlertDialogAction variant="main" onClick={view.unify.go}>
+              {view.unify.confirm}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

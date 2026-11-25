@@ -16,7 +16,7 @@ import type { FiltersView } from '../../types/FiltersView';
 /**
  * Below 1024 px, the filters in a bottom sheet. Its button is the sheet's own trigger, so it says
  * whether the sheet is open; its badge counts the filters in force, its words read in its place
- * (design issue 2). The primary button counts the spaces the filters leave and closes the sheet.
+ * (design issue 2). The main action counts the spaces the filters leave and closes the sheet.
  */
 export function FiltersSheet({
   sheet,
@@ -49,6 +49,7 @@ export function FiltersSheet({
         <SheetBody>{children}</SheetBody>
         <SheetFooter>
           <Button
+            variant="main"
             size="lg"
             className="w-full"
             onClick={() => {

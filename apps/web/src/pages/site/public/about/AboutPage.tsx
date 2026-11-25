@@ -31,7 +31,7 @@ export function AboutPage() {
         <h1 className="text-heading-1">{copy.site.links.about}</h1>
         <p>{words.intro}</p>
         <p className="text-muted-foreground">{words.audience}</p>
-        <Button asChild className="w-full md:w-auto md:self-start">
+        <Button variant="main" asChild className="w-full md:w-auto md:self-start">
           <Link to={SITE_PATHS.spaces}>{copy.site.browseSpaces}</Link>
         </Button>
       </div>

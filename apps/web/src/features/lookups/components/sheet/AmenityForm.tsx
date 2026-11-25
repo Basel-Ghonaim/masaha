@@ -20,7 +20,7 @@ export function AmenityForm({ form }: { form: AmenityFormView }) {
         {form.position && <PositionField position={form.position} />}
       </SheetBody>
       <SheetFooter>
-        <Button type="submit" loading={form.isPending} disabled={form.blocked}>
+        <Button variant="main" type="submit" loading={form.isPending} disabled={form.blocked}>
           {form.labels.save}
         </Button>
       </SheetFooter>

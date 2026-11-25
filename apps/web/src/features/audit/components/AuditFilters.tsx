@@ -83,6 +83,7 @@ function FiltersSheet({ filters }: { filters: Filters }) {
         </SheetBody>
         <SheetFooter>
           <Button
+            variant="main"
             size="lg"
             className="w-full"
             onClick={() => {

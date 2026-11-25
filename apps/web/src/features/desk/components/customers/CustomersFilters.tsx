@@ -81,6 +81,7 @@ function FiltersSheet({ toolbar }: { toolbar: Toolbar }) {
             {sheet.clearLabel}
           </Button>
           <Button
+            variant="main"
             onClick={() => {
               setOpen(false);
             }}
@@ -156,6 +157,7 @@ export function CustomersFilters({
           </p>
         )}
         <Button
+          variant="main"
           size="sm"
           className="ms-auto"
           onClick={(event) => {

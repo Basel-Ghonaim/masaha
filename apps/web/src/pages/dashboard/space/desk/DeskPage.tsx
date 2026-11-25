@@ -212,7 +212,7 @@ function Desk({ spaceId }: { spaceId: number }) {
               >
                 {words.sheet.entry.new}
               </Button>
-              <Button size="sm" onClick={openVisit}>
+              <Button variant="main" size="sm" onClick={openVisit}>
                 <LogInIcon aria-hidden />
                 {words.actions.checkIn}
               </Button>
@@ -246,7 +246,7 @@ function Desk({ spaceId }: { spaceId: number }) {
         </div>
       </PageHeader>
       <PageActionBar>
-        <Button size="lg" className="w-full" onClick={openVisit}>
+        <Button variant="main" size="lg" className="w-full" onClick={openVisit}>
           <LogInIcon aria-hidden />
           {words.actions.checkIn}
         </Button>

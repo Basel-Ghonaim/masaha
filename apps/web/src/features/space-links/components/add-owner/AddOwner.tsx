@@ -44,7 +44,9 @@ export function AddOwner({
     <>
       <Sheet open={form.open} onOpenChange={form.setOpen}>
         <SheetTrigger asChild>
-          <Button ref={setTrigger}>{lines.open}</Button>
+          <Button variant="main" ref={setTrigger}>
+            {lines.open}
+          </Button>
         </SheetTrigger>
         <SheetContent side="end" closeLabel={lines.close}>
           <SheetHeader>
@@ -97,6 +99,7 @@ export function AddOwner({
             </SheetBody>
             <SheetFooter>
               <Button
+                variant="main"
                 type="submit"
                 className="w-full"
                 loading={form.submit.isPending}

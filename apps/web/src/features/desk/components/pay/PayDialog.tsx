@@ -197,7 +197,12 @@ export function PayDialog({
                   {dialog.another.label}
                 </Button>
               )}
-              <Button type="submit" loading={dialog.submit.busy} disabled={dialog.submit.blocked}>
+              <Button
+                variant="main"
+                type="submit"
+                loading={dialog.submit.busy}
+                disabled={dialog.submit.blocked}
+              >
                 {dialog.submit.label}
               </Button>
             </DialogFooter>

@@ -22,8 +22,10 @@ export function PackagesSection({
 }) {
   const section = usePackagesSection({ spaceId, shifts });
   const titleId = useId();
-  const add = (
-    <Button type="button" onClick={section.add.run}>
+  // The header's «باقة جديدة» is the page's main action; the empty state that repeats it keeps the
+  // ink (foundation §5).
+  const add = (variant: 'main' | 'primary') => (
+    <Button variant={variant} type="button" onClick={section.add.run}>
       {section.add.label}
     </Button>
   );
@@ -37,7 +39,7 @@ export function PackagesSection({
           </h2>
           <p className="text-body-sm text-muted-foreground">{section.description}</p>
         </div>
-        {section.status !== 'empty' && add}
+        {section.status !== 'empty' && add('main')}
       </div>
       <Card className="py-0">
         <CardContent className="px-0">
@@ -79,7 +81,7 @@ export function PackagesSection({
               titleAs="h3"
               description={section.empty.description}
             >
-              {add}
+              {add('primary')}
             </EmptyState>
           )}
           {section.status === 'ready' && (

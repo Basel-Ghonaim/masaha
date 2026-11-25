@@ -109,7 +109,7 @@ export function ReportDialog({
                 {dialog.back}
               </Button>
             </DialogClose>
-            <Button type="submit" loading={submit.busy} disabled={submit.blocked}>
+            <Button variant="main" type="submit" loading={submit.busy} disabled={submit.blocked}>
               {submit.label}
             </Button>
           </DialogFooter>
