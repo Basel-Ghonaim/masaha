@@ -53,6 +53,7 @@ export function EditSheet({ frame, children }: { frame: SheetFrameView; children
           </SheetBody>
           <SheetFooter className="flex-row gap-2 border-t border-border">
             <Button
+              variant="main"
               ref={save}
               type="submit"
               loading={frame.save.pending}

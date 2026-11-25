@@ -67,7 +67,12 @@ export function UsageOutDialog({
             <Button type="button" variant="ghost" disabled={dialog.submit.busy} onClick={onClose}>
               {dialog.later}
             </Button>
-            <Button type="submit" loading={dialog.submit.busy} disabled={dialog.submit.blocked}>
+            <Button
+              variant="main"
+              type="submit"
+              loading={dialog.submit.busy}
+              disabled={dialog.submit.blocked}
+            >
               {dialog.submit.label}
             </Button>
           </DialogFooter>

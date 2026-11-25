@@ -76,7 +76,12 @@ export function EditCustomerDialog({
           )}
           {dialog.failure !== null && <FormFailure view={dialog.failure} />}
           <DialogFooter>
-            <Button type="submit" loading={dialog.submit.busy} disabled={dialog.submit.blocked}>
+            <Button
+              variant="main"
+              type="submit"
+              loading={dialog.submit.busy}
+              disabled={dialog.submit.blocked}
+            >
               {dialog.submit.label}
             </Button>
           </DialogFooter>

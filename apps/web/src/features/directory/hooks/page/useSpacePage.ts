@@ -49,7 +49,8 @@ const closureRuns = (announcements: PublicSpace['announcements'], now: Date) =>
  * The prices go per audience (U9), hidden ones explained, and by shift when a price names one; the
  * hours Saturday first with today marked; the distance only while near me holds a point, by the
  * straight line rounded as the server rounds it. From 1024 px the status and the contacts are an
- * aside; below 768 px a bar at the foot offers WhatsApp and a call, when the space has either. The
+ * aside; below 768 px a bar at the foot offers WhatsApp and a call, when the space has either, and
+ * from 768 px the contacts lead with the page's main action: WhatsApp, else the first channel. The
  * status card is always drawn; today's line says «مغلقة مؤقتًا اليوم» while a closure runs; the live
  * badge is the cards' (`statusViewOf`), and once a refresh fails and the status shown is older than
  * 3 minutes, «الحالة مباشرة الآن» gives way to its age and the badge turns neutral (finding 138).
@@ -96,6 +97,15 @@ export function useSpacePage(slug: string): SpacePageView {
       ? null
       : weekRows(space.hours.days, now, words.hours, allDays);
   const contacts = (space?.contacts ?? []).map((contact) => contactLinkOf(contact, words.contacts));
+  // From 768 px the bar is gone, so the contacts lead with the page's main action (ADR 0022):
+  // WhatsApp, as the bar's, else the first channel; it is drawn once, first, and the rest follow.
+  const leadIndex = phone
+    ? -1
+    : Math.max(
+        0,
+        (space?.contacts ?? []).findIndex((contact) => contact.type === 'WHATSAPP'),
+      );
+  const lead = contacts[leadIndex] ?? null;
   const whatsapp = space?.contacts.find((contact) => contact.type === 'WHATSAPP');
   const call = space?.contacts.find((contact) => contact.type === 'PHONE');
   const point = near.point;
@@ -273,7 +283,12 @@ export function useSpacePage(slug: string): SpacePageView {
     contacts:
       contacts.length === 0
         ? null
-        : { title: words.sections.contacts, meta: metaOf('contacts'), items: contacts },
+        : {
+            title: words.sections.contacts,
+            meta: metaOf('contacts'),
+            lead,
+            items: contacts.filter((_, index) => index !== leadIndex),
+          },
     bar:
       whatsapp === undefined && call === undefined
         ? null

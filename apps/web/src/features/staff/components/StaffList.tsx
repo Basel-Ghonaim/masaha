@@ -195,7 +195,7 @@ export function StaffList({
               <p className="text-body-sm text-muted-foreground" aria-live="polite">
                 {list.count}
               </p>
-              <Button ref={addButton} onClick={open}>
+              <Button variant="main" ref={addButton} onClick={open}>
                 {add.labels.open}
               </Button>
             </div>

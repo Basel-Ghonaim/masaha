@@ -137,7 +137,13 @@ export function CorrectSheet({
             {view.failure !== null && <FormFailure view={view.failure} />}
           </SheetBody>
           <SheetFooter className="flex-row gap-2">
-            <Button type="submit" className="flex-1" loading={busy} disabled={view.submit.blocked}>
+            <Button
+              variant="main"
+              type="submit"
+              className="flex-1"
+              loading={busy}
+              disabled={view.submit.blocked}
+            >
               {view.submit.label}
             </Button>
             <Button type="button" variant="outline" disabled={busy} onClick={onClose}>

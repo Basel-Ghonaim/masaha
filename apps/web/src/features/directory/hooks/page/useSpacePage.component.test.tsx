@@ -139,8 +139,9 @@ describe('useSpacePage', () => {
     expect(unverified.result.current.phone).toBe(true);
     unverified.unmount();
 
-    const emailOnly = renderPage(() =>
-      ok(publicSpace({ contacts: [{ type: 'EMAIL', value: 'hi@noor.ps', label: null }] })),
+    const emailOnly = renderPage(
+      () => ok(publicSpace({ contacts: [{ type: 'EMAIL', value: 'hi@noor.ps', label: null }] })),
+      390,
     );
     await waitFor(() => {
       expect(emailOnly.result.current.state).toBe('ready');
@@ -148,6 +149,42 @@ describe('useSpacePage', () => {
     expect(emailOnly.result.current.unverified).toBeNull();
     expect(emailOnly.result.current.bar).toBeNull();
     expect(emailOnly.result.current.contacts?.items.map((item) => item.label)).toEqual(['بريد']);
+  });
+
+  it('from 768 px leads the contacts with WhatsApp, else the first channel, never repeated; below it no lead', async () => {
+    const whatsapp = { type: 'WHATSAPP', value: '+970599111001', label: null } as const;
+    const phone = { type: 'PHONE', value: '+970599111002', label: null } as const;
+    const email = { type: 'EMAIL', value: 'hi@noor.ps', label: null } as const;
+
+    const wide = renderPage(() => ok(publicSpace({ contacts: [phone, whatsapp] })));
+    await waitFor(() => {
+      expect(wide.result.current.state).toBe('ready');
+    });
+    expect(wide.result.current.contacts?.lead?.key).toBe('WHATSAPP:+970599111001');
+    expect(wide.result.current.contacts?.items.map((item) => item.key)).toEqual([
+      'PHONE:+970599111002',
+    ]);
+    wide.unmount();
+
+    const noWhatsapp = renderPage(() => ok(publicSpace({ contacts: [email, phone] })), 800);
+    await waitFor(() => {
+      expect(noWhatsapp.result.current.state).toBe('ready');
+    });
+    expect(noWhatsapp.result.current.contacts?.lead?.key).toBe('EMAIL:hi@noor.ps');
+    expect(noWhatsapp.result.current.contacts?.items.map((item) => item.key)).toEqual([
+      'PHONE:+970599111002',
+    ]);
+    noWhatsapp.unmount();
+
+    const onPhone = renderPage(() => ok(publicSpace({ contacts: [phone, whatsapp] })), 390);
+    await waitFor(() => {
+      expect(onPhone.result.current.state).toBe('ready');
+    });
+    expect(onPhone.result.current.contacts?.lead).toBeNull();
+    expect(onPhone.result.current.contacts?.items.map((item) => item.key)).toEqual([
+      'PHONE:+970599111002',
+      'WHATSAPP:+970599111001',
+    ]);
   });
 
   it('says the distance from a point near me holds, rounded as the server rounds it', async () => {

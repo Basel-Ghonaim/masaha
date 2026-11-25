@@ -92,7 +92,17 @@ export type SpacePageView = {
     landmark: LocalText | null;
     directions: { label: string; href: string };
   };
-  contacts: { title: string; meta: SectionMeta; items: ContactLink[] } | null;
+  contacts: {
+    title: string;
+    meta: SectionMeta;
+    /**
+     * From 768 px, the page's main action, drawn first: the WhatsApp contact, else the first
+     * channel. `null` below 768 px, where the bar holds WhatsApp.
+     */
+    lead: ContactLink | null;
+    /** The other contacts, in the owner's order: every contact while there is no lead. */
+    items: ContactLink[];
+  } | null;
   /** Below 768 px, the bar fixed at the foot: only with a WhatsApp or a phone contact. */
   bar: {
     label: string;

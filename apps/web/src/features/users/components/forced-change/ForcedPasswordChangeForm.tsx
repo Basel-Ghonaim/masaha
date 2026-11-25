@@ -28,7 +28,13 @@ export function ForcedPasswordChangeForm() {
         </Field>
         <PasswordRules id={rulesId} view={passwordRules} />
       </div>
-      <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
+      <Button
+        variant="main"
+        type="submit"
+        className="w-full"
+        loading={isPending}
+        disabled={blocked}
+      >
         {copy.users.passwordChange.submit}
       </Button>
     </form>

@@ -57,6 +57,8 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
+  /* The main action's fill and hover are utilities below, never a theme colour; only its label is. */
+  --color-main-action-foreground: var(--main-action-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
@@ -179,4 +181,16 @@
 
 @utility fill-spark {
   fill: var(--spark);
+}
+
+/*
+ * The main action (foundation §5, ADR 0022) is a fill, never text, an edge or a link: these two are
+ * its only utilities, and text-main-action does not exist (semantic.unit.test.ts holds it).
+ */
+@utility bg-main-action {
+  background-color: var(--main-action);
+}
+
+@utility bg-main-action-hover {
+  background-color: var(--main-action-hover);
 }

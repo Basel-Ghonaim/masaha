@@ -21,6 +21,9 @@ const ROLES = [
   'primary',
   'primary-foreground',
   'primary-hover',
+  'main-action',
+  'main-action-foreground',
+  'main-action-hover',
   'secondary',
   'secondary-foreground',
   'accent',
@@ -110,8 +113,10 @@ const TEXT_PAIRS: Pair[] = [
     surface: 'hover',
     minimum: TEXT,
   })),
-  // A state takes its surface's text: the ink's label on its hover, a control's over the wash.
+  // A state takes its surface's text: the ink's label on its hover, the main action's on its own,
+  // a control's over the wash.
   { text: 'primary-foreground', surface: 'primary-hover', minimum: TEXT },
+  { text: 'main-action-foreground', surface: 'main-action-hover', minimum: TEXT },
   { text: 'foreground', surface: 'hover-on-muted', over: 'muted', minimum: TEXT },
   { text: 'foreground', surface: 'hover-on-muted', over: 'hover', minimum: TEXT },
   ...(GROUNDS.scrim ?? []).map((photo) => ({
@@ -140,6 +145,10 @@ const NON_TEXT_PAIRS: Pair[] = [
     surface,
     minimum: NON_TEXT,
   })),
+  // The main action's shape, at rest and hovered, on the page, a card and an overlay (ADR 0022).
+  ...['main-action', 'main-action-hover'].flatMap((text) =>
+    ['background', 'card', 'popover'].map((surface) => ({ text, surface, minimum: NON_TEXT })),
+  ),
   // The focus ring on the fills a focused item can carry.
   ...['muted', 'accent', 'hover', 'sidebar-accent'].map((surface) => ({
     text: 'ring',
@@ -551,7 +560,7 @@ describe('fills seen', () => {
 describe('the brand never reads as an error', () => {
   it.each(
     THEMES.flatMap((theme) =>
-      ['primary', 'spark'].flatMap((brand) =>
+      ['primary', 'spark', 'main-action', 'main-action-hover'].flatMap((brand) =>
         Object.keys(VISIONS).map((vision) => ({ theme, brand, vision })),
       ),
     ),
@@ -599,6 +608,32 @@ describe('the spark carries no text', () => {
   it('gives the spark no theme colour, so no text-spark exists', () => {
     expect(css).not.toMatch(/--color-spark\b/);
     expect(css.match(/var\(--spark\)/g) ?? []).toHaveLength(sparkUtilities.length);
+  });
+});
+
+describe('the main action', () => {
+  const css = tailwindCss.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('offers its fill and its hover only as fills, as the spark does', () => {
+    const utilities = Array.from(
+      css.matchAll(/@utility\s+([\w-]+)\s*\{([^{}]*)\}/g),
+      ([, name = '', body = '']) => [name, body.replace(/\s+/g, ' ').trim()],
+    ).filter(([, body]) => /var\(--main-action(?:-hover)?\)/.test(body ?? ''));
+    expect(Object.fromEntries(utilities)).toEqual({
+      'bg-main-action': 'background-color: var(--main-action);',
+      'bg-main-action-hover': 'background-color: var(--main-action-hover);',
+    });
+  });
+
+  it('gives its fill no theme colour, so no text-main-action exists; its label has one', () => {
+    expect(css).not.toMatch(/--color-main-action(?:-hover)?\s*:/);
+    expect(css).toMatch(/--color-main-action-foreground:\s*var\(--main-action-foreground\);/);
+  });
+
+  it('dark: keeps the ink’s button, its label and its hover, as before (B1, 2026-11-25)', () => {
+    expect(toHex(painted('dark', 'main-action'))).toBe('#f7fbff');
+    expect(toHex(painted('dark', 'main-action-foreground'))).toBe('#0d1217');
+    expect(toHex(painted('dark', 'main-action-hover'))).toBe('#c7cbd0');
   });
 });
 

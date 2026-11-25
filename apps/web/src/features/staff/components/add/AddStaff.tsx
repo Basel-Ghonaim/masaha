@@ -41,6 +41,7 @@ export function AddStaff({ form }: { form: AddStaffFormView }) {
           </SheetBody>
           <SheetFooter>
             <Button
+              variant="main"
               type="submit"
               className="w-full"
               loading={form.submit.isPending}

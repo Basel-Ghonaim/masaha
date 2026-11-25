@@ -174,6 +174,18 @@ describe('DeskPage', () => {
     expect(empty).toHaveClass('hidden', 'xl:flex');
   });
 
+  it('draws the top bar’s «Check in a visit» as the main action, and the rows’ «Collect» in the ink', async () => {
+    stubScreenWidth(1440);
+    renderDesk();
+
+    expect(await screen.findByRole('button', { name: 'Check in a visit' })).toHaveClass(
+      'bg-main-action',
+    );
+    const [collect] = await screen.findAllByRole('button', { name: 'Collect' });
+    expect(collect).toHaveClass('bg-primary');
+    expect(collect).not.toHaveClass('bg-main-action');
+  });
+
   it('is full by the count, with its ratio, not by a manual «Full»', async () => {
     stubScreenWidth(1440);
     const user = userEvent.setup();

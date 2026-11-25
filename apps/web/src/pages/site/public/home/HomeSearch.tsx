@@ -33,7 +33,9 @@ export function HomeSearch() {
           }}
         />
       </Field>
-      <Button type="submit">{words.submit}</Button>
+      <Button variant="main" type="submit">
+        {words.submit}
+      </Button>
     </form>
   );
 }

@@ -2,7 +2,7 @@
  * Semantic tokens: roles with meaning, each theme a complete resolution of the same keys
  * (docs/frontend/design-system/foundation.md §4–§6). Names follow shadcn/ui plus Masaha's status
  * roles. semantic.unit.test.ts checks key parity, every contrast pair foundation §5 verifies, and the
- * measured criteria of ink + berry (ADR 0019).
+ * measured criteria of ink + berry (ADR 0019), the main action's included (ADR 0022).
  */
 :root {
   --radius: var(--radius-scale-lg);
@@ -54,6 +54,10 @@
   --primary-foreground: var(--white);
   /* The ink and the text are one colour, so the ink's hover mixes toward the page instead. */
   --primary-hover: color-mix(in oklab, var(--neutral-900), var(--neutral-50) 18%);
+  /* The screen's one main action: the berry, a step darker than the spark, so white text passes AA. */
+  --main-action: var(--spark-600);
+  --main-action-foreground: var(--white);
+  --main-action-hover: var(--spark-700);
   --secondary: var(--neutral-100);
   --secondary-foreground: var(--neutral-900);
   /* Selected: the spark's tint. Hover is a neutral fill of its own, never the tint. */
@@ -133,6 +137,11 @@
   --primary: var(--neutral-50);
   --primary-foreground: var(--neutral-950);
   --primary-hover: color-mix(in oklab, var(--neutral-50), var(--neutral-950) 18%);
+  /* The main action keeps the ink's button in this theme (ADR 0022, revised): the same values as
+     --primary, a different meaning. */
+  --main-action: var(--neutral-50);
+  --main-action-foreground: var(--neutral-950);
+  --main-action-hover: color-mix(in oklab, var(--neutral-50), var(--neutral-950) 18%);
   --secondary: var(--neutral-800);
   --secondary-foreground: var(--neutral-100);
   /* spark-900 alone is barely seen on a dark card; lifted 30% toward spark-800. */

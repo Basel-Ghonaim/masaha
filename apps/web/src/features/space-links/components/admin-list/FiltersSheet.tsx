@@ -51,6 +51,7 @@ export function FiltersSheet({
         <SheetFooter>
           {sheet.show !== null && (
             <Button
+              variant="main"
               size="lg"
               className="w-full"
               onClick={() => {

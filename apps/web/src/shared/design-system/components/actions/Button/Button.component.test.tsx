@@ -43,6 +43,24 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it('draws the main variant with the main action’s fill, label and hover', () => {
+    render(<Button variant="main">Search</Button>);
+
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass(
+      'bg-main-action',
+      'text-main-action-foreground',
+      'hover:bg-main-action-hover',
+    );
+  });
+
+  it('stays in the ink unless the main action is asked for', () => {
+    render(<Button>Save</Button>);
+    const button = screen.getByRole('button', { name: 'Save' });
+
+    expect(button).toHaveClass('bg-primary', 'text-primary-foreground', 'hover:bg-primary-hover');
+    expect(button.className).not.toMatch(/main-action/);
+  });
+
   it('renders its child in place of a button', () => {
     render(
       <Button asChild variant="outline">
@@ -71,7 +89,7 @@ describe('Button', () => {
     );
   });
 
-  it.each(['primary', 'secondary', 'outline', 'destructive', 'link'] as const)(
+  it.each(['main', 'primary', 'secondary', 'outline', 'destructive', 'link'] as const)(
     'keeps the %s variant’s hover inside a table row',
     (variant) => {
       render(<Button variant={variant}>Save</Button>);
@@ -80,7 +98,7 @@ describe('Button', () => {
     },
   );
 
-  it.each(['primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const)(
+  it.each(['main', 'primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const)(
     'draws the %s variant without the spark, which never marks an action',
     (variant) => {
       render(<Button variant={variant}>Save</Button>);
@@ -92,6 +110,7 @@ describe('Button', () => {
   it('has no accessibility violations', async () => {
     const { container } = render(
       <>
+        <Button variant="main">Search</Button>
         <Button>Save</Button>
         <Button variant="secondary">Cancel</Button>
         <Button variant="outline">Export</Button>

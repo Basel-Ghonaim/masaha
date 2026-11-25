@@ -60,14 +60,14 @@ describe('the about page', () => {
     expect(note.textContent.match(/contact us/gi)).toHaveLength(1);
   });
 
-  it('marks the verified card with its icon, and offers «Browse spaces» as the primary action', async () => {
+  it('marks the verified card with its icon, and offers «Browse spaces» as the page’s main action', async () => {
     renderSite('/about');
 
     const verified = await screen.findByRole('heading', { level: 3, name: 'Verified space' });
     expect(verified.querySelector('svg')).toHaveClass('lucide-circle-check');
     const browse = within(screen.getByRole('main')).getByRole('link', { name: 'Browse spaces' });
     expect(browse).toHaveAttribute('href', '/spaces');
-    expect(browse).toHaveClass('bg-primary', 'w-full', 'md:w-auto');
+    expect(browse).toHaveClass('bg-main-action', 'w-full', 'md:w-auto');
   });
 
   it('asks for a question, an unanswered report or a mistake in its contact section', async () => {

@@ -102,7 +102,12 @@ export function LinkOwnerDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="submit" loading={dialog.submit.busy} disabled={dialog.submit.blocked}>
+            <Button
+              variant="main"
+              type="submit"
+              loading={dialog.submit.busy}
+              disabled={dialog.submit.blocked}
+            >
               {dialog.submit.label}
             </Button>
           </DialogFooter>

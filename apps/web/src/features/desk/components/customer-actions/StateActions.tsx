@@ -13,8 +13,9 @@ const NO_ONE_PRESENT: ReadonlySet<number> = new Set();
 const ICONS = { checkIn: LogInIcon, checkOut: LogOutIcon } as const;
 
 /**
- * A customer's actions by their state as buttons, the file's header's (D8.1): the first `primary`,
- * the others `outline`, at the layer's default size, so 44 px on touch. `opened` hears which one ran.
+ * A customer's actions by their state as buttons, the file's header's (D8.1): the first the file's
+ * main action (`main`), the others `outline`, at the layer's default size, so 44 px on touch.
+ * `opened` hears which one ran.
  */
 export function StateButtons({
   actions,
@@ -28,7 +29,7 @@ export function StateButtons({
     return (
       <Button
         key={action.key}
-        variant={index === 0 ? 'primary' : 'outline'}
+        variant={index === 0 ? 'main' : 'outline'}
         aria-label={action.name ?? undefined}
         aria-disabled={action.busy || undefined}
         aria-busy={action.busy || undefined}

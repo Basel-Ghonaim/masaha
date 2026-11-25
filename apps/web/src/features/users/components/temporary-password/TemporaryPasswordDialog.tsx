@@ -103,6 +103,7 @@ export function TemporaryPasswordDialog({
             </p>
           )}
           <Button
+            variant="main"
             type="button"
             disabled={dialog.done.disabled}
             loading={dialog.done.busy}

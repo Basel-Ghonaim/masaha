@@ -114,6 +114,7 @@ export function PackageSheet({
           </SheetBody>
           <SheetFooter>
             <Button
+              variant="main"
               type="submit"
               className="w-full"
               loading={view.isPending}

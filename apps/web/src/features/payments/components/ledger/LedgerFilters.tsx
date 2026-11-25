@@ -168,6 +168,7 @@ function FiltersSheet({ toolbar }: { toolbar: Toolbar }) {
         </SheetBody>
         <SheetFooter>
           <Button
+            variant="main"
             size="lg"
             className="w-full"
             onClick={() => {

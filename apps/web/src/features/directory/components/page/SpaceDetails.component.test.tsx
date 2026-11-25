@@ -131,6 +131,34 @@ describe('SpaceDetails', () => {
     );
   });
 
+  it('from 768 px the first channel, WhatsApp, is the page’s main action, drawn once; below it the bar holds it', async () => {
+    const wide = renderDetails(1440);
+    const aside = await screen.findByRole('complementary', { name: 'الحالة والتواصل' });
+    const [lead, ...again] = within(aside).getAllByRole('link', { name: /واتساب/ });
+    expect(again).toEqual([]);
+    expect(lead).toHaveClass('bg-main-action');
+    expect(lead).toHaveAttribute('href', 'https://wa.me/970599111001');
+    expect(lead).toHaveAttribute('target', '_blank');
+    expect(within(aside).getByRole('link', { name: /اتصال — جوال/ })).not.toHaveClass(
+      'bg-main-action',
+    );
+    wide.unmount();
+
+    const tablet = renderDetails(800);
+    await screen.findByRole('heading', { level: 1 });
+    const [atTablet, ...againAtTablet] = screen.getAllByRole('link', { name: /واتساب/ });
+    expect(againAtTablet).toEqual([]);
+    expect(atTablet).toHaveClass('bg-main-action');
+    tablet.unmount();
+
+    renderDetails(390);
+    await screen.findByRole('heading', { level: 1 });
+    const bar = screen.getByRole('region', { name: 'التواصل السريع' });
+    expect(
+      screen.getAllByRole('link').filter((link) => link.classList.contains('bg-main-action')),
+    ).toEqual([within(bar).getByRole('link', { name: 'واتساب' })]);
+  });
+
   it('names a contact of another kind by its own name, isolated from the page’s direction', async () => {
     renderDetails(
       1440,

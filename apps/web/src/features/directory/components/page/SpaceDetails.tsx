@@ -28,7 +28,9 @@ import { UnverifiedNotice } from './UnverifiedNotice';
  * top, the head, an unverified space's notice, the status (a card below 1024 px), the space's
  * announcements, the prices, the hours, the amenities, about the space,
  * the location and the contacts (a section below 1024 px). From 1024 px the status and the contacts
- * are a named aside beside the sections; below 768 px a bar at the foot offers WhatsApp and a call.
+ * are a named aside beside the sections; below 768 px a bar at the foot offers WhatsApp and a call,
+ * and from 768 px the contacts lead with WhatsApp, else their first channel: the page's main action at
+ * every width (ADR 0022).
  * The page sets the area's name, the link back to the directory and the platform's contact, the
  * heart beside the name, the closure's notice and the announcements, and the report of wrong
  * information, drawn last in the main column (U8).
@@ -127,7 +129,7 @@ export function SpaceDetails({
         <LocationSection location={view.location} />
         {!view.wide && contacts !== null && (
           <Section title={contacts.title} meta={contacts.meta}>
-            <ContactList items={contacts.items} />
+            <ContactList lead={contacts.lead} items={contacts.items} />
           </Section>
         )}
         {report !== undefined && view.space !== null && (
@@ -145,7 +147,7 @@ export function SpaceDetails({
                     <Badge variant="warning">{contacts.meta.stale}</Badge>
                   )}
                 </div>
-                <ContactList items={contacts.items} />
+                <ContactList lead={contacts.lead} items={contacts.items} />
               </div>
             )}
           </StatusPanel>
