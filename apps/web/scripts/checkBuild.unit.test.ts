@@ -7,6 +7,7 @@ import {
   firstDownloadCss,
   libraryProblems,
   showcaseOnly,
+  signInProblems,
   sitePageProblems,
   stringsIn,
   type ManifestChunk,
@@ -275,6 +276,81 @@ describe('dashboardCycleProblems', () => {
 
     expect(dashboardCycleProblems(manifest)).toEqual([
       '_react.js imports the dashboard chunk (_dashboard.js), which imports it.',
+    ]);
+  });
+});
+
+describe('signInProblems', () => {
+  const site: Record<string, ManifestChunk> = {
+    'index.html': { isEntry: true, imports: ['_react.js'] },
+    '_react.js': {},
+    '_sign-in.js': { name: 'sign-in', imports: ['_react.js'] },
+    '_forms.js': { imports: ['_react.js'] },
+    'src/pages/site/shell/SiteLayout.tsx': {
+      src: 'src/pages/site/shell/SiteLayout.tsx',
+      isDynamicEntry: true,
+      imports: ['_react.js'],
+    },
+    'src/pages/site/public/space/SpacePage.tsx': {
+      src: 'src/pages/site/public/space/SpacePage.tsx',
+      isDynamicEntry: true,
+      imports: ['_react.js', '_forms.js'],
+      dynamicImports: ['src/pages/site/auth/in-place/InPlaceSignIn.tsx'],
+    },
+    'src/pages/site/auth/in-place/InPlaceSignIn.tsx': {
+      src: 'src/pages/site/auth/in-place/InPlaceSignIn.tsx',
+      isDynamicEntry: true,
+      imports: ['_react.js', '_sign-in.js'],
+    },
+    'src/pages/site/auth/SignInPage.tsx': {
+      src: 'src/pages/site/auth/SignInPage.tsx',
+      isDynamicEntry: true,
+      imports: ['_react.js', '_sign-in.js'],
+    },
+  };
+
+  it('finds nothing when the public pages reach the sign-in only lazily, and the auth pages do', () => {
+    expect(signInProblems(site)).toEqual([]);
+  });
+
+  it('names a public page that reaches the sign-in through its static imports, deeply', () => {
+    const manifest = { ...site, '_forms.js': { imports: ['_react.js', '_sign-in.js'] } };
+
+    expect(signInProblems(manifest)).toEqual([
+      "src/pages/site/public/space/SpacePage.tsx reaches the sign-in's chunk (_sign-in.js).",
+    ]);
+  });
+
+  it("names the site's shell when it reaches the sign-in", () => {
+    const manifest = {
+      ...site,
+      'src/pages/site/shell/SiteLayout.tsx': {
+        src: 'src/pages/site/shell/SiteLayout.tsx',
+        isDynamicEntry: true,
+        imports: ['_sign-in.js'],
+      },
+    };
+
+    expect(signInProblems(manifest)).toEqual([
+      "src/pages/site/shell/SiteLayout.tsx reaches the sign-in's chunk (_sign-in.js).",
+    ]);
+  });
+
+  it("names the sign-in's chunk when the first download imports it", () => {
+    const manifest = { ...site, 'index.html': { isEntry: true, imports: ['_sign-in.js'] } };
+
+    expect(signInProblems(manifest)).toEqual([
+      "_sign-in.js is the sign-in's chunk in the site's first download.",
+    ]);
+  });
+
+  it('fails when the build has no sign-in chunk, so the check never holds nothing', () => {
+    const manifest = Object.fromEntries(
+      Object.entries(site).filter(([key]) => key !== '_sign-in.js'),
+    );
+
+    expect(signInProblems(manifest)).toEqual([
+      'No "sign-in" chunk in the build: the sign-in is not split from the pages.',
     ]);
   });
 });
