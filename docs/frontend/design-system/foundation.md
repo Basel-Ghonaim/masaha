@@ -123,7 +123,7 @@ A navigation grouped by category leads to all three; on a phone it is a drawer. 
 
 ### Primitive palette (locked — *ink + berry*, [ADR 0019](../../architecture/decisions/0019-ink-and-spark-brand.md))
 
-The brand has two roles: the **ink**, `neutral-900` / `neutral-50`, and the **spark**, a berry, `spark-500` / `spark-400`. The neutrals are drawn in the ink's hue (OKLCH h 250, chroma 0.014); the spark's seed is #A149A0 (h 328). Short names used in the tables below: `n` neutral, `s` spark, `g` green, `a` amber, `r` red, `i` blue.
+The brand has two roles: the **ink**, `neutral-900` / `neutral-50`, and the **spark**, a berry, `spark-500` / `spark-400`. The screen's one **main action** takes the berry a step darker, `spark-600`, in the light theme, and keeps the ink's button in the dark theme ([ADR 0022](../../architecture/decisions/0022-the-berry-on-the-main-action.md), revised 2026-11-25). The neutrals are drawn in the ink's hue (OKLCH h 250, chroma 0.014); the spark's seed is #A149A0 (h 328). Short names used in the tables below: `n` neutral, `s` spark, `g` green, `a` amber, `r` red, `i` blue.
 
 | Ramp | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -161,7 +161,7 @@ Plus `white` (#FFFFFF). There is no `brand` ramp: the brand is the ink and the s
 
 ## 5. Semantic roles
 
-Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`. A state takes its surface's text: `primary-hover` (its text `primary-foreground`) and `hover-on-muted` (over a muted ground, the control's `foreground`) have none, and `spark` carries no text (a count on it is `sidebar-primary`, whose `-foreground` is verified).
+Names follow shadcn/ui's convention so copied components work unchanged, plus Masaha's additions. Every role with a surface has a matching `-foreground`. A state takes its surface's text: `primary-hover` (its text `primary-foreground`), `main-action-hover` (its text `main-action-foreground`) and `hover-on-muted` (over a muted ground, the control's `foreground`) have none, and `spark` carries no text (a count on it is `sidebar-primary`, whose `-foreground` is verified).
 
 ### Surfaces and text
 | Role | Purpose |
@@ -178,8 +178,10 @@ Names follow shadcn/ui's convention so copied components work unchanged, plus Ma
 ### Actions
 | Role | Purpose |
 |---|---|
-| `primary` / `primary-foreground` | The **ink**: main action, links, checked and active controls |
+| `primary` / `primary-foreground` | The **ink**: the default and secondary filled actions, links, checked and active controls |
 | `primary-hover` | The ink's hover: `primary` mixed 18% toward the page, as the ink and the text are one colour |
+| `main-action` / `main-action-foreground` | The screen's **one main action**, the action it exists for, and an overlay's confirming action ([ADR 0022](../../architecture/decisions/0022-the-berry-on-the-main-action.md)): the berry in light, the ink's button in dark. A fill only: `bg-main-action` is its one utility, so no text, edge or link takes it |
+| `main-action-hover` | The main action's hover, a step darker in light; the ink's hover in dark. Its one utility is `bg-main-action-hover` |
 | `secondary` / `secondary-foreground` | Secondary actions |
 | `accent` / `accent-foreground` | **Selected**, the spark's tint: a chip that is on, the current item, today's row, the inside of a range |
 | `hover` / `hover-foreground` | **Hover**, a neutral fill of its own: a hovered row, item, card or outline and ghost control; never the spark |
@@ -218,6 +220,8 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `ring` | n-900 | n-50 |
 | `primary` / `primary-foreground` | n-900 / white | n-50 / n-950 |
 | `primary-hover` | n-900 mixed 18% toward n-50 (OKLab) | n-50 mixed 18% toward n-950 (OKLab) |
+| `main-action` / `main-action-foreground` | s-600 / white | n-50 / n-950 |
+| `main-action-hover` | s-700 | n-50 mixed 18% toward n-950 (OKLab) |
 | `secondary` / `secondary-foreground` | n-100 / n-900 | n-800 / n-100 |
 | `accent` / `accent-foreground` | s-100 / n-900 | s-900 mixed 30% toward s-800 (OKLab) / n-50 |
 | `hover` / `hover-foreground` | n-200 / n-900 | n-800 / n-50 |
@@ -241,14 +245,15 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 A role "at 10%" is the colour mixed with transparent in OKLab, so it lies over its ground. Every mix of the tokens is written in OKLab: in OKLCH Chrome treats a near-grey's hue as missing, so a mix of the ink's neutrals would paint a warm grey (2026-11-12, #144).
 
 **Verified** by the layer's token test, in both themes, translucent roles composited over their ground as painted:
-- **Text, 4.5:1:** every `-foreground` on its surface; `muted-foreground`, `primary`, `destructive`, `success` and `info` on `background`, `card` and `muted`; `foreground` and `muted-foreground` on the selected tints (`accent`, `sidebar-accent`); `muted-foreground` and `sidebar-foreground` on `hover`; `primary-foreground` on `primary-hover`; `foreground` on `hover-on-muted` over `muted` and over `hover`; `scrim-foreground` on `scrim` over a photo's white and its black.
-- **Non-text, 3:1:** `input`, `ring`, every `chart-*` and the status fills on `background` and `card`; the `spark` on `background`, `card`, `popover`, `sidebar` and the selected tints; `ring` on `muted`, the tints and `hover`.
+- **Text, 4.5:1:** every `-foreground` on its surface; `muted-foreground`, `primary`, `destructive`, `success` and `info` on `background`, `card` and `muted`; `foreground` and `muted-foreground` on the selected tints (`accent`, `sidebar-accent`); `muted-foreground` and `sidebar-foreground` on `hover`; `primary-foreground` on `primary-hover`; `main-action-foreground` on `main-action-hover`; `foreground` on `hover-on-muted` over `muted` and over `hover`; `scrim-foreground` on `scrim` over a photo's white and its black.
+- **Non-text, 3:1:** `input`, `ring`, every `chart-*` and the status fills on `background` and `card`; the `spark` on `background`, `card`, `popover`, `sidebar` and the selected tints; `main-action` and `main-action-hover` on `background`, `card` and `popover`; `ring` on `muted`, the tints and `hover`.
 - **Fills seen:** `hover` at 1.2:1 from `card`, `background`, `popover` and `sidebar`; `hover-on-muted` from `muted` and from `hover`, and the `skeleton` from `card` and `background`, at 1.2:1; the selected tints at 1.15:1 from `card` and `sidebar` (a second mark or a word carries the rest).
-- **Apart:** `hover` is not the selected tint (OKLab ΔE ≥ 0.02); the ink and the spark stand ΔE ≥ 0.10 from `destructive`, and ≥ 0.08 under simulated protanopia and deuteranopia; in dark the tints stand ΔE ≥ 0.10 from `destructive-subtle`, and `destructive` keeps a red's hue (OKLCH 15–45°).
+- **Apart:** `hover` is not the selected tint (OKLab ΔE ≥ 0.02); the ink, the spark, `main-action` and `main-action-hover` stand ΔE ≥ 0.10 from `destructive`, and ≥ 0.08 under simulated protanopia and deuteranopia; in dark the tints stand ΔE ≥ 0.10 from `destructive-subtle`, and `destructive` keeps a red's hue (OKLCH 15–45°).
 - **The identity's colours** that the logo's files and the browser's icons write by hand: light `background` #F7FBFF, `foreground` #1A1F25, `spark` #B55BB3; dark #0D1217, #F7FBFF, #D27ED0.
+- **The dark main action is the ink's button,** as before: painted #F7FBFF, its label #0D1217, its hover #C7CBD0 (the owner, 2026-11-25).
 
 **Usage rules the values depend on:**
-- **The spark is never text, never on an action, never destructive.** It marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words.
+- **The spark is never text, never on an action, never destructive.** The `spark` role marks what matters now as a fill, an edge, an outline or a mark, and has no text utility. A count on it takes `sidebar-primary` and its `-foreground`. `text-sidebar-primary` and `text-chart-1` reach the spark through other roles: they draw marks, never words. The main action's berry is a role of its own, `main-action`, a step darker ([ADR 0022](../../architecture/decisions/0022-the-berry-on-the-main-action.md)).
 - **Text over a photo** sits on `scrim` with `scrim-foreground`, never on an opacity of another role.
 - **Hover is not selected.** A hover is the neutral `hover` fill; selected is the spark's tint (`accent`, `sidebar-accent`). They differ by hue and, where the design gives one, a second mark: the sidebar's current item has a 3 px `spark` bar at its inline start, a chip that is on a `spark` edge and a check. Selected keeps its tint under the pointer: an item hovers only while it is not selected (`not-data-on:`, `not-data-active:`, `not-data-[active=true]:`, or the caller's own condition), never by the order Tailwind emits its variants in. A control drawn on a `muted` or `secondary` ground hovers with `hover-on-muted`: in dark, `hover` equals `muted` and would vanish there.
 - **Links in running text are underlined.** The ink is also the text's colour, so a link inside a sentence, a note or the footer is underlined at rest (`text-primary underline underline-offset-4`), not only under the pointer; so is the link Button.
@@ -381,7 +386,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
 
 - **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode. A bordered control (input, textarea, select trigger, checkbox, radio) also turns its border to `ring`, except while invalid, when it keeps its error border.
-- **A hover never fades a fill.** `bg-primary/90` drops the light theme's white label below AA. The ink's hover is its own role (`hover:bg-primary-hover`); secondary and destructive mix their fill toward the foreground, which raises the label's contrast in both themes: secondary in OKLab, since in OKLCH Chrome drops the hue of two near-greys and paints them warm (§5, *Values*), destructive in OKLCH (`hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]`), where the red keeps its hue. Outline and ghost variants, rows, and menu and list items hover with `hover` (`hover:bg-hover hover:text-hover-foreground`), never `accent`, which means selected (§5; `check:classes` refuses it, §3); on a `muted` or `secondary` ground, with `hover-on-muted`; a ghost control inside a table row, which already takes `hover`, hovers and marks its open menu with `hover-on-muted` over it.
+- **A hover never fades a fill.** `bg-primary/90` drops the light theme's white label below AA. The ink's hover is its own role (`hover:bg-primary-hover`), as the main action's is (`hover:bg-main-action-hover`); secondary and destructive mix their fill toward the foreground, which raises the label's contrast in both themes: secondary in OKLab, since in OKLCH Chrome drops the hue of two near-greys and paints them warm (§5, *Values*), destructive in OKLCH (`hover:bg-[color-mix(in_oklch,var(--destructive),var(--foreground)_12%)]`), where the red keeps its hue. Outline and ghost variants, rows, and menu and list items hover with `hover` (`hover:bg-hover hover:text-hover-foreground`), never `accent`, which means selected (§5; `check:classes` refuses it, §3); on a `muted` or `secondary` ground, with `hover-on-muted`; a ghost control inside a table row, which already takes `hover`, hovers and marks its open menu with `hover-on-muted` over it.
 - **Verified pairs only.** A fill carries the text §5 verifies on it (`bg-destructive text-destructive-foreground`), never a tint of a role under a colour it was not checked against (`bg-destructive/10 text-destructive`).
 - **`data-side` offsets stay physical.** Radix names the side a popup opened on (`left`, `right`) the same in either direction, so the CLI's `rtl:` reversals of those offsets are dropped.
 - **Raw px values** (`h-[18.4px]`, `translate-x-[calc(100%-2px)]`) become the spacing scale.
