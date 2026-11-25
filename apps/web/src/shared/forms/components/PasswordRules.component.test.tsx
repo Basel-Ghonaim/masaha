@@ -1,34 +1,37 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { PasswordRulesView } from '../types/PasswordRulesView';
 import { PasswordRules } from './PasswordRules';
 
-const VIEW: PasswordRulesView = {
-  label: 'Password rules',
-  rules: [
-    { rule: 'minLength', text: 'At least 8 characters', state: 'failed', status: '— not met yet' },
-    { rule: 'letter', text: 'At least one letter', state: 'met', status: '— met' },
-    { rule: 'digit', text: 'At least one number', state: 'pending', status: '— not met yet' },
-  ],
-};
-
 describe('PasswordRules', () => {
-  it('renders a named list with each rule and its state as read aloud', () => {
-    render(<PasswordRules view={VIEW} />);
+  it.each([
+    ['needs', 'text-muted-foreground'],
+    ['missing', 'text-muted-foreground'],
+    ['met', 'text-foreground'],
+    ['failed', 'text-destructive'],
+  ] as const)('renders the line in the tone of its state (%s)', (state, tone) => {
+    render(<PasswordRules view={{ state, line: 'The line' }} />);
 
-    const items = within(screen.getByRole('list', { name: 'Password rules' })).getAllByRole(
-      'listitem',
+    expect(screen.getByText('The line')).toHaveClass(tone);
+  });
+
+  it('marks a password that meets the condition with a tick, hidden from assistive technology', () => {
+    const { container } = render(
+      <PasswordRules view={{ state: 'met', line: 'The password is fine' }} />,
     );
-    expect(items.map((item) => item.textContent)).toEqual([
-      'At least 8 characters — not met yet',
-      'At least one letter — met',
-      'At least one number — not met yet',
-    ]);
+
+    expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('The password is fine').textContent).toBe('The password is fine');
+  });
+
+  it('shows no tick before the condition is met', () => {
+    const { container } = render(<PasswordRules view={{ state: 'missing', line: 'Needs more' }} />);
+
+    expect(container.querySelector('svg')).toBeNull();
   });
 
   it('carries the id the password field is described by', () => {
-    render(<PasswordRules view={VIEW} id="rules" />);
+    render(<PasswordRules view={{ state: 'needs', line: 'The line' }} id="rules" />);
 
-    expect(screen.getByRole('list')).toHaveAttribute('id', 'rules');
+    expect(screen.getByText('The line')).toHaveAttribute('id', 'rules');
   });
 });

@@ -1,57 +1,69 @@
 import { renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startPreferences } from '../../../test/startPreferences';
 import { usePasswordRules } from './usePasswordRules';
 
-/** Each rule's state, in the checklist's order. */
-function states(value: string, invalid = false) {
-  const { result } = renderHook(() => usePasswordRules(value, invalid));
-  return result.current.rules.map(({ state }) => state);
+function viewOf(value: string, invalid = false) {
+  return renderHook(() => usePasswordRules(value, invalid)).result.current;
 }
-
-beforeEach(() => {
-  startPreferences('en');
-});
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('usePasswordRules', () => {
-  it('ticks each rule as the value comes to meet it', () => {
-    expect(states('')).toEqual(['pending', 'pending', 'pending']);
-    expect(states('gaza')).toEqual(['pending', 'met', 'pending']);
-    expect(states('gaza202')).toEqual(['pending', 'met', 'met']);
-    expect(states('gaza2026')).toEqual(['met', 'met', 'met']);
+  it('says what the password needs before anything is typed', () => {
+    startPreferences('en');
+
+    expect(viewOf('')).toEqual({
+      state: 'needs',
+      line: 'At least 8 characters, with a letter and a number',
+    });
   });
 
-  it('shows «Too long — shorten it» only while the password passes 72 bytes, as failed', () => {
-    const { result: short } = renderHook(() => usePasswordRules('gaza2026', false));
-    expect(short.current.rules.map(({ rule }) => rule)).toEqual(['minLength', 'letter', 'digit']);
+  it.each([
+    ['gaza', 'Still needs 4 more characters and a number'],
+    ['gaza202', 'Still needs 1 more character'],
+    ['2026', 'Still needs 4 more characters and a letter'],
+    ['gazagaza', 'Still needs a number'],
+    ['20262026', 'Still needs a letter'],
+    ['!', 'Still needs 7 more characters, a letter, and a number'],
+  ])('says only what %s still lacks', (value, line) => {
+    startPreferences('en');
 
-    const long = `${'ب'.repeat(36)}1`;
-    const { result } = renderHook(() => usePasswordRules(long, false));
-    expect(result.current.rules.map(({ rule, state }) => `${rule} ${state}`)).toEqual([
-      'minLength met',
-      'letter met',
-      'digit met',
-      'bytes failed',
-    ]);
-    expect(result.current.rules[3]?.text).toBe('Too long — shorten it');
+    expect(viewOf(value)).toEqual({ state: 'missing', line });
   });
 
-  it('marks the rules not met as failed once the form was sent with them', () => {
-    expect(states('gazagaza', true)).toEqual(['met', 'met', 'failed']);
+  it('says the password is fine once it meets the policy, in any script', () => {
+    startPreferences('en');
+
+    expect(viewOf('gaza2026')).toEqual({ state: 'met', line: 'The password is fine' });
+    expect(viewOf('غزة٢٠٢٦مساحة')).toMatchObject({ state: 'met' });
   });
 
-  it('words each rule, its state read aloud, and the list', () => {
-    const { result } = renderHook(() => usePasswordRules('gaza', false));
+  it('says only «Too long — shorten it» past 72 bytes, as failed', () => {
+    startPreferences('en');
 
-    expect(result.current.label).toBe('Password rules');
-    expect(result.current.rules.map(({ text, status }) => `${text} ${status}`)).toEqual([
-      'At least 8 characters — not met yet',
-      'At least one letter — met',
-      'At least one number — not met yet',
-    ]);
+    expect(viewOf(`${'ب'.repeat(36)}1`)).toEqual({
+      state: 'failed',
+      line: 'Too long — shorten it',
+    });
+  });
+
+  it('shows what is missing as failed once the form was sent with it', () => {
+    startPreferences('en');
+
+    expect(viewOf('gazagaza', true)).toEqual({ state: 'failed', line: 'Still needs a number' });
+    expect(viewOf('', true)).toMatchObject({ state: 'failed' });
+  });
+
+  it('words it in Arabic, the parts joined as Arabic joins them', () => {
+    startPreferences('ar');
+
+    expect(viewOf('').line).toBe('8 أحرف على الأقل، فيها حرف ورقم');
+    expect(viewOf('gaza').line).toBe('ينقصها: 4 أحرف أخرى ورقم');
+    expect(viewOf('gaza20').line).toBe('ينقصها: حرفان آخران');
+    expect(viewOf('gazagaz').line).toBe('ينقصها: حرف واحد آخر ورقم');
+    expect(viewOf('gaza2026').line).toBe('كلمة المرور مناسبة');
   });
 });

@@ -39,7 +39,7 @@
 
 - The `me` router at `/me` is guarded by `requireAuth`, which lets a pending change through only on `/me/password` ([security › Passwords](../backend/security.md#passwords)).
 - A change takes the user's session lock and writes as a compare-and-set ([conventions › Concurrency](../backend/conventions.md#concurrency)).
-- On the web, a change hands its new token to the session's `passwordChanged`, and sign-out is the session's `useSignOut` ([architecture §4](../frontend/architecture.md#4-session-and-preferences)). The form follows `shared/forms`, with its password input and its rules checklist ([architecture › Forms](../frontend/architecture.md#forms)); the toast is the design system's.
+- On the web, a change hands its new token to the session's `passwordChanged`, and sign-out is the session's `useSignOut` ([architecture §4](../frontend/architecture.md#4-session-and-preferences)). The form follows `shared/forms`, with its password input and the policy's line under it ([architecture › Forms](../frontend/architecture.md#forms)); the toast is the design system's.
 
 ## Behaviour and flows
 
@@ -47,7 +47,7 @@
 
 **Sign-out** is one action, offered by every menu and by `SignOutButton`: it shows its pending state, and a failure says why, so the user tries again.
 
-**The forced change.** The gate sends a user with a temporary password to the change page, whose header shows the wordmark and sign-out only. It says «هذه كلمة مرور مؤقتة. اختر كلمة مرورك لتتابع.», naming no one who issued it: an owner creates their reception's. The form asks for the new password alone, with the policy as a checklist that ticks as the user types. On success the hook, in its own callback, hands the new token to the session of the user who started the change, so it never reaches another user signed in meanwhile, and says the password is saved. Where the user goes next is the guard's.
+**The forced change.** The gate sends a user with a temporary password to the change page, whose header shows the wordmark and sign-out only. It says «هذه كلمة مرور مؤقتة. اختر كلمة مرورك لتتابع.», naming no one who issued it: an owner creates their reception's. The form asks for the new password alone, with the policy's line under it ([architecture › Forms](../frontend/architecture.md#forms)). On success the hook, in its own callback, hands the new token to the session of the user who started the change, so it never reaches another user signed in meanwhile, and says the password is saved. Where the user goes next is the guard's.
 
 **The one-time password.** When the admin creates an account, its temporary password shows once, in a dialog that names the person («{name} · {email}», the email left to right) and offers no way to dismiss it by accident: no close button, and neither Escape nor a click outside closes it. The password reads left to right, selectable whole, with «نسخ».
 - **«تم» waits for the copy:** it is disabled until «نسخ» is pressed, and says why («انسخها أولًا — لن تظهر مرة أخرى»). A copy the browser refuses still enables «تم», with «تعذّر النسخ — حدّدها وانسخها يدويًا».

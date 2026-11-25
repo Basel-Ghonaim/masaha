@@ -1,4 +1,4 @@
-import type { PasswordRule } from '@masaha/shared/users';
+import { englishPlural } from '../plural';
 
 /** What every form says the same way: the password field, its rules, and a submission that failed. */
 export const FORMS = {
@@ -6,19 +6,24 @@ export const FORMS = {
     show: 'Show password',
     hide: 'Hide password',
   },
-  /** The checklist under a new password, ticked as the user types. */
+  /** The line under a new password (A7): what it needs, what is still missing, or that it is fine. */
   passwordRules: {
-    label: 'Password rules',
-    rules: {
-      minLength: 'At least 8 characters',
-      letter: 'At least one letter',
-      digit: 'At least one number',
-      /** Shown only while broken: at most 72 bytes, which an Arabic letter takes two of. */
-      bytes: 'Too long — shorten it',
-    } satisfies Record<PasswordRule, string>,
-    /** Read after a rule by assistive technology, which cannot see its tick. */
-    met: '— met',
-    notMet: '— not met yet',
+    needs: 'At least 8 characters, with a letter and a number',
+    /** Only what the password typed still lacks, each of `parts`, joined as the language joins. */
+    missing: ({ parts }: { parts: readonly string[] }) =>
+      `Still needs ${new Intl.ListFormat('en', { type: 'conjunction' }).format(parts)}`,
+    parts: {
+      characters: ({ count }: { count: number }) =>
+        englishPlural(count, {
+          one: '1 more character',
+          other: `${String(count)} more characters`,
+        }),
+      letter: 'a letter',
+      digit: 'a number',
+    },
+    fine: 'The password is fine',
+    /** Shown only while broken: at most 72 bytes, which an Arabic letter takes two of. */
+    tooLong: 'Too long — shorten it',
   },
   /** A submission the server refused, or could not be sent. */
   failure: {

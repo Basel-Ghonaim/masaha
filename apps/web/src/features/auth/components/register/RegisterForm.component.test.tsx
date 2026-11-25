@@ -36,14 +36,6 @@ async function fillAndSubmit({
   return user;
 }
 
-/** Each password rule as assistive technology reads it. */
-function rulesRead() {
-  const list = screen.getByRole('list', { name: 'Password rules' });
-  return within(list)
-    .getAllByRole('listitem')
-    .map((item) => item.textContent);
-}
-
 /** A text with the Unicode isolates around its inserted values removed, as a reader sees it. */
 function seen(text: string | null) {
   return text?.replace(/[\u2066-\u2069]/g, '');
@@ -59,23 +51,21 @@ afterEach(() => {
 });
 
 describe('RegisterForm', () => {
-  it('shows the password rules for what is typed', async () => {
+  it('shows what the password typed still lacks', async () => {
     renderRegister(() => ok(aSession(), 201));
 
     await userEvent.type(screen.getByLabelText('Password'), 'gaza');
 
-    expect(rulesRead()).toEqual([
-      'At least 8 characters — not met yet',
-      'At least one letter — met',
-      'At least one number — not met yet',
-    ]);
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
+      'Still needs 4 more characters and a number',
+    );
   });
 
-  it('describes the password field by its rules', () => {
+  it('describes the password field by its condition', () => {
     renderRegister(() => ok(aSession(), 201));
 
     expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
-      /At least 8 characters.*At least one letter.*At least one number/,
+      'At least 8 characters, with a letter and a number',
     );
   });
 
@@ -88,11 +78,9 @@ describe('RegisterForm', () => {
     expect(name).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Password')).toHaveAttribute('aria-invalid', 'true');
-    expect(rulesRead()).toEqual([
-      'At least 8 characters — not met yet',
-      'At least one letter — met',
-      'At least one number — not met yet',
-    ]);
+    expect(screen.getByText('Still needs 5 more characters and a number')).toHaveClass(
+      'text-destructive',
+    );
     expect(name).toHaveFocus();
   });
 
