@@ -11,12 +11,16 @@ export { ForbiddenState } from './states/ForbiddenState';
 export { noteSitePage, onGuestLeaving, sitePage } from './guest/guestLeaving';
 export {
   dropHeldIntent,
+  heldIntentPreview,
   holdIntent,
   noteRecoveryDone,
   onIntentConfirmed,
+  renewHeldIntent,
   takeIntentPath,
   type HeldIntent,
 } from './guest/heldIntent';
+export { intentMayRun } from './guest/intentMayRun';
+export { onRecoveryDoneElsewhere } from './guest/recoveryElsewhere';
 export { RETURN_TOAST_ID } from './guest/returnToast';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';

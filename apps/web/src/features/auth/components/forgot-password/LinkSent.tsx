@@ -1,20 +1,27 @@
 import { useCopy } from '@shared/copy';
 import { Button, CardContent } from '@shared/design-system';
+import type { ReactNode } from 'react';
 import { ResendLinkForm } from '../resend-link/ResendLinkForm';
 
 /**
  * What a sent link says, wherever one is asked for: what happens next (`message`), the masked
- * address, and another link while the recovery may ask for one, its wait counted down (once it may
- * not, why).
+ * address, the caller's `note`, and another link while the recovery may ask for one, its wait
+ * counted down (once it may not, why).
  */
 export function LinkSentLines({
   message,
   sentTo,
   canResend,
+  note,
+  onResent,
 }: {
   message: string;
   sentTo: string;
   canResend: boolean;
+  /** Said before another link is offered, such as what happens once the password is set. */
+  note?: ReactNode;
+  /** Hears another link sent. */
+  onResent?: () => void;
 }) {
   const copy = useCopy();
 
@@ -22,8 +29,9 @@ export function LinkSentLines({
     <div className="flex flex-col gap-4">
       <p className="text-body">{message}</p>
       <p className="text-body-sm text-muted-foreground">{sentTo}</p>
+      {note}
       {canResend ? (
-        <ResendLinkForm />
+        <ResendLinkForm onResent={onResent} />
       ) : (
         <p className="text-body-sm">{copy.errors.RESEND_LIMIT_REACHED}</p>
       )}

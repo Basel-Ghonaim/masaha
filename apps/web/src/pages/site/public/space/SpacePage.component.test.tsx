@@ -69,6 +69,7 @@ beforeAll(async () => {
     import('../../shell/SiteLayout'),
     import('./SpacePage'),
     import('../about/AboutPage'),
+    import('../../auth/in-place/InPlaceSignIn'),
   ]);
 });
 
@@ -155,9 +156,9 @@ describe('a space’s page', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Report wrong information' }));
     const prompt = await screen.findByRole('dialog', { name: 'Sign in to report information' });
-    expect(within(prompt).getByRole('link', { name: 'Sign in' })).toHaveAttribute(
-      'href',
-      `/login?next=${encodeURIComponent('/spaces/noor-hub')}`,
+    expect(await within(prompt).findByRole('button', { name: 'Sign in' })).toHaveAttribute(
+      'type',
+      'submit',
     );
 
     act(() => {
@@ -334,7 +335,7 @@ describe('a space’s page', () => {
     act(() => {
       establishSession(aSession(), { source: 'signIn' });
     });
-    // The prompt stays open here (the guest signed in without leaving), so the page is hidden under it.
+    // The prompt closes as the session arrives; the heart is found whether or not it is hidden yet.
     const heart = screen.getByRole('button', {
       name: /^Save .Noor Hub. to favourites$/,
       hidden: true,

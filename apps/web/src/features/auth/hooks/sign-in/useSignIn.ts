@@ -6,6 +6,7 @@ import { RETURN_TOAST_ID } from '@shared/routing';
 import { establishSession, type Session } from '@shared/session';
 import { useMutation } from '@tanstack/react-query';
 import { createAuthRepository } from '../../repository/authRepository';
+import { authKeys } from '../queryKeys';
 
 const repository = createAuthRepository();
 
@@ -22,6 +23,7 @@ const repository = createAuthRepository();
  */
 export function useSignIn() {
   return useMutation<Session, AppError, LoginRequest>({
+    mutationKey: [...authKeys.signingIn, 'signIn'],
     mutationFn: repository.login,
     gcTime: 0,
     onSuccess: (session) => {

@@ -3,9 +3,17 @@ import { useCopy } from '@shared/copy';
 import { usePasswordRules, useServerForm } from '@shared/forms';
 import { usePreferences } from '@shared/preferences';
 import { useWatch } from 'react-hook-form';
+import { useEmailReport } from '../useEmailReport';
 import { useRegister } from './useRegister';
 
 type RegisterValues = { name: string; email: string; password: string };
+
+export type RegisterFormOptions = {
+  /** The email the form opens with, carried from where the person typed it. */
+  defaultEmail?: string;
+  /** Hears the email as it changes, so it can be carried on. */
+  onEmailChange?: (email: string) => void;
+};
 
 /**
  * The register form: the contract's `registerSchema`, the name, the email and the password, and the
@@ -13,7 +21,7 @@ type RegisterValues = { name: string; email: string; password: string };
  * returns what `RegisterForm` renders, with the password's rules as they tick, and whether the
  * email already has an account (the server's `EMAIL_TAKEN`, as the email's `not_unique`).
  */
-export function useRegisterForm() {
+export function useRegisterForm({ defaultEmail = '', onEmailChange }: RegisterFormOptions = {}) {
   const copy = useCopy();
   const language = usePreferences((preferences) => preferences.language);
   const register = useRegister();
@@ -22,7 +30,7 @@ export function useRegisterForm() {
     RegisterRequest
   >({
     schema: registerSchema,
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', email: defaultEmail, password: '' },
     fields: ['name', 'email', 'password'],
     submit: (request) => register.mutateAsync({ ...request, language }),
     failureTitle: copy.auth.register.failed,
@@ -32,6 +40,7 @@ export function useRegisterForm() {
       password: copy.auth.fieldErrors.newPassword,
     },
   });
+  useEmailReport(useWatch({ control: form.control, name: 'email' }), onEmailChange);
   const password = useWatch({ control: form.control, name: 'password' });
   const passwordRules = usePasswordRules(password, errors.password !== undefined);
 

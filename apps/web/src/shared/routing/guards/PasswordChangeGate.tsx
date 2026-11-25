@@ -1,6 +1,6 @@
 import { useSession } from '@shared/session';
-import type { ReactNode } from 'react';
-import { matchPath, Navigate, useLocation } from 'react-router';
+import { useEffect, type ReactNode } from 'react';
+import { matchPath, useLocation, useNavigate, useNavigation } from 'react-router';
 import { CHANGE_PASSWORD_PATH, changePasswordPath, RESET_PASSWORD_PATH } from '../returnUrl';
 
 /**
@@ -18,10 +18,19 @@ const EXEMPT = [CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH];
 export function PasswordChangeGate({ children }: { children: ReactNode }) {
   const pending = useSession((session) => session.user?.mustChangePassword === true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { state } = useNavigation();
   const exempt = EXEMPT.some((path) => matchPath(path, location.pathname) !== null);
+  const redirect = pending && !exempt;
 
-  if (pending && !exempt) {
-    return <Navigate replace to={changePasswordPath(location)} />;
-  }
-  return children;
+  // Whenever the router rests away from the change: the redirect waits for the change page to load,
+  // and a move that interrupts it — Back from an overlay's entry at the same address, with the same
+  // key (#155) — leaves the router idle on the page it left, so the redirect is made again there,
+  // never leaving the page blank.
+  useEffect(() => {
+    if (redirect && state === 'idle')
+      void navigate(changePasswordPath(location), { replace: true });
+  }, [redirect, state, location, navigate]);
+
+  return redirect ? null : children;
 }

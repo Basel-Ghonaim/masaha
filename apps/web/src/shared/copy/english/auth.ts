@@ -135,5 +135,19 @@ export const AUTH = {
     doneTitle: 'Your password was changed, and you were signed out on all devices',
     doneDescription: 'Sign in with your new password.',
     signIn: 'Sign in',
+    /** In the form, while a guest's action is held in this browser: where signing in returns. */
+    returnNote: {
+      favorite: ({ space }: { space: string }) =>
+        `After saving, sign in here and we take you back to ${space} to finish saving it to your favourites.`,
+      report: ({ space }: { space: string }) =>
+        `After saving, sign in here and we take you back to ${space} to finish your report.`,
+    },
+    /** Once the password is set, while a guest's action is held: the sign-in's line. */
+    doneReturn: {
+      favorite: ({ space }: { space: string }) =>
+        `Sign in with your new password, and we take you back to ${space} to finish saving it.`,
+      report: ({ space }: { space: string }) =>
+        `Sign in with your new password, and we take you back to ${space} to finish your report.`,
+    },
   },
 } as const;

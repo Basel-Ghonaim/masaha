@@ -1,6 +1,10 @@
+import { onSessionEnded } from '@shared/session';
 import { dropHeldIntent } from './heldIntent';
 
-/** What each held action does when the guest who pressed it leaves its page: it lets itself go. */
+/**
+ * What each held action does when the guest who pressed it leaves its page, or a session ends: it
+ * lets itself go.
+ */
 const listeners = new Set<() => void>();
 
 /** The last page the site's shell showed: where a guest's held action was pressed. */
@@ -8,7 +12,9 @@ let shown: string | null = null;
 
 /**
  * Registers what to let go when a guest leaves the page they pressed a held action on (S14, #129's
- * review): a guest's favourite or report, held for their round trip through the sign-in.
+ * review), or when a session ends: a guest's favourite or report, held for their round trip through
+ * the sign-in. A sign-out, such as one on the forced change's page before the action could run,
+ * lets it go, so the next account to sign in in this tab never runs it (S-1).
  */
 export function onGuestLeaving(letGo: () => void): void {
   listeners.add(letGo);
@@ -32,3 +38,7 @@ export function noteSitePage(pathname: string, guest: boolean): void {
 export function sitePage(): string | null {
   return shown;
 }
+
+onSessionEnded(() => {
+  for (const letGo of listeners) letGo();
+});

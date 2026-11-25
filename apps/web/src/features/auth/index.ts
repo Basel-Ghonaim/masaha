@@ -13,3 +13,9 @@ export {
 } from './components/reset-password/ResetPasswordCard';
 export { SetPasswordByEmail } from './components/set-password/SetPasswordByEmail';
 export { SignInForm, type SignInFormProps } from './components/sign-in/SignInForm';
+export { useSignInBusy } from './hooks/useSignInBusy';
+export {
+  ForgotPasswordSteps,
+  type ForgotPasswordStep,
+  type ForgotPasswordStepsProps,
+} from './components/forgot-password/ForgotPasswordSteps';

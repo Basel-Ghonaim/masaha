@@ -1,22 +1,24 @@
 import { onSessionEnded, onSessionEstablished } from '@shared/session';
 import { STORAGE_KEYS, storage } from '@shared/storage';
+import { returnUrlOf } from '../returnUrl';
 
 /** A space's name as the card or the page showed it, marked when not in the interface's language. */
 type HeldName = { text: string; lang?: 'en'; dir?: 'ltr' };
 
 /**
  * A guest's held action, kept in the browser's storage so a password recovery's new tab can run it
- * (finding 168): a favourite of a space, or a report on a space's page; the page it was pressed on,
- * which the app returns to; and when it was held.
+ * (finding 168): a favourite of a space, or a report on a space's page, with the space's name, which
+ * the reset link's page and the link sent say; the page it was pressed on, which the app returns to;
+ * and when it was held. A report held before it carried a name has none.
  */
 export type HeldIntent =
-  | { kind: 'favorite'; spaceId: number; name: HeldName; path: string; at: number }
-  | { kind: 'report'; slug: string; path: string; at: number };
+  | { kind: 'favorite'; spaceId: number; name: HeldName; path: string; at: number; tab?: string }
+  | { kind: 'report'; slug: string; name?: HeldName; path: string; at: number; tab?: string };
 
-/** What a feature holds: its intent, without the time, which the store stamps. */
+/** What a feature holds: its intent, without the time and the tab, which the store stamps. */
 export type HeldAction =
-  | Omit<Extract<HeldIntent, { kind: 'favorite' }>, 'at'>
-  | Omit<Extract<HeldIntent, { kind: 'report' }>, 'at'>;
+  | Omit<Extract<HeldIntent, { kind: 'favorite' }>, 'at' | 'tab'>
+  | Omit<Extract<HeldIntent, { kind: 'report' }>, 'at' | 'tab'>;
 
 /** How long a held action waits for its sign-in: the round trip it serves, no more (S14). */
 export const HELD_INTENT_MS = 15 * 60 * 1000;
@@ -35,8 +37,8 @@ const runners = new Map<HeldIntent['kind'], Runner>();
 let confirmed: HeldIntent | null = null;
 // Where the app goes once a sign-in confirmed an intent, until the site's shell has gone there.
 let returnTo: string | null = null;
-// Whether this tab held the stored intent: a sign-in here is the round trip it serves.
-let heldHere = false;
+// This tab's own mark, stamped on the intent it holds: a sign-in here serves only its own (S-2).
+const TAB = Math.random().toString(36).slice(2);
 
 function isName(value: unknown): value is HeldName {
   return (
@@ -46,17 +48,30 @@ function isName(value: unknown): value is HeldName {
   );
 }
 
+/**
+ * `path` as the app goes to it, read as `next` is (`returnUrlOf`): a page of this site, never one a
+ * browser would read as another host (`//host`, `/\host`, `/.//host`); nothing otherwise.
+ */
+function ownPage(path: unknown): string | undefined {
+  return typeof path === 'string'
+    ? returnUrlOf(`?${new URLSearchParams({ next: path }).toString()}`)
+    : undefined;
+}
+
 function isIntent(value: unknown): value is HeldIntent {
   if (typeof value !== 'object' || value === null) return false;
   const intent = value as Record<string, unknown>;
   const shared =
-    typeof intent.path === 'string' &&
-    intent.path.startsWith('/') &&
-    !intent.path.startsWith('//') &&
-    typeof intent.at === 'number';
+    ownPage(intent.path) !== undefined &&
+    typeof intent.at === 'number' &&
+    (intent.tab === undefined || typeof intent.tab === 'string');
   if (!shared) return false;
   if (intent.kind === 'favorite') return typeof intent.spaceId === 'number' && isName(intent.name);
-  return intent.kind === 'report' && typeof intent.slug === 'string';
+  return (
+    intent.kind === 'report' &&
+    typeof intent.slug === 'string' &&
+    (intent.name === undefined || isName(intent.name))
+  );
 }
 
 /** Whether a password reset was completed in this browser just before; the mark is removed as read. */
@@ -67,10 +82,9 @@ function takeRecovery(now: number): boolean {
   return raw !== null && Number.isFinite(at) && at <= now && now - at <= RECOVERY_ROUND_TRIP_MS;
 }
 
-/** The stored intent, when it is one and within its life; it is removed as it is read. */
-function takeStored(now: number): HeldIntent | null {
+/** The stored intent, when it is one and within its life; it is left where it is. */
+function readStored(now: number): HeldIntent | null {
   const raw = storage.read(STORAGE_KEYS.heldIntent);
-  storage.remove(STORAGE_KEYS.heldIntent);
   if (raw === null) return null;
   let value: unknown;
   try {
@@ -79,7 +93,37 @@ function takeStored(now: number): HeldIntent | null {
     return null;
   }
   if (!isIntent(value) || value.at > now || now - value.at > HELD_INTENT_MS) return null;
-  return value;
+  // The page as `next` reads it, the one checked, is the one followed.
+  return { ...value, path: ownPage(value.path) ?? '/' };
+}
+
+/** The stored intent, when it is one and within its life; it is removed as it is read. */
+function takeStored(now: number): HeldIntent | null {
+  const intent = readStored(now);
+  storage.remove(STORAGE_KEYS.heldIntent);
+  return intent;
+}
+
+/**
+ * The guest's action held in this browser, if one is, within its life, read without taking it: what
+ * the link sent and the reset link's page say will complete (ADR 0021, point 4). `'tab'` reads only
+ * the one this tab held, which its own sign-in would run; the reset link's page reads any. Running it
+ * stays the sign-in's.
+ */
+export function heldIntentPreview(of: 'browser' | 'tab' = 'browser'): HeldIntent | null {
+  const intent = readStored(Date.now());
+  return of === 'tab' && intent?.tab !== TAB ? null : intent;
+}
+
+/**
+ * Starts the held action's life again, when one is held: a reset link asked for, or asked again,
+ * from the sign-in over its page, whose round trip through the email may outlast what was left of
+ * it. It never holds an action that is not held.
+ */
+export function renewHeldIntent(): void {
+  const intent = readStored(Date.now());
+  if (intent !== null)
+    storage.write(STORAGE_KEYS.heldIntent, JSON.stringify({ ...intent, at: Date.now() }));
 }
 
 /**
@@ -87,8 +131,7 @@ function takeStored(now: number): HeldIntent | null {
  * password recovery's new tab can still run it once its sign-in confirms it: never in the address.
  */
 export function holdIntent(action: HeldAction): void {
-  heldHere = true;
-  storage.write(STORAGE_KEYS.heldIntent, JSON.stringify({ ...action, at: Date.now() }));
+  storage.write(STORAGE_KEYS.heldIntent, JSON.stringify({ ...action, at: Date.now(), tab: TAB }));
 }
 
 /**
@@ -103,7 +146,6 @@ export function noteRecoveryDone(): void {
 /** Lets the held action go: the guest closed the sign-in, left its page, or signed out. */
 export function dropHeldIntent(): void {
   storage.remove(STORAGE_KEYS.heldIntent);
-  heldHere = false;
   confirmed = null;
   returnTo = null;
 }
@@ -128,17 +170,16 @@ export function takeIntentPath(): string | null {
 }
 
 // Only the round trip it serves confirms the stored intent (D9.6, R14-F3): a sign-in in the tab that
-// held it, or the sign-in after a password reset completed in this browser. Any other sign-in — an
+// held it — the intent stamped with this tab's mark, not one another tab held over it since (S-2) —,
+// or the sign-in after a password reset completed in this browser. Any other sign-in — an
 // unrelated one in another tab, a later visit's — lets it go without running it; a restore or a
 // refresh never runs it. A sign-out lets it go.
 onSessionEstablished((_session, { source }) => {
   if (source !== 'signIn') return;
   const now = Date.now();
-  const here = heldHere;
-  heldHere = false;
   const recovered = takeRecovery(now);
   const intent = takeStored(now);
-  if (intent === null || !(here || recovered)) return;
+  if (intent === null || !(intent.tab === TAB || recovered)) return;
   returnTo = intent.path;
   const run = runners.get(intent.kind);
   if (run === undefined) confirmed = intent;

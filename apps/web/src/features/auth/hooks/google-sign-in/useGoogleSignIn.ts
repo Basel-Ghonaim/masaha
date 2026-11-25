@@ -6,6 +6,7 @@ import { isolated } from '@shared/forms';
 import { establishSession } from '@shared/session';
 import { useMutation } from '@tanstack/react-query';
 import { createAuthRepository } from '../../repository/authRepository';
+import { authKeys } from '../queryKeys';
 
 const repository = createAuthRepository();
 
@@ -23,6 +24,7 @@ const repository = createAuthRepository();
  */
 export function useGoogleSignIn() {
   return useMutation<GoogleSession, AppError, GoogleSignInRequest>({
+    mutationKey: [...authKeys.signingIn, 'google'],
     mutationFn: repository.google,
     gcTime: 0,
     onSuccess: ({ linked, created, ...session }) => {

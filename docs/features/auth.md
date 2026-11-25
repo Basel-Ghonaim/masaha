@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-11-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -9,11 +9,11 @@
 - **Registers** an account with a name, an email and a password, and **signs in** with an email and a password, or with Google.
 - **Refreshes** a session and **signs it out**, for the session the web holds ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 - **Recovers a forgotten password:** asks for a reset link by email, asks for another, checks a link, and sets the new password.
-- On the web: the sign-in and register forms, Google's button, the forgotten password's and the reset's cards, and the link a signed-in account sets a first password by (screen 9).
+- On the web: the sign-in and register forms, Google's button, the forgotten password's and the reset's cards and the forgotten password's steps without a card, and the link a signed-in account sets a first password by (screen 9). The site arranges them as pages, and as the sign-in over a page when a guest presses an action that needs an account ([ADR 0021](../architecture/decisions/0021-sign-in-where-the-action-is.md)).
 
 ## Who uses it
 
-- **Guests,** on the sign-in, register and forgotten-password pages.
+- **Guests,** on the sign-in, register and forgotten-password pages, and over a page whose action needs an account: the heart of [favorites](favorites.md), the report of [data-reports](data-reports.md).
 - **Anyone holding a reset link,** signed in or not, on the reset page.
 - **The web's session,** which refreshes and signs out through it.
 
@@ -31,13 +31,15 @@
 
 ## Behaviour and flows
 
-**Sign-in and register.** Register sends the interface's language, which the new account takes. Where the user lands is the guard's.
+**Sign-in and register.** Register sends the interface's language, which the new account takes. Where the user lands is the guard's on a page, and nowhere over a page ([architecture › Landing and guards](../frontend/architecture.md#landing-and-guards)).
+
+**Over a page** (`pages/site/public`'s `SignInPrompt`, ADR 0021). A guest's press of an action that needs an account opens the sign-in over the page, the layer's adaptive dialog, titled by the action; its forms are this capability's, loaded the first time it opens ([architecture §3](../frontend/architecture.md#3-capabilities-features), the `sign-in` chunk). Its views: the sign-in (Google, «أو», the email and the password, «نسيت كلمة المرور؟», «جديد على مساحة؟ إنشاء حساب»); register, titled by the action too, the privacy policy opening in a new tab, «لديك حساب؟ تسجيل الدخول»; the request for a reset link (`ForgotPasswordSteps`), «العودة إلى تسجيل الدخول» above its title, the link sent saying what completes after the reset while the action is held; and, once a reset completed in another tab of this browser while it waited, the sign-in again under «تم تغيير كلمة المرور», the email filled and the password focused (A1). The email typed carries from one view to the next; a password never leaves its form. While a request is under way (`useSignInBusy`), no way of closing works. Signed in there, it closes and the page stays; the held action runs ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)). The pages stay for direct visits; the header's «تسجيل الدخول» links to the sign-in page.
 
 **Google.** The web's client id is `VITE_GOOGLE_CLIENT_ID` ([setup › The web](../development/setup.md#the-web)); without the API's `GOOGLE_CLIENT_ID`, the API answers 503, and production refuses to start. A new account takes Google's name when it is valid user text, else the email's local part. An account whose temporary password is pending is never linked ([security › Sign-in methods](../backend/security.md#sign-in-methods)).
 
 **Refresh.** The cookie's token names its session. The account is read from `users`, a suspended one refused, and the token rotated by `sessions`, which refuses a session past its 30 days ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies), [conventions › Concurrency](../backend/conventions.md#concurrency)). The `Session` is the user's view, their active links and a new access token.
 
-**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)). An account whose temporary password is pending gets no email, and its links are refused ([security › Passwords](../backend/security.md#passwords)).
+**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. The reset page then holds the sign-in on its card, the email to type, its field focused: the reset never signs in by itself (ADR 0021, point 4). While this browser holds a guest's action, the page says, before and after the password is set, that signing in returns to its space, and its sign-in lands there. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)). An account whose temporary password is pending gets no email, and its links are refused ([security › Passwords](../backend/security.md#passwords)).
 
 **The reset email** is bilingual, Arabic then English, as designed ([SCREENS.md](https://github.com/Basel-Ghonaim/masaha-prototype/blob/main/SCREENS.md) row 7), except the greeting by name ([security › Passwords](../backend/security.md#passwords)). Its words live with the module, in both languages held to one shape, since the API has no copy catalogue ([localisation › Catalogues](../frontend/localisation.md#catalogues)). Under the button, «إن لم يعمل الزر، انسخ هذا الرابط:» / "If the button doesn't work, copy this link:" and the link as text, left to right and breaking anywhere, in the HTML and the text parts: a mail client may strip the button (AC-021, 2026-10-29, #132).
 
@@ -64,7 +66,7 @@
 - **After a reset, this browser's session is refreshed once;** a 401 ends it. *Why:* the reset may have been this account's, or another's. 2026-10-05, #40.
 - **The resend countdown is an m:ss clock.** *Why:* no plural mechanism needed. 2026-10-05, #40.
 - **Sign-in and register hold the session in the mutation's own callback.** *Why:* the page may be gone before the answer. 2026-10-05, #35.
-- **Google's official button and script,** only on sign-in and register, in the interface's language, drawn again on a change of theme, language or width. *Why:* Google ignores the button's locale. 2026-10-06, #42.
+- **Google's official button and script,** only where sign-in and register are shown — their pages, and the sign-in over a page —, in the interface's language, drawn again on a change of theme, language or width. *Why:* Google ignores the button's locale. 2026-10-06, #42; over a page since 2026-11-24, #157.
 - **No Google client id: no button, no divider, no script.** 2026-10-06, #42.
 - **Google's failures show in their own area above the button;** closing its window shows nothing. *Why:* both failure areas read alike. 2026-10-06, #42.
 - **A "linked" toast and a welcome toast,** each fired by its hook after the session changes. 2026-10-06, #42.
@@ -74,6 +76,10 @@
 - **The sign-in and register cards offer a way back, not a way on:** with a safe `next`, «العودة إلى {space}» when it is a space's page whose read the tab already holds (`directory`'s `useCachedSpaceName`, never a request), else «العودة إلى الصفحة السابقة»; without one, «العودة إلى الرئيسية» (C4, DI33). *Why:* the guest came from somewhere; «تصفّح المساحات بدون حساب» ignored it. `next` travels to the forgotten password and back. 2026-10-29, #132. It travels on through the reset link — the forgotten password's «متابعة», and the reset card's way back, its sign-in once the password is set and its new link — and only as `returnUrlOf` accepts it, a page off the site dropped. 2026-11-01, #132.
 - **A password sign-in says «أهلًا بعودتك»** under one toast id (`RETURN_TOAST_ID`, `shared/routing`), which a held action's own toast reuses, taking its place (C4). *Why:* one toast says what happened on the return, not two. 2026-10-29, #132.
 - **The link sent always offers «استخدم بريدًا آخر» under the resend,** which opens the empty form with the focus in it (C3); **the reset card offers «العودة إلى تسجيل الدخول» at its foot until the password is set**; register's owner note leads to the about page's owners. 2026-10-29, #132.
+- **The sign-in over a page uses this capability's forms, not copies:** the forms take the email typed elsewhere (`defaultEmail`), report it as it changes (`onEmailChange`), and take the focus where the place asks (`focus`); the forgotten password's steps come without a card (`ForgotPasswordSteps`), for a place that titles them; Google's refusal to join an account with the email offers the place's way on in its alert (`linkRefusedAction`: the request for a reset link). *Why:* one form for the pages and the overlay ([ADR 0021](../architecture/decisions/0021-sign-in-where-the-action-is.md)). 2026-11-24, #157.
+- **Its five guest requests share one mutation key,** read by `useSignInBusy`: signing in, registering, Google, a link asked for and asked again. *Why:* the overlay holds every way of closing while one is under way, so no answer arrives to a page the guest thought they had left. 2026-11-24, #157.
+- **Google stays mounted as the overlay switches between the sign-in and register.** *Why:* one button and one credential handler on the page; a redraw would load Google's frame again. 2026-11-24, #157.
+- **The reset page signs in on its card once the password is set, the email empty and focused** (the owner's D2: no email kept in the browser for it; autofill fills it). *Why:* one form fewer between the reset and the action, and never a sign-in by itself. 2026-11-24, #157.
 
 Owned by security.md and linked: Google's linking rule ([Sign-in methods](../backend/security.md#sign-in-methods)); the registration and Google limits ([Rate limits](../backend/security.md#rate-limits-fixed-window)); the same answer to every request for a link, another link without an email, the reset's refusal of a token in its body, what a reset ends, the email's caps and no greeting by name ([Passwords](../backend/security.md#passwords)). Owned by the routing and linked: the guards of `/forgot-password` and `/reset-password`, and `RequireGuest` as the landing's one owner ([architecture › Landing and guards](../frontend/architecture.md#landing-and-guards)).
 
@@ -81,7 +87,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 - **API:** `apps/api/src/modules/auth/`, entry `index.ts`: the orchestrating service, its router and its limits; the wait of an answer that sends no email (`noSendWait.ts`); the Google port; `email/`, the email port, its senders, the caps and the reset email.
 - **Shared:** `packages/shared/src/auth/`: the session's and the recovery's shapes, and the requests.
-- **Web:** `apps/web/src/features/auth/`, entry `index.ts`: `SignInForm`, `RegisterForm`, `ContinueWithGoogle` (which takes the page's divider), `ForgotPasswordCard`, `ResetPasswordCard` (which tells the page the password was set, `onPasswordSet`), `SetPasswordByEmail` (a signed-in account's first password by email, the forgotten password's link sent and resend, set by `pages/site/account/settings/` in `users`' card). Two repositories, the sign-in's and the recovery's. Mounted by `pages/site/auth/`.
+- **Web:** `apps/web/src/features/auth/`, entry `index.ts`: `SignInForm`, `RegisterForm`, `ContinueWithGoogle` (which takes the page's divider), `ForgotPasswordCard`, `ResetPasswordCard` (which tells the page the password was set, `onPasswordSet`, and takes the page's sign-in once it is), `ForgotPasswordSteps` (the forgotten password's steps without a card), `useSignInBusy`, `SetPasswordByEmail` (a signed-in account's first password by email, the forgotten password's link sent and resend, set by `pages/site/account/settings/` in `users`' card). Two repositories, the sign-in's and the recovery's. Mounted by `pages/site/auth/`, and by its `in-place/`, the views of the sign-in over a page, which `pages/site/public`'s `SignInPrompt` loads lazily. The whole folder is the `sign-in` chunk (`apps/web/scripts/signInChunk.ts`).
 
 ## Open findings
 
@@ -111,3 +117,4 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #122 — the sign-in page says a session ended for idleness.
 - 2026-10-29, #132 — the auth cards' way back and `next` kept through the forgotten password; «أهلًا بعودتك»; another email at once; the reset card's way back.
 - 2026-10-29, #132 — a first Google sign-in welcomed by name; the linked toast kept until closed.
+- 2026-11-24, #157 — the sign-in over a page: sign-in, register, Google and the reset link's request there, A1, the forms carrying the email, `useSignInBusy`; the reset page's sign-in on its card; the code in a chunk of its own.

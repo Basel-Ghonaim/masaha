@@ -14,6 +14,7 @@ const repository = createRecoveryRepository();
 export function useResendLink() {
   const queryClient = useQueryClient();
   return useMutation<RecoveryPosition, AppError>({
+    mutationKey: [...authKeys.signingIn, 'resendLink'],
     mutationFn: () => repository.resendLink(),
     onSuccess: (position) => {
       queryClient.setQueryData(authKeys.recovery, position);

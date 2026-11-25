@@ -68,17 +68,16 @@ describe('useForcedPasswordChangeForm', () => {
     });
   });
 
-  it('ticks the rules as the password is typed, and words a failed one on the field', async () => {
+  it('words the condition as the password is typed, and a failed one on the field', async () => {
     const { result, requests } = renderForm(() => ok({ accessToken: 'token-renewed' }));
 
     await send(() => result.current, 'mineonly');
 
     await waitFor(() => {
-      expect(result.current.passwordRules.rules.map(({ state }) => state)).toEqual([
-        'met',
-        'met',
-        'failed',
-      ]);
+      expect(result.current.passwordRules).toEqual({
+        state: 'failed',
+        line: 'Still needs a number',
+      });
     });
     expect(result.current.errors.password).toBe('The password doesn’t meet the rules below');
     expect(requests).toHaveLength(0);

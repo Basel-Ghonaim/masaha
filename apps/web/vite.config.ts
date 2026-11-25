@@ -12,6 +12,7 @@ import {
 } from './scripts/dashboardOnly.ts';
 import { devServer } from './scripts/devServer.ts';
 import { LIBRARY_CHUNKS } from './scripts/libraryChunks.ts';
+import { SIGN_IN_CHUNK } from './scripts/signInChunk.ts';
 
 // What only the dashboard imports, answered once per module for a build (isDashboardShared).
 const dashboardShared = new Map<string, boolean>();
@@ -47,6 +48,13 @@ export default defineConfig(({ mode }) => ({
               test,
               includeDependenciesRecursively: false,
             })),
+            // The sign-in's code in a chunk of its own, loaded when a guest's action opens the
+            // sign-in over the page, so check:build can hold it off the public pages (ADR 0021).
+            {
+              name: SIGN_IN_CHUNK.name,
+              test: SIGN_IN_CHUNK.test,
+              includeDependenciesRecursively: false,
+            },
             // What only the dashboard imports besides its own code (a capability's dashboard parts,
             // @masaha/shared's dashboard schemas, TanStack Query's useQuery), in a chunk the
             // dashboard loads beside it: left to the bundler, it lands in a lazy dashboard page's

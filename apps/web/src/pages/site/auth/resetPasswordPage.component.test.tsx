@@ -2,12 +2,13 @@ import type { RecoveryPosition } from '@masaha/shared/auth';
 import { createQueryClient } from '@shared/api';
 import { establishSession, restoreSession } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MASKED_EMAIL } from '../../../test/fakeRecovery';
 import { aSession } from '../../../test/fakeSession';
+import { publicSpace } from '../../../test/publicSpace';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
 import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
@@ -20,16 +21,23 @@ beforeAll(
     warm(
       () => import('../shell/FocusLayout'),
       () => import('./ResetPasswordPage'),
+      () => import('../shell/SiteLayout'),
+      () => import('../public/space/SpacePage'),
+      () => import('../public/home/HomePage'),
+      () => import('../public/about/AboutPage'),
     ),
   60_000,
 );
 
 const PASSWORD: RecoveryPosition = { step: 'password', email: MASKED_EMAIL };
 
+// The requests the last rendered site sent, as the fake server received them.
+let sent: { method?: string; url?: string }[] = [];
+
 /** The site's routes, as the app mounts them, at `path`, in the browser's address and the router's. */
 function renderSite(path: string, answer: Parameters<typeof fakeTransport>[0]) {
   window.history.replaceState(null, '', path);
-  fakeTransport(answer);
+  sent = fakeTransport(answer);
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
     initialEntries: [path],
   });
@@ -41,16 +49,61 @@ function renderSite(path: string, answer: Parameters<typeof fakeTransport>[0]) {
   return router;
 }
 
+type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
+
+/**
+ * The server through a reset and the sign-in after it: the recovery at the new password, the
+ * password set, the sign-in, and the site's reads for the page it lands on.
+ */
+function server(request: Request) {
+  if (request.url === '/auth/password/recovery') return ok(PASSWORD);
+  if (request.url === '/auth/password/reset') return { status: 204 };
+  if (request.url === '/auth/login') return ok(aSession());
+  if (request.url === '/spaces') return ok([], 200);
+  if (request.url === '/lookups') return ok({ governorates: [], areas: [], amenities: [] });
+  if (request.url?.endsWith('/occupancy')) return ok({ status: null });
+  if (request.url === '/me/favorites') return ok([]);
+  if (request.method === 'post') return { status: 204 };
+  return ok(publicSpace());
+}
+
+/** Sets the new password, then signs in on the card with it. */
+async function setThenSignIn() {
+  const user = userEvent.setup();
+  await user.type(await screen.findByLabelText('New password'), 'gaza2026x');
+  await user.click(screen.getByRole('button', { name: 'Save password' }));
+  await user.type(await screen.findByLabelText('Email'), 'sara@example.com');
+  await user.type(screen.getByLabelText('Password'), 'gaza2026x');
+  await user.click(screen.getByRole('button', { name: 'Sign in' }));
+}
+
+/** A guest's favourite of «Noor Hub», held in this browser's storage by the tab it was pressed in. */
+function holdFavoriteElsewhere(path = '/spaces/noor-hub') {
+  localStorage.setItem(
+    'masaha.heldIntent',
+    JSON.stringify({
+      kind: 'favorite',
+      spaceId: 7,
+      name: { text: 'Noor Hub' },
+      path,
+      at: Date.now(),
+    }),
+  );
+}
+
 beforeEach(async () => {
   startPreferences('en');
   setSessionHint(false);
   await restoreSession();
 });
 
-afterEach(() => {
+afterEach(async () => {
   restoreTransport();
   vi.unstubAllGlobals();
   window.history.replaceState(null, '', '/');
+  localStorage.clear();
+  setSessionHint(false);
+  await restoreSession();
 });
 
 describe('the reset password page', () => {
@@ -83,7 +136,7 @@ describe('the reset password page', () => {
     );
   });
 
-  it('links to sign in once the password is set, the way back gone', async () => {
+  it('offers the sign-in on the card once the password is set, the email to type and focused, the way back gone', async () => {
     renderSite('/reset-password', (config) =>
       config.method === 'get' ? ok(PASSWORD) : { status: 204 },
     );
@@ -92,28 +145,114 @@ describe('the reset password page', () => {
     await user.type(await screen.findByLabelText('New password'), 'gaza2026x');
     await user.click(screen.getByRole('button', { name: 'Save password' }));
 
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    const email = await screen.findByLabelText('Email');
+    expect(email).toHaveValue('');
+    expect(email).toHaveAttribute('autocomplete', 'email');
+    await waitFor(() => {
+      expect(email).toHaveFocus();
+    });
+    expect(screen.getByRole('button', { name: 'Sign in' })).toHaveAttribute('type', 'submit');
     expect(screen.queryByRole('link', { name: 'Back to sign in' })).not.toBeInTheDocument();
   });
 
-  it('carries the return page to sign in, before and after the password is set', async () => {
-    renderSite('/reset-password?next=%2Fspaces%2Fnoor-hub#token=link-token', (config) =>
-      config.method === 'get' ? ok(PASSWORD) : { status: 204 },
-    );
-    const user = userEvent.setup();
+  it('carries the return page to sign in before the password is set, and lands on it after', async () => {
+    const router = renderSite('/reset-password?next=%2Fabout#token=link-token', server);
     const main = within(await screen.findByRole('main'));
 
     await main.findByLabelText('New password');
     expect(main.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
       'href',
-      '/login?next=%2Fspaces%2Fnoor-hub',
+      '/login?next=%2Fabout',
     );
-    await user.type(main.getByLabelText('New password'), 'gaza2026x');
-    await user.click(main.getByRole('button', { name: 'Save password' }));
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute(
-      'href',
-      '/login?next=%2Fspaces%2Fnoor-hub',
+    await setThenSignIn();
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/about');
+    });
+  });
+
+  it('lands by role after the sign-in on the card when nothing is held and no page was asked for', async () => {
+    const router = renderSite('/reset-password', server);
+
+    await setThenSignIn();
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('says where it returns while a guest’s action is held, and lands there once signed in', async () => {
+    holdFavoriteElsewhere();
+    const router = renderSite('/reset-password', server);
+
+    expect(
+      await screen.findByText(
+        /After saving, sign in here and we take you back to .Noor Hub. to finish saving it to your favourites\./,
+      ),
+    ).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('New password'), 'gaza2026x');
+    await user.click(screen.getByRole('button', { name: 'Save password' }));
+    expect(
+      await screen.findByText(
+        /Sign in with your new password, and we take you back to .Noor Hub. to finish saving it\./,
+      ),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Email'), 'sara@example.com');
+    await user.type(screen.getByLabelText('Password'), 'gaza2026x');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/spaces/noor-hub');
+    });
+    // The action completes there, once.
+    await waitFor(() => {
+      expect(
+        sent.filter(({ method, url }) => method === 'post' && url === '/me/favorites/7'),
+      ).toHaveLength(1);
+    });
+  });
+
+  it('promises the return only while the action is still held once the password is set', async () => {
+    holdFavoriteElsewhere();
+    renderSite('/reset-password', server);
+    await screen.findByText(/we take you back to .Noor Hub./);
+
+    // The waiting tab's overlay closed meanwhile, letting the action go.
+    localStorage.removeItem('masaha.heldIntent');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('New password'), 'gaza2026x');
+    await user.click(screen.getByRole('button', { name: 'Save password' }));
+
+    expect(await screen.findByText('Sign in with your new password.')).toBeInTheDocument();
+    expect(screen.queryByText(/we take you back to/)).toBeNull();
+  });
+
+  it('never follows a held action’s page that leaves the site', async () => {
+    holdFavoriteElsewhere('/\\evil.example');
+    const router = renderSite('/reset-password', server);
+
+    await screen.findByLabelText('New password');
+    expect(screen.queryByText(/we take you back to/)).toBeNull();
+    await setThenSignIn();
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('keeps the link to sign in when a session is still held once the password is set', async () => {
+    establishSession(aSession(), { source: 'signIn' });
+    renderSite('/reset-password', (request) =>
+      request.url === '/auth/refresh' ? ok(aSession()) : server(request),
     );
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('New password'), 'gaza2026x');
+    await user.click(screen.getByRole('button', { name: 'Save password' }));
+
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    expect(screen.queryByLabelText('Email')).toBeNull();
   });
 
   it('carries the return page to a new link when this one can no longer be used', async () => {
@@ -138,7 +277,7 @@ describe('the reset password page', () => {
     expect(localStorage.getItem('masaha.recoveredAt')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Save password' }));
 
-    await screen.findByRole('link', { name: 'Sign in' });
+    await screen.findByLabelText('Email');
     // The sign-in after it is the recovery's round trip: a guest's held action may run (168).
     expect(Number(localStorage.getItem('masaha.recoveredAt'))).toBeGreaterThan(0);
     localStorage.removeItem('masaha.recoveredAt');

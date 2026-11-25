@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { DASHBOARD_CHUNK, DASHBOARD_SHARED_CHUNK, isDashboardModule } from './dashboardOnly.ts';
 import { LIBRARY_CHUNKS } from './libraryChunks.ts';
+import { SIGN_IN_CHUNK, SIGN_IN_FREE } from './signInChunk.ts';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
 // reached the build, its route path or one of its fixture strings would be in dist/. Fixture
@@ -186,6 +187,32 @@ export function sitePageProblems(
     );
 }
 
+/**
+ * What is wrong with the sign-in's place in the build (ADR 0021, point 6): a build with no sign-in
+ * chunk, so the check would hold nothing; the chunk in the site's first download; and each chunk of
+ * a public page or of the site's shell that reaches it through its static imports, deeply. The
+ * sign-in over the page loads it lazily, which is not held against the page.
+ */
+export function signInProblems(manifest: Record<string, ManifestChunk>): string[] {
+  const isSignIn = (key: string) => manifest[key]?.name === SIGN_IN_CHUNK.name;
+  if (!Object.keys(manifest).some(isSignIn)) {
+    return [
+      `No "${SIGN_IN_CHUNK.name}" chunk in the build: the sign-in is not split from the pages.`,
+    ];
+  }
+  const first = firstDownload(manifest)
+    .filter(isSignIn)
+    .map((key) => `${key} is the sign-in's chunk in the site's first download.`);
+  const pages = Object.entries(manifest)
+    .filter(([, chunk]) => chunk.src !== undefined && SIGN_IN_FREE.test(chunk.src))
+    .flatMap(([page]) =>
+      staticReach(manifest, [page])
+        .filter(isSignIn)
+        .map((key) => `${page} reaches the sign-in's chunk (${key}).`),
+    );
+  return [...first, ...pages];
+}
+
 /** The forbidden strings that a build file contains. */
 export function findForbidden(content: string, forbidden: readonly string[]): string[] {
   const decoded = decodeEscapes(content);
@@ -240,6 +267,10 @@ function main() {
   for (const problem of pageFaults) {
     console.error(problem);
   }
+  const signInFaults = manifest ? signInProblems(manifest) : [];
+  for (const problem of signInFaults) {
+    console.error(problem);
+  }
 
   if (hits > 0) {
     console.error(
@@ -284,6 +315,18 @@ A site page draws none of the heavy libraries (${libraries.join(', ')}), so its 
     process.exitCode = 1;
   } else if (manifest) {
     console.log(`No site page reaches ${libraries.join(' or ')} through its static imports.`);
+  }
+
+  if (signInFaults.length > 0) {
+    console.error(
+      `
+The sign-in's code loads only when a guest's action opens it over the page (ADR 0021): it must be a chunk of its own, out of the site's first download, and no public page nor the site's shell may reach it through its static imports. Look for a static import of @features/auth in pages/site/public or pages/site/shell, or of the sign-in's body instead of its lazy load.`,
+    );
+    process.exitCode = 1;
+  } else if (manifest) {
+    console.log(
+      "No sign-in code in the site's first download, nor in a public page's or the shell's static imports.",
+    );
   }
 }
 

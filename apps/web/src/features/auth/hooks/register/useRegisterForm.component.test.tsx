@@ -61,31 +61,29 @@ describe('useRegisterForm', () => {
     },
   );
 
-  it('ticks the password rules for the password as typed', async () => {
+  it('words the password’s condition for the password as typed', async () => {
     startPreferences('en');
     const { result } = renderRegisterForm(() => ok(aSession(), 201));
 
     await type(() => result.current, 'password', 'gaza');
 
-    expect(result.current.passwordRules.rules.map(({ state }) => state)).toEqual([
-      'pending',
-      'met',
-      'pending',
-    ]);
+    expect(result.current.passwordRules).toEqual({
+      state: 'missing',
+      line: 'Still needs 4 more characters and a number',
+    });
   });
 
-  it('shows the rules not met as failed once sent with the password failing them', async () => {
+  it('shows what is missing as failed once sent with the password failing the condition', async () => {
     startPreferences('en');
     const { result, requests } = renderRegisterForm(() => ok(aSession(), 201));
 
     await send(() => result.current, 'gazagaza');
 
     await waitFor(() => {
-      expect(result.current.passwordRules.rules.map(({ state }) => state)).toEqual([
-        'met',
-        'met',
-        'failed',
-      ]);
+      expect(result.current.passwordRules).toEqual({
+        state: 'failed',
+        line: 'Still needs a number',
+      });
     });
     expect(result.current.errors.password).toBe('The password doesn’t meet the rules below');
     expect(requests).toHaveLength(0);

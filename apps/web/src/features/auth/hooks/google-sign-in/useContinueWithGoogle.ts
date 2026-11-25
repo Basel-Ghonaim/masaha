@@ -6,8 +6,9 @@ import { useGoogleSignIn } from './useGoogleSignIn';
 /**
  * Google sign-in, ready for `ContinueWithGoogle` to render: whether it is offered, the element Google
  * draws its button into, whether to show it, why it failed, and whether it is busy (a sign-in under
- * way, or the wait after too many attempts). The ID token Google returns is sent with the interface
- * language, so an account it creates starts in it.
+ * way, or the wait after too many attempts), and whether Google refused to join an existing account
+ * (`GOOGLE_LINK_NOT_ALLOWED`), whose way on is the page's. The ID token Google returns is sent with
+ * the interface language, so an account it creates starts in it.
  */
 export function useContinueWithGoogle() {
   const language = usePreferences((preferences) => preferences.language);
@@ -23,5 +24,6 @@ export function useContinueWithGoogle() {
     showButton: button.status !== 'failed',
     failure: failure.view,
     busy: signIn.isPending || failure.blocked,
+    linkRefused: signIn.error?.code === 'GOOGLE_LINK_NOT_ALLOWED',
   };
 }

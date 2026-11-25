@@ -11,8 +11,12 @@ import { StepHeader } from '../StepHeader';
 export type ResetPasswordCardProps = {
   /** To ask for a new link, when this one can no longer be used. */
   requestLinkLink: ReactNode;
-  /** To sign in, once the password is set. */
-  signInLink: ReactNode;
+  /** The way on once the password is set: the sign-in itself, or a link to it. */
+  signIn: ReactNode;
+  /** Said in the form before its submit, such as where signing in afterwards returns. */
+  returnNote?: ReactNode;
+  /** The line once the password is set, in place of the catalogue's. */
+  doneDescription?: string;
   /** Back to sign in, at the card's foot, until the password is set (C4). */
   backLink: ReactNode;
   /** Hears the password set, once the server has set it: the page's to act on. */
@@ -26,7 +30,9 @@ export type ResetPasswordCardProps = {
  */
 export function ResetPasswordCard({
   requestLinkLink,
-  signInLink,
+  signIn,
+  returnNote,
+  doneDescription,
   backLink,
   onPasswordSet,
 }: ResetPasswordCardProps) {
@@ -59,6 +65,7 @@ export function ResetPasswordCard({
           <StepHeader title={words.title} description={view.forAccount} />
           <CardContent>
             <ResetPasswordForm
+              note={returnNote}
               saved={() => {
                 view.saved();
                 onPasswordSet?.();
@@ -78,9 +85,9 @@ export function ResetPasswordCard({
           <StepHeader
             icon={<CircleCheckIcon aria-hidden className="size-6 text-success" />}
             title={words.doneTitle}
-            description={words.doneDescription}
+            description={doneDescription ?? words.doneDescription}
           />
-          <CardContent>{signInLink}</CardContent>
+          <CardContent>{signIn}</CardContent>
         </>
       )}
       {view.kind !== 'done' && <CardFooter className="justify-center">{backLink}</CardFooter>}

@@ -1,7 +1,7 @@
 import { createQueryClient } from '@shared/api';
 import { establishSession } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -26,14 +26,6 @@ async function typeAndSave(password = 'mine2026x') {
   await user.click(screen.getByRole('button', { name: 'Save and continue' }));
 }
 
-/** Each password rule as assistive technology reads it. */
-function rulesRead() {
-  const list = screen.getByRole('list', { name: 'Password rules' });
-  return within(list)
-    .getAllByRole('listitem')
-    .map((item) => item.textContent);
-}
-
 beforeEach(() => {
   startPreferences('en');
   establishSession(aSession({ mustChangePassword: true }), { source: 'signIn' });
@@ -45,19 +37,14 @@ afterEach(() => {
 });
 
 describe('ForcedPasswordChangeForm', () => {
-  it('labels the new password, describes it by its rules, and shows them for what is typed', async () => {
+  it('labels the new password, and describes it by its condition, then by what it still lacks', async () => {
     renderForm(() => ok({ accessToken: 'token-renewed' }));
+    const field = screen.getByLabelText('New password');
+    expect(field).toHaveAccessibleDescription('At least 8 characters, with a letter and a number');
 
-    await userEvent.type(screen.getByLabelText('New password'), 'mine');
+    await userEvent.type(field, 'mine');
 
-    expect(screen.getByLabelText('New password')).toHaveAccessibleDescription(
-      /At least 8 characters.*At least one letter.*At least one number/,
-    );
-    expect(rulesRead()).toEqual([
-      'At least 8 characters — not met yet',
-      'At least one letter — met',
-      'At least one number — not met yet',
-    ]);
+    expect(field).toHaveAccessibleDescription('Still needs 4 more characters and a number');
   });
 
   it('marks a password that fails the rules, and focuses it', async () => {

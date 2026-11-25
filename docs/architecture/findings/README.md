@@ -18,6 +18,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
 - [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 - [221. The README's screenshots show Sea](221-the-readmes-screenshots-show-sea.md)
+- [230. The layer's alert has no success variant](230-the-layers-alert-has-no-success-variant.md)
+- [231. Signing in over a page switches the page to the account's language](231-signing-in-over-a-page-switches-the-page-to-the-accounts-language.md)
+- [232. `PASSWORD_RULES` is read only by its test, and two comments still say "checklist"](232-password-rules-is-read-only-by-its-test-and-two-comments-still-say-checklist.md)
+- [233. The forgotten password's steps and its card repeat one switch](233-the-forgotten-passwords-steps-and-its-card-repeat-one-switch.md)
+- [234. «نسيت كلمة المرور؟» sits at the field's end, not its start](234-forgot-password-sits-at-the-fields-end-not-its-start.md)
 
 ## Accepted
 
