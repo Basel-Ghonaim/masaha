@@ -8,9 +8,11 @@ import {
   HELD_INTENT_MS,
   RECOVERY_ROUND_TRIP_MS,
   dropHeldIntent,
+  heldIntentPreview,
   holdIntent,
   noteRecoveryDone,
   onIntentConfirmed,
+  renewHeldIntent,
   takeIntentPath,
   type HeldIntent,
 } from './heldIntent';
@@ -159,3 +161,61 @@ describe('the held intent', () => {
     expect(ran).toEqual([]);
   });
 });
+
+describe('the held intent read without taking it', () => {
+  it('is the action held, left in the storage', () => {
+    holdIntent(REPORT);
+
+    expect(heldIntentPreview()).toMatchObject(REPORT);
+    expect(items.has(KEY)).toBe(true);
+  });
+
+  it.each([
+    ['none is held', () => undefined],
+    [
+      'its life is over',
+      () => {
+        heldElsewhere(Date.now() - HELD_INTENT_MS - 1);
+      },
+    ],
+    ['the storage holds something else', () => items.set(KEY, '{"kind":"report"}')],
+    ['the storage holds no JSON', () => items.set(KEY, 'not json')],
+  ])('is nothing when %s', (_case, arrange) => {
+    arrange();
+
+    expect(heldIntentPreview()).toBeNull();
+  });
+});
+
+describe('renewing the held intent', () => {
+  it('starts its life again from now', () => {
+    // Two minutes left of its life; one passes before the renewal.
+    heldElsewhere(Date.now() - HELD_INTENT_MS + 120_000);
+    vi.advanceTimersByTime(60_000);
+
+    renewHeldIntent();
+
+    expect(JSON.parse(items.get(KEY) ?? 'null')).toEqual({ ...REPORT, at: Date.now() });
+    vi.advanceTimersByTime(HELD_INTENT_MS - 1);
+    expect(heldIntentPreview()).toMatchObject(REPORT);
+  });
+
+  it.each([
+    ['none is held', () => undefined],
+    [
+      'its life is already over',
+      () => {
+        heldElsewhere(Date.now() - HELD_INTENT_MS - 1);
+      },
+    ],
+  ])('holds nothing when %s', (_case, arrange) => {
+    arrange();
+    const before = items.get(KEY);
+
+    renewHeldIntent();
+
+    expect(items.get(KEY)).toBe(before);
+    expect(heldIntentPreview()).toBeNull();
+  });
+});
+

@@ -6,6 +6,7 @@ import { isolated } from '@shared/forms';
 import { establishSession, type Session } from '@shared/session';
 import { useMutation } from '@tanstack/react-query';
 import { createAuthRepository } from '../../repository/authRepository';
+import { authKeys } from '../queryKeys';
 
 const repository = createAuthRepository();
 
@@ -20,6 +21,7 @@ const repository = createAuthRepository();
  */
 export function useRegister() {
   return useMutation<Session, AppError, RegisterRequest>({
+    mutationKey: [...authKeys.signingIn, 'register'],
     mutationFn: repository.register,
     gcTime: 0,
     onSuccess: (session) => {

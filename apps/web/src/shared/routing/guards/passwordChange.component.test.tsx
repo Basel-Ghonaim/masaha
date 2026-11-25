@@ -1,7 +1,8 @@
 import { apiClient } from '@shared/api';
 import { establishSession, restoreSession, type SessionUser } from '@shared/session';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
+import type { ReactNode } from 'react';
+import { createBrowserRouter, createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../test/fakeSession';
@@ -146,6 +147,60 @@ describe('PasswordChangeGate', () => {
       answer.resolve({ status: 401 });
       await restoring.catch(() => undefined);
     });
+  });
+});
+
+describe('PasswordChangeGate while its redirect waits', () => {
+  it('redirects again when Back from an overlay’s entry interrupts it, never leaving the page blank', async () => {
+    // The change page loads lazily, as the site's does: its redirect waits for it.
+    const load = deferred<{ element: ReactNode }>();
+    window.history.replaceState(null, '', '/spaces');
+    const router = createBrowserRouter([
+      {
+        element: (
+          <PasswordChangeGate>
+            <Outlet />
+          </PasswordChangeGate>
+        ),
+        children: [
+          { path: '/spaces', element: <p>The directory</p> },
+          { path: '/change-password', lazy: () => load.promise },
+        ],
+      },
+    ]);
+    render(<RouterProvider router={router} />);
+    await screen.findByText('The directory');
+    // An overlay's entry over the page, at the same address, the router's state copied (#155).
+    window.history.pushState({ ...(window.history.state as object), masahaOverlay: 'open' }, '');
+
+    act(() => {
+      signIn({ mustChangePassword: true });
+    });
+    // The overlay closes as the session arrives, and steps back while the redirect still waits.
+    const moved = new Promise<void>((resolve) => {
+      window.addEventListener(
+        'popstate',
+        () => {
+          resolve();
+        },
+        { once: true },
+      );
+    });
+    window.history.back();
+    await act(() => moved);
+    load.resolve({
+      element: (
+        <RequirePasswordChange>
+          <p>The change page</p>
+        </RequirePasswordChange>
+      ),
+    });
+
+    expect(await screen.findByText('The change page')).toBeInTheDocument();
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      '/change-password?next=%2Fspaces',
+    );
+    router.dispose();
   });
 });
 

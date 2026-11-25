@@ -3,9 +3,12 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
+import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
+import { queryWrapper } from '../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../test/screenWidth';
+import { warm } from '../../../test/warmLazy';
 import { startPreferences } from '../../../test/startPreferences';
 import { SignInPrompt, type SignInReason } from './SignInPrompt';
 
@@ -16,11 +19,14 @@ function renderPrompt(reason: SignInReason | null) {
     [{ path: '/spaces/:slug', element: <SignInPrompt reason={reason} onClose={onClose} /> }],
     { initialEntries: ['/spaces/masaha-hub?tab=prices'] },
   );
-  const view = render(<RouterProvider router={router} />);
+  const Wrapper = queryWrapper();
+  const view = render(
+    <Wrapper>
+      <RouterProvider router={router} />
+    </Wrapper>,
+  );
   return { ...view, onClose };
 }
-
-const NEXT = `next=${encodeURIComponent('/spaces/masaha-hub?tab=prices')}`;
 
 /** A space's page as the site draws it: a heart that asks the guest to sign in, and the prompt. */
 function GuestPage({ onClose }: { onClose: () => void }) {
@@ -55,10 +61,13 @@ async function openOnPhone() {
   const onClose = vi.fn();
   browserRouter = createBrowserRouter([
     { path: '/spaces/:slug', element: <GuestPage onClose={onClose} /> },
-    { path: '/login', element: <p>The sign-in page</p> },
-    { path: '/register', element: <p>The register page</p> },
   ]);
-  render(<RouterProvider router={browserRouter} />);
+  const Wrapper = queryWrapper();
+  render(
+    <Wrapper>
+      <RouterProvider router={browserRouter} />
+    </Wrapper>,
+  );
   const page = screen.getByRole('main');
   const trigger = screen.getByRole('button', { name: 'Save Masaha Hub' });
   await userEvent.click(trigger);
@@ -81,21 +90,29 @@ function nextMove() {
   });
 }
 
+// The sign-in's forms load the first time it opens: their first transform is paid here.
+beforeAll(async () => {
+  await warm(() => import('../auth/in-place/InPlaceSignIn'));
+}, 60_000);
+
 beforeEach(async () => {
   // A step back the last test's dialog asked for as it unmounted lands first.
   await new Promise((resolve) => setTimeout(resolve, 50));
   startPreferences('en');
   stubScreenWidth(1280);
+  // No recovery in this browser; nothing else is asked of the server here.
+  fakeTransport(() => ok({ step: 'request' }));
 });
 
 afterEach(() => {
   browserRouter?.dispose();
   browserRouter = null;
+  restoreTransport();
   vi.unstubAllGlobals();
 });
 
 describe('SignInPrompt', () => {
-  it('asks a guest to sign in to save a favourite, both links carrying the page; axe-clean', async () => {
+  it('asks a guest to sign in to save a favourite, with the sign-in itself and no link away; axe-clean', async () => {
     const { baseElement } = renderPrompt('favorite');
 
     const dialog = within(
@@ -104,11 +121,10 @@ describe('SignInPrompt', () => {
     expect(
       dialog.getByText('The spaces you save are in your account on any device.'),
     ).toBeInTheDocument();
-    expect(dialog.getByRole('link', { name: 'Create account' })).toHaveAttribute(
-      'href',
-      `/register?${NEXT}`,
-    );
-    expect(dialog.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', `/login?${NEXT}`);
+    expect(await dialog.findByLabelText('Email')).toBeInTheDocument();
+    expect(dialog.getByLabelText('Password')).toBeInTheDocument();
+    expect(dialog.getByRole('button', { name: 'Sign in' })).toHaveAttribute('type', 'submit');
+    expect(dialog.queryByRole('link', { name: 'Sign in' })).toBeNull();
     expect(await axe(baseElement)).toHaveNoViolations();
   });
 
@@ -121,7 +137,18 @@ describe('SignInPrompt', () => {
     expect(
       dialog.getByText('So you’ll find the reply to your report in “My reports”.'),
     ).toBeInTheDocument();
-    expect(dialog.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', `/login?${NEXT}`);
+    expect(await dialog.findByLabelText('Email')).toBeInTheDocument();
+  });
+
+  it('opens with the focus on its title from 768 px too, before the forms', async () => {
+    renderPrompt('favorite');
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Sign in to save spaces to your favourites',
+    });
+    expect(
+      within(dialog).getByRole('heading', { name: 'Sign in to save spaces to your favourites' }),
+    ).toHaveFocus();
   });
 
   it('shows nothing with no reason, and closes with «Close»', async () => {
@@ -161,28 +188,4 @@ describe('SignInPrompt', () => {
     expect(screen.getByRole('main')).toBe(page);
     expect(trigger).toHaveFocus();
   });
-
-  it.each([
-    { link: 'Sign in', page: 'The sign-in page', path: '/login' },
-    { link: 'Create account', page: 'The register page', path: '/register' },
-  ])(
-    'leaves through «$link» in place of its entry, so Back returns to the page at once',
-    async ({ link, page, path }) => {
-      const { dialog } = await openOnPhone();
-
-      await userEvent.click(within(dialog).getByRole('link', { name: link }));
-      expect(await screen.findByText(page)).toBeInTheDocument();
-      expect(`${window.location.pathname}${window.location.search}`).toBe(`${path}?${NEXT}`);
-
-      const moved = nextMove();
-      window.history.back();
-      await moved;
-
-      // The first step back is the page's own entry, not the prompt's left behind.
-      expect(window.history.state).not.toHaveProperty('masahaOverlay');
-      expect(window.location.pathname).toBe('/spaces/masaha-hub');
-      expect(await screen.findByRole('button', { name: 'Save Masaha Hub' })).toBeInTheDocument();
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    },
-  );
 });

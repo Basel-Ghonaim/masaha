@@ -1,3 +1,4 @@
+import type { SpaceNameView } from '@shared/lib';
 import {
   dropHeldIntent,
   holdIntent,
@@ -26,16 +27,20 @@ function forget(): void {
   store.setState({ held: null });
 }
 
-/** Holds the report a guest pressed on the space `slug`, until they come back signed in. */
+/** Keeps the report held for the space `slug` for `ms`, until they come back signed in. */
 function keep(slug: string, ms: number): void {
   forget();
   store.setState({ held: slug });
   expiry = setTimeout(forget, ms);
 }
 
-export function holdReport(slug: string): void {
+/**
+ * Holds the report a guest pressed on the space `slug`, named `name` as the page shows it, which the
+ * reset link's page says it returns to.
+ */
+export function holdReport(slug: string, name: SpaceNameView): void {
   keep(slug, HOLD_MS);
-  holdIntent({ kind: 'report', slug, path: sitePage() ?? '/' });
+  holdIntent({ kind: 'report', slug, name, path: sitePage() ?? '/' });
 }
 
 /** Whether a report is held for `slug`: true once, the intent then cleared; another slug's is kept. */

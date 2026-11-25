@@ -1,17 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { sentPosition } from '../../../../test/fakeRecovery';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
-import { useForgotPasswordForm } from './useForgotPasswordForm';
+import { useForgotPasswordForm, type ForgotPasswordFormOptions } from './useForgotPasswordForm';
 
 type Form = ReturnType<typeof useForgotPasswordForm>;
 
 /** The hook, its request answered by `answer`. */
-function renderForgotForm(answer: () => FakeAnswer) {
+function renderForgotForm(answer: () => FakeAnswer, options: ForgotPasswordFormOptions = {}) {
   fakeTransport(answer);
-  return renderHook(() => useForgotPasswordForm(), { wrapper: queryWrapper() });
+  return renderHook(() => useForgotPasswordForm(options), { wrapper: queryWrapper() });
 }
 
 /** Types the email through its bindings and sends the form. */
@@ -63,5 +64,33 @@ describe('useForgotPasswordForm', () => {
         title: 'Couldn’t send the link',
       });
     });
+  });
+
+  it('opens with an email typed elsewhere, and hears the link asked for once the server answered', async () => {
+    const onRequested = vi.fn();
+    const { result } = renderForgotForm(() => ok(sentPosition(), 202), {
+      defaultEmail: 'sara@example.com',
+      onRequested,
+    });
+
+    act(() => {
+      result.current.submit();
+    });
+
+    await waitFor(() => {
+      expect(onRequested).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('hears no link asked for when the request is refused', async () => {
+    const onRequested = vi.fn();
+    const { result } = renderForgotForm(() => refused(500, { type: 'server' }), { onRequested });
+
+    await send(() => result.current, 'sara@example.com');
+
+    await waitFor(() => {
+      expect(result.current.failure).not.toBeNull();
+    });
+    expect(onRequested).not.toHaveBeenCalled();
   });
 });

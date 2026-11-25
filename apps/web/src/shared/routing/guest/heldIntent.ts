@@ -6,12 +6,13 @@ type HeldName = { text: string; lang?: 'en'; dir?: 'ltr' };
 
 /**
  * A guest's held action, kept in the browser's storage so a password recovery's new tab can run it
- * (finding 168): a favourite of a space, or a report on a space's page; the page it was pressed on,
- * which the app returns to; and when it was held.
+ * (finding 168): a favourite of a space, or a report on a space's page, with the space's name, which
+ * the reset link's page and the link sent say; the page it was pressed on, which the app returns to;
+ * and when it was held. A report held before it carried a name has none.
  */
 export type HeldIntent =
   | { kind: 'favorite'; spaceId: number; name: HeldName; path: string; at: number }
-  | { kind: 'report'; slug: string; path: string; at: number };
+  | { kind: 'report'; slug: string; name?: HeldName; path: string; at: number };
 
 /** What a feature holds: its intent, without the time, which the store stamps. */
 export type HeldAction =
@@ -56,7 +57,11 @@ function isIntent(value: unknown): value is HeldIntent {
     typeof intent.at === 'number';
   if (!shared) return false;
   if (intent.kind === 'favorite') return typeof intent.spaceId === 'number' && isName(intent.name);
-  return intent.kind === 'report' && typeof intent.slug === 'string';
+  return (
+    intent.kind === 'report' &&
+    typeof intent.slug === 'string' &&
+    (intent.name === undefined || isName(intent.name))
+  );
 }
 
 /** Whether a password reset was completed in this browser just before; the mark is removed as read. */
@@ -67,10 +72,9 @@ function takeRecovery(now: number): boolean {
   return raw !== null && Number.isFinite(at) && at <= now && now - at <= RECOVERY_ROUND_TRIP_MS;
 }
 
-/** The stored intent, when it is one and within its life; it is removed as it is read. */
-function takeStored(now: number): HeldIntent | null {
+/** The stored intent, when it is one and within its life; it is left where it is. */
+function readStored(now: number): HeldIntent | null {
   const raw = storage.read(STORAGE_KEYS.heldIntent);
-  storage.remove(STORAGE_KEYS.heldIntent);
   if (raw === null) return null;
   let value: unknown;
   try {
@@ -80,6 +84,33 @@ function takeStored(now: number): HeldIntent | null {
   }
   if (!isIntent(value) || value.at > now || now - value.at > HELD_INTENT_MS) return null;
   return value;
+}
+
+/** The stored intent, when it is one and within its life; it is removed as it is read. */
+function takeStored(now: number): HeldIntent | null {
+  const intent = readStored(now);
+  storage.remove(STORAGE_KEYS.heldIntent);
+  return intent;
+}
+
+/**
+ * The guest's action held in this browser, if one is, within its life, read without taking it: what
+ * the link sent and the reset link's page say will complete (ADR 0021, point 4). Running it stays the
+ * sign-in's.
+ */
+export function heldIntentPreview(): HeldIntent | null {
+  return readStored(Date.now());
+}
+
+/**
+ * Starts the held action's life again, when one is held: a reset link asked for, or asked again,
+ * from the sign-in over its page, whose round trip through the email may outlast what was left of
+ * it. It never holds an action that is not held.
+ */
+export function renewHeldIntent(): void {
+  const intent = readStored(Date.now());
+  if (intent !== null)
+    storage.write(STORAGE_KEYS.heldIntent, JSON.stringify({ ...intent, at: Date.now() }));
 }
 
 /**

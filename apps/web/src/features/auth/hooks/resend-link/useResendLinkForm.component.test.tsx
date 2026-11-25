@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { sentPosition } from '../../../../test/fakeRecovery';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
@@ -13,11 +13,15 @@ function seen(text: string) {
 }
 
 /** The resend's form at a recovery whose window is `seconds`, the resend answered by `resent`. */
-function renderResend(seconds: number, resent: FakeAnswer = ok(sentPosition(), 202)) {
+function renderResend(
+  seconds: number,
+  resent: FakeAnswer = ok(sentPosition(), 202),
+  onResent?: () => void,
+) {
   const requests = fakeTransport((config) =>
     config.method === 'get' ? ok(sentPosition({ resendInSeconds: seconds })) : resent,
   );
-  const rendered = renderHook(() => useResendLinkForm(), { wrapper: queryWrapper() });
+  const rendered = renderHook(() => useResendLinkForm({ onResent }), { wrapper: queryWrapper() });
   return { ...rendered, requests };
 }
 
@@ -62,6 +66,29 @@ describe('useResendLinkForm', () => {
       expect(requests.map((request) => request.method)).toEqual(['get', 'post']);
     });
     expect(requests[1]?.data).toBeUndefined();
+  });
+
+  it.each([
+    ['once the server sent it', ok(sentPosition(), 202), 1],
+    ['not when it is refused', refused(500, { type: 'server' }), 0],
+  ] as const)('hears another link sent %s', async (_case, answer, heard) => {
+    const onResent = vi.fn();
+    const { result, requests } = renderResend(0, answer, onResent);
+    await waitFor(() => {
+      expect(result.current.label).toBe('Resend');
+    });
+
+    act(() => {
+      result.current.submit();
+    });
+
+    await waitFor(() => {
+      expect(requests).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+    expect(onResent).toHaveBeenCalledTimes(heard);
   });
 
   it('holds the submit while too many attempts are counted down', async () => {

@@ -1,16 +1,23 @@
 import { useCopy } from '@shared/copy';
 import { Button, Field, Input } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
-import { useForgotPasswordForm } from '../../hooks/forgot-password/useForgotPasswordForm';
+import {
+  useForgotPasswordForm,
+  type ForgotPasswordFormOptions,
+} from '../../hooks/forgot-password/useForgotPasswordForm';
 
 /**
  * The request for a reset link: the email, the submit, and why the request failed, all from
  * `useForgotPasswordForm`. Once it is sent, the recovery is at `sent`, and the page shows it. Opened
- * again for another email, the field takes the focus (`focusEmail`).
+ * again for another email, the field takes the focus (`focusEmail`). It may open with an email
+ * typed elsewhere, report the email as it changes, and hear the link asked for (`onRequested`).
  */
-export function ForgotPasswordForm({ focusEmail = false }: { focusEmail?: boolean }) {
+export function ForgotPasswordForm({
+  focusEmail = false,
+  ...options
+}: ForgotPasswordFormOptions & { focusEmail?: boolean }) {
   const copy = useCopy();
-  const { field, submit, isPending, blocked, errors, failure } = useForgotPasswordForm();
+  const { field, submit, isPending, blocked, errors, failure } = useForgotPasswordForm(options);
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">

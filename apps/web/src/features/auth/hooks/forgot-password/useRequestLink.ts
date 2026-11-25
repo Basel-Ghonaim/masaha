@@ -10,6 +10,7 @@ const repository = createRecoveryRepository();
 export function useRequestLink() {
   const queryClient = useQueryClient();
   return useMutation<RecoveryPosition, AppError, ForgotPasswordRequest>({
+    mutationKey: [...authKeys.signingIn, 'requestLink'],
     mutationFn: repository.requestLink,
     onSuccess: (position) => {
       queryClient.setQueryData(authKeys.recovery, position);

@@ -1,4 +1,5 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -10,14 +11,18 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { ContinueWithGoogle } from './ContinueWithGoogle';
 
 /** The component as a page places it, with a divider, and Google's API on the page when `google`. */
-function renderContinueWithGoogle(answer: () => FakeAnswer | Promise<FakeAnswer>, google = true) {
+function renderContinueWithGoogle(
+  answer: () => FakeAnswer | Promise<FakeAnswer>,
+  google = true,
+  linkRefusedAction?: ReactNode,
+) {
   const fake = fakeGoogle();
   if (google) fake.install();
   fakeTransport(answer);
   const Wrapper = queryWrapper();
   const rendered = render(
     <Wrapper>
-      <ContinueWithGoogle divider={<p>or</p>} />
+      <ContinueWithGoogle divider={<p>or</p>} linkRefusedAction={linkRefusedAction} />
     </Wrapper>,
   );
   return { ...rendered, google: fake };
@@ -75,6 +80,30 @@ describe('ContinueWithGoogle', () => {
     expect(alert).toHaveTextContent('An account with this email already exists.');
     expect(alert.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
+
+  it.each([
+    ['joining an existing account is refused', 409, 'conflict', 'GOOGLE_LINK_NOT_ALLOWED', true],
+    ['Google could not confirm the account', 401, 'unauthorized', 'GOOGLE_TOKEN_INVALID', false],
+  ] as const)(
+    "offers the page's way on in the alert only when %s",
+    async (_case, status, type, code, offered) => {
+      const { google } = renderContinueWithGoogle(
+        () => refused(status, { type, code }),
+        true,
+        <button type="button">Forgot password?</button>,
+      );
+      await googleButton();
+
+      act(() => {
+        google.choose('google-id-token');
+      });
+
+      const alert = await screen.findByRole('alert');
+      expect(within(alert).queryByRole('button', { name: 'Forgot password?' }) !== null).toBe(
+        offered,
+      );
+    },
+  );
 
   it("says Google sign-in couldn't load, without its button, when Google's script fails", async () => {
     const { container } = renderContinueWithGoogle(() => ok({}), false);

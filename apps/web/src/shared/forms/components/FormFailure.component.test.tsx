@@ -59,4 +59,17 @@ describe('FormFailure', () => {
 
     expect(screen.getByRole('alert')).not.toHaveTextContent('Reference');
   });
+
+  it("puts the caller's way on inside a refusal's alert", () => {
+    render(
+      <FormFailure
+        view={{ kind: 'refused', title: 'Couldn’t sign in', message: 'Wrong password.' }}
+        action={<button type="button">Forgot password?</button>}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole('alert')).getByRole('button', { name: 'Forgot password?' }),
+    ).toBeInTheDocument();
+  });
 });

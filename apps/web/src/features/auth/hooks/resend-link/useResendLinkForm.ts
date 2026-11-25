@@ -8,8 +8,9 @@ import { useResendLink } from './useResendLink';
 /**
  * Another link, asked for by the recovery alone: a form with no field, so a refusal shows as every
  * form's does. The submit waits out the server's window, counted as a clock on its label.
+ * `onResent` hears the link sent again, once the server has answered.
  */
-export function useResendLinkForm() {
+export function useResendLinkForm({ onResent }: { onResent?: () => void } = {}) {
   const copy = useCopy();
   const resend = useResendLink();
   const { data, dataUpdatedAt } = useRecoveryPositionQuery();
@@ -19,7 +20,10 @@ export function useResendLinkForm() {
     schema: resendLinkSchema,
     defaultValues: {},
     fields: [],
-    submit: () => resend.mutateAsync(),
+    submit: async () => {
+      await resend.mutateAsync();
+      onResent?.();
+    },
     failureTitle: copy.auth.forgotPassword.resendFailed,
   });
 

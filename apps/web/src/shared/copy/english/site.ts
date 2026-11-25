@@ -36,13 +36,32 @@ export const SITE = {
     favorite: {
       title: 'Sign in to save spaces to your favourites',
       text: 'The spaces you save are in your account on any device.',
+      /** The register view's title, keeping the reason. */
+      registerTitle: 'Create an account to save spaces to your favourites',
     },
     report: {
       title: 'Sign in to report information',
       text: 'So you’ll find the reply to your report in “My reports”.',
+      registerTitle: 'Create an account to report information',
     },
-    register: 'Create account',
-    signIn: 'Sign in',
+    /** Before the switch to register, at the sign-in's foot. */
+    newHere: 'New to Masaha?',
+    /** Read after a link that opens a new tab, so the held action stays on this one. */
+    newTab: '(opens in a new tab)',
+    /** The sign-in's code could not be loaded into the overlay. */
+    loadFailed: 'Couldn’t load the sign-in. Check your connection, then try again.',
+    /** Under the link sent, while the action pressed is held: what completes after the reset. */
+    sentNote: {
+      favorite: ({ space }: { space: string }) =>
+        `Once your new password is set, we bring you back to ${space} and finish saving it to your favourites.`,
+      report: ({ space }: { space: string }) =>
+        `Once your new password is set, we bring you back to ${space} to finish your report.`,
+    },
+    /** Over the sign-in once a reset completed in another tab of this browser. */
+    changed: {
+      title: 'Your password was changed',
+      text: 'You were signed out on all devices. Sign in with your new password.',
+    },
     close: 'Close',
   },
   /** Home: the hero and its search, the areas, and the owners' card. */

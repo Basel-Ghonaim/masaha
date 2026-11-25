@@ -148,4 +148,17 @@ describe('RegisterForm', () => {
       expect(submit).not.toHaveAttribute('aria-busy');
     });
   });
+
+  it('opens with an email typed elsewhere, and reports it as it changes', async () => {
+    const onEmailChange = vi.fn();
+    renderRegister(() => ok(aSession(), 201), { defaultEmail: 'sara@example.com', onEmailChange });
+
+    const email = screen.getByLabelText('Email');
+    expect(email).toHaveValue('sara@example.com');
+    await userEvent.clear(email);
+    await userEvent.type(email, 'mona@example.com');
+
+    expect(onEmailChange).toHaveBeenNthCalledWith(1, 'sara@example.com');
+    expect(onEmailChange).toHaveBeenLastCalledWith('mona@example.com');
+  });
 });

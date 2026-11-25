@@ -22,7 +22,7 @@ export function ReportAction({
   signIn: (reason: 'report', cancel: () => void) => void;
   openMyReports: () => void;
 }) {
-  const action = useReportAction({ slug, signIn });
+  const action = useReportAction({ slug, name, signIn });
   const button = useRef<HTMLButtonElement>(null);
 
   return (

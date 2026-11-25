@@ -1,7 +1,7 @@
 import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { noteRecoveryDone, noteSitePage, RETURN_TOAST_ID } from '@shared/routing';
-import { establishSession, restoreSession } from '@shared/session';
+import { establishSession, passwordChanged, restoreSession } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
@@ -67,6 +67,43 @@ describe('useResumeFavorite', () => {
 
     expect(await findToast(/^.Masaha Hub. saved to your favourites$/)).toBeInTheDocument();
     expect(requests.map(lineOf)).toEqual(['post /me/favorites/7']);
+  });
+
+  it('waits while a temporary password is still to change, then saves it once the change is done', async () => {
+    holdFavorite({ spaceId: 7, name: { text: 'Masaha Hub' } });
+    const requests = renderResume(() => ({ status: 204 }));
+
+    act(() => {
+      establishSession(aSession({ id: 1, mustChangePassword: true }), { source: 'signIn' });
+    });
+    // Sent now, it would be refused PASSWORD_CHANGE_REQUIRED, and the favourite lost.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(requests).toHaveLength(0);
+
+    act(() => {
+      passwordChanged(1, 'token-2');
+    });
+
+    expect(await findToast(/^.Masaha Hub. saved to your favourites$/)).toBeInTheDocument();
+    expect(requests.map(lineOf)).toEqual(['post /me/favorites/7']);
+  });
+
+  it('lets the held favourite go on a sign-out, so the next account’s sign-in saves nothing (S-1)', async () => {
+    holdFavorite({ spaceId: 7, name: { text: 'Masaha Hub' } });
+    const requests = renderResume(() => ({ status: 204 }));
+    act(() => {
+      establishSession(aSession({ id: 1, mustChangePassword: true }), { source: 'signIn' });
+    });
+
+    // Signed out on the change page, then someone else signs in in this tab.
+    setSessionHint(false);
+    await act(() => restoreSession());
+    act(() => {
+      establishSession(aSession({ id: 2, email: 'mona@example.com' }), { source: 'signIn' });
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(requests).toHaveLength(0);
   });
 
   it('saves a favourite pressed as a guest in another tab once signed in here, as after a recovery', async () => {

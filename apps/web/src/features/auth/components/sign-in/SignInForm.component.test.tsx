@@ -129,4 +129,33 @@ describe('SignInForm', () => {
 
     expect(screen.getByRole('link', { name: 'Forgot?' })).toHaveAttribute('href', '/forgot');
   });
+
+  it('opens with an email typed elsewhere, the focus in the password', async () => {
+    renderSignIn(() => ok(aSession()), { defaultEmail: 'sara@example.com', focus: 'password' });
+
+    expect(screen.getByLabelText('Email')).toHaveValue('sara@example.com');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Password')).toHaveFocus();
+    });
+  });
+
+  it('opens with the focus in the email when the place asks for it', async () => {
+    renderSignIn(() => ok(aSession()), { focus: 'email' });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Email')).toHaveFocus();
+    });
+  });
+
+  it('reports the email as it changes, and never the password', async () => {
+    const onEmailChange = vi.fn();
+    renderSignIn(() => ok(aSession()), { defaultEmail: 'sa', onEmailChange });
+
+    await userEvent.type(screen.getByLabelText('Email'), 'ra@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'gaza2026');
+
+    expect(onEmailChange).toHaveBeenNthCalledWith(1, 'sa');
+    expect(onEmailChange).toHaveBeenLastCalledWith('sara@example.com');
+    expect(onEmailChange.mock.calls.flat()).not.toContain('gaza2026');
+  });
 });

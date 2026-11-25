@@ -2,20 +2,21 @@ import { useCopy } from '@shared/copy';
 import { Button, Field, Input, LogInIcon } from '@shared/design-system';
 import { FormFailure, PasswordInput } from '@shared/forms';
 import type { ReactNode } from 'react';
-import { useSignInForm } from '../../hooks/sign-in/useSignInForm';
+import { useSignInForm, type SignInFormOptions } from '../../hooks/sign-in/useSignInForm';
 
-export type SignInFormProps = {
+export type SignInFormProps = SignInFormOptions & {
   /** The way to a forgotten password, under the password field. */
   forgotPasswordLink?: ReactNode;
 };
 
 /**
  * Sign-in by email and password: the fields, the submit, and why a sign-in failed, all from
- * `useSignInForm`. The session it opens is held as a sign-in.
+ * `useSignInForm`. The session it opens is held as a sign-in. It may open with an email already
+ * typed elsewhere, the focus then in the password, and report the email as it changes.
  */
-export function SignInForm({ forgotPasswordLink }: SignInFormProps) {
+export function SignInForm({ forgotPasswordLink, ...options }: SignInFormProps) {
   const copy = useCopy();
-  const { field, submit, isPending, blocked, errors, failure } = useSignInForm();
+  const { field, submit, isPending, blocked, errors, failure } = useSignInForm(options);
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
