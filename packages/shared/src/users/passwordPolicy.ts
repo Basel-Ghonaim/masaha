@@ -27,21 +27,14 @@ export const passwordSchema = z
   .regex(DIGIT);
 
 /**
- * The rules a new password is shown against, in the order a checklist lists them. The upper bound
- * (`bytes`, at most 72 bytes in UTF-8) is not a rule to work towards: a checklist shows it only while
- * it is broken (`onlyBroken`).
+ * The password policy shown as one line. The upper bound (`bytes`, at most 72 bytes in UTF-8) is
+ * not a rule to work towards: the line shows it only while it is broken.
  */
-export const PASSWORD_RULES = [
-  { id: 'minLength', onlyBroken: false },
-  { id: 'letter', onlyBroken: false },
-  { id: 'digit', onlyBroken: false },
-  { id: 'bytes', onlyBroken: true },
-] as const;
-export type PasswordRule = (typeof PASSWORD_RULES)[number]['id'];
+export type PasswordRule = 'minLength' | 'letter' | 'digit' | 'bytes';
 
 /**
- * Which of the policy's rules a value meets, by the policy's own measures, so a checklist ticks
- * exactly what the schema accepts.
+ * Which conditions in the policy's line a value meets, by the policy's own measures, so the line
+ * says exactly what the schema accepts.
  */
 export function passwordRules(password: string): Record<PasswordRule, boolean> {
   return {

@@ -5,7 +5,7 @@ import { useId } from 'react';
 import { useForcedPasswordChangeForm } from '../../hooks/forced-change/useForcedPasswordChangeForm';
 
 /**
- * The forced change of a temporary password: the new password, its rules ticking as the user types,
+ * The forced change of a temporary password: the new password, the policy's line as the user types,
  * the submit, and why the change failed, all from `useForcedPasswordChangeForm`. Once it succeeds the
  * session holds no pending change, and the place the form sits in sends the user on.
  */
