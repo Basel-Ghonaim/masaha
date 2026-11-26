@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PASSWORD_RULES, passwordRules, passwordSchema } from './passwordPolicy.ts';
+import { passwordRules, passwordSchema } from './passwordPolicy.ts';
 
 describe('passwordSchema', () => {
   it('takes 8 characters with a letter and a digit, in any script', () => {
@@ -75,13 +75,7 @@ describe('passwordRules', () => {
     expect(everyRule).toBe(passwordSchema.safeParse(password).success);
   });
 
-  it('lists the rules in the order of the checklist', () => {
-    expect(PASSWORD_RULES.map(({ id }) => id)).toEqual(['minLength', 'letter', 'digit', 'bytes']);
-  });
-
-  it('shows the upper bound only while it is broken', () => {
-    expect(PASSWORD_RULES.filter(({ onlyBroken }) => onlyBroken).map(({ id }) => id)).toEqual([
-      'bytes',
-    ]);
+  it('lists the policy conditions in order', () => {
+    expect(Object.keys(passwordRules('x'))).toEqual(['minLength', 'letter', 'digit', 'bytes']);
   });
 });

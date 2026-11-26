@@ -17,7 +17,7 @@ const repository = createUsersRepository();
 type PasswordChangeValues = { currentPassword: string; password: string };
 
 /**
- * The settings' password change (C2): the current password and the new one (the rules' checklist),
+ * The settings' password change (C2): the current password and the new one (the policy's line),
  * sent with `POST /me/password`. Saved, the session goes on with the renewed token
  * (`passwordChanged`), the toast says the other devices were signed out, and `done` closes the form.
  * A wrong current password is said with the errors' line (`CURRENT_PASSWORD_INCORRECT`); too many
