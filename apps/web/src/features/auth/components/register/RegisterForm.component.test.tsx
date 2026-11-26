@@ -51,6 +51,12 @@ afterEach(() => {
 });
 
 describe('RegisterForm', () => {
+  it('draws its submit as the main action', () => {
+    renderRegister(() => ok(aSession(), 201));
+
+    expect(screen.getByRole('button', { name: 'Create account' })).toHaveClass('bg-main-action');
+  });
+
   it('shows what the password typed still lacks', async () => {
     renderRegister(() => ok(aSession(), 201));
 

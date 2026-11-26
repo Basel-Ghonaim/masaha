@@ -35,7 +35,7 @@ export function ForgotView({
       onRequested={renewHeldIntent}
       sentNote={<SentNote reason={reason} />}
       resetPasswordLink={
-        <Button asChild className="w-full">
+        <Button asChild variant="main" className="w-full">
           <Link to={SITE_PATHS.resetPassword} target="_blank" rel="noopener">
             {copy.auth.forgotPassword.continue}{' '}
             <span className="sr-only">{copy.site.signInPrompt.newTab}</span>

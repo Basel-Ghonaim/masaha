@@ -136,9 +136,11 @@ describe('the forgot password page', () => {
   it('links on to the new password once a link is open in this browser', async () => {
     renderSite('/forgot-password', { step: 'password', email: MASKED_EMAIL });
 
-    expect(await screen.findByRole('link', { name: 'Set a new password' })).toHaveAttribute(
-      'href',
-      '/reset-password',
+    const link = await screen.findByRole('link', { name: 'Set a new password' });
+    expect(link).toHaveAttribute('href', '/reset-password');
+    expect(link).toHaveClass('bg-main-action');
+    expect(screen.getByRole('button', { name: 'Enter your email again' })).not.toHaveClass(
+      'bg-main-action',
     );
   });
 });

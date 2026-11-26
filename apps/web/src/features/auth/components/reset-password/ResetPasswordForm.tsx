@@ -29,7 +29,13 @@ export function ResetPasswordForm({ saved, note }: { saved: () => void; note?: R
         <PasswordRules id={rulesId} view={passwordRules} />
       </div>
       {note}
-      <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
+      <Button
+        type="submit"
+        variant="main"
+        className="w-full"
+        loading={isPending}
+        disabled={blocked}
+      >
         {copy.auth.resetPassword.submit}
       </Button>
     </form>

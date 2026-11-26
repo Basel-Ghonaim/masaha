@@ -41,7 +41,7 @@ export function ForgotPasswordPage() {
         </Button>
       }
       resetPasswordLink={
-        <Button asChild className="w-full">
+        <Button asChild variant="main" className="w-full">
           <Link to={`${SITE_PATHS.resetPassword}${nextSearch(search)}`}>{words.continue}</Link>
         </Button>
       }

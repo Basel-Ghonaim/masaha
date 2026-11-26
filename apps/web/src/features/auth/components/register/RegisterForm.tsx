@@ -48,7 +48,13 @@ export function RegisterForm({ signInLink, ...options }: RegisterFormProps) {
         </Field>
         <PasswordRules id={rulesId} view={passwordRules} />
       </div>
-      <Button type="submit" className="w-full" loading={isPending} disabled={blocked}>
+      <Button
+        type="submit"
+        variant="main"
+        className="w-full"
+        loading={isPending}
+        disabled={blocked}
+      >
         {copy.auth.register.submit}
       </Button>
     </form>

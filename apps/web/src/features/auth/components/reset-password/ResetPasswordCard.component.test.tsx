@@ -70,6 +70,7 @@ describe('ResetPasswordCard', () => {
     expect(seen(screen.getByText(/^For /).textContent)).toBe(`For ${MASKED_EMAIL}`);
     expect(field).toHaveAccessibleDescription(/8 characters/);
     expect(screen.getByRole('button', { name: 'Save password' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save password' })).toHaveClass('bg-main-action');
   });
 
   it('says the password was set, and offers to sign in', async () => {

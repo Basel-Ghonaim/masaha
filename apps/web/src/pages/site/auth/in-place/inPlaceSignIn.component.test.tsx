@@ -169,6 +169,31 @@ describe('the sign-in over the page', () => {
     });
   });
 
+  it('draws one main action in each view: its form’s submit, or the open link’s way on', async () => {
+    await renderSite(
+      server({
+        'get /auth/password/recovery': () => ok({ step: 'password', email: 's•••@example.com' }),
+      }),
+    );
+    const user = userEvent.setup();
+    const { dialog } = await pressHeart(user);
+    const mainActions = () =>
+      Array.from(dialog.querySelectorAll('[data-slot="button"]')).filter((button) =>
+        button.classList.contains('bg-main-action'),
+      );
+
+    expect(mainActions()).toEqual([within(dialog).getByRole('button', { name: 'Sign in' })]);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
+    await within(dialog).findByLabelText('Name');
+    expect(mainActions()).toEqual([within(dialog).getByRole('button', { name: 'Create account' })]);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Sign in' }));
+    await user.click(await within(dialog).findByRole('button', { name: 'Forgot password?' }));
+    const onward = await within(dialog).findByRole('link', { name: /^Set a new password/ });
+    expect(mainActions()).toEqual([onward]);
+  });
+
   it('from the report: signs in there, and the report’s dialog opens', async () => {
     await renderSite(server({ 'post /auth/login': () => ok(aSession()) }));
     const user = userEvent.setup();
