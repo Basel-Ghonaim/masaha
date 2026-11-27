@@ -16,7 +16,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [23. No per-address ceiling for signed-in requests](23-no-per-address-ceiling-for-signed-in-requests.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
-- [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 - [221. The README's screenshots show Sea](221-the-readmes-screenshots-show-sea.md)
 - [230. The layer's alert has no success variant](230-the-layers-alert-has-no-success-variant.md)
 - [231. Signing in over a page switches the page to the account's language](231-signing-in-over-a-page-switches-the-page-to-the-accounts-language.md)
@@ -39,6 +38,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 ## Resolved
 - [232. `PASSWORD_RULES` is read only by its test, and two comments still say "checklist"](232-password-rules-is-read-only-by-its-test-and-two-comments-still-say-checklist.md)
+- [215. The prototype's Home and today's line disagree with production](215-the-prototypes-home-and-today-line-disagree-with-production.md)
 - [1. Overlays: the scrim has no token, and floating content shares the dropdown layer](1-overlays-the-scrim-has-no-token-and-floating-content-shares-the-dropdown-layer.md)
 - [2. Copied shadcn components need more than the contract lists](2-copied-shadcn-components-need-more-than-the-contract-lists.md)
 - [3. Classes used only by tests or the showcase reach the production CSS](3-classes-used-only-by-tests-or-the-showcase-reach-the-production-css.md)
