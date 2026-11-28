@@ -9,6 +9,7 @@ type AlertSamples = {
   info: AlertText;
   warning: AlertText & { action: string };
   destructive: AlertText;
+  success: AlertText;
   titleOnlyCaption: string;
   titleOnly: string;
 };
@@ -29,6 +30,10 @@ export function AlertSection({ samples }: { samples: AlertSamples }) {
           <Alert variant="destructive">
             <AlertTitle>{samples.destructive.title}</AlertTitle>
             <AlertDescription>{samples.destructive.description}</AlertDescription>
+          </Alert>
+          <Alert variant="success">
+            <AlertTitle>{samples.success.title}</AlertTitle>
+            <AlertDescription>{samples.success.description}</AlertDescription>
           </Alert>
         </div>
       </ShowcaseGroup>
