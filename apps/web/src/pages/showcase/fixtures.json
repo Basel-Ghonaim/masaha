@@ -282,7 +282,7 @@
       },
       "alert": {
         "title": "التنبيهات",
-        "caption": "معلومة، تحذير، خطأ",
+        "caption": "معلومة، تحذير، خطأ، نجاح",
         "info": {
           "title": "الأسعار للاطلاع فقط",
           "description": "تأكّد منها مع المساحة قبل زيارتك."
@@ -295,6 +295,10 @@
         "destructive": {
           "title": "تعذّر حفظ بيانات المساحة",
           "description": "تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى."
+        },
+        "success": {
+          "title": "تم حفظ التغييرات",
+          "description": "تظهر ساعات العمل الجديدة في صفحة المساحة الآن."
         },
         "titleOnlyCaption": "بعنوان فقط، ومع إجراء",
         "titleOnly": "انتهت عضوية هذا المشترك"
@@ -1210,7 +1214,7 @@
       },
       "alert": {
         "title": "Alerts",
-        "caption": "Information, warning and error",
+        "caption": "Information, warning, error and success",
         "info": {
           "title": "Prices are shown for reference",
           "description": "Confirm them with the space before you visit."
@@ -1223,6 +1227,10 @@
         "destructive": {
           "title": "The space could not be saved",
           "description": "Check your internet connection and try again."
+        },
+        "success": {
+          "title": "Changes saved",
+          "description": "The new opening hours now show on the space's page."
         },
         "titleOnlyCaption": "With a title only, and with an action",
         "titleOnly": "This membership has already expired"

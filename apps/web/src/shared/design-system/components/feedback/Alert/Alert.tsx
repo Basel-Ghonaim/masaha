@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps, ReactNode } from 'react';
-import { CircleAlertIcon, InfoIcon, TriangleAlertIcon } from '../../../icons';
+import { CircleAlertIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon } from '../../../icons';
 import { cn } from '../../../lib/cn';
 
 // Each status is its subtle surface with the text foundation §5 verifies on it; the icon and the
@@ -15,6 +15,7 @@ const alertVariants = cva(
         info: 'border-info bg-info-subtle text-info-subtle-foreground',
         warning: 'border-warning bg-warning-subtle text-warning-subtle-foreground',
         destructive: 'border-destructive bg-destructive-subtle text-destructive-subtle-foreground',
+        success: 'border-success bg-success-subtle text-success-subtle-foreground',
       },
     },
     defaultVariants: {
@@ -29,6 +30,7 @@ const ICONS: Record<Variant, typeof InfoIcon> = {
   info: InfoIcon,
   warning: TriangleAlertIcon,
   destructive: CircleAlertIcon,
+  success: CircleCheckIcon,
 };
 
 export type AlertProps = ComponentProps<'div'> &
@@ -38,9 +40,10 @@ export type AlertProps = ComponentProps<'div'> &
   };
 
 /**
- * A notice inside the page: information, a warning, or an error. A destructive alert interrupts
- * assistive technology (`role="alert"`); the others are announced politely (`role="status"`). Pass
- * `role` to change it. Compose it from AlertTitle, AlertDescription and AlertAction.
+ * A notice inside the page: information, a warning, an error, or a success. A destructive alert
+ * interrupts assistive technology (`role="alert"`); the others are announced politely
+ * (`role="status"`). Pass `role` to change it. Compose it from AlertTitle, AlertDescription and
+ * AlertAction.
  */
 export function Alert({ className, variant, icon, children, ...props }: AlertProps) {
   const resolved = variant ?? 'info';

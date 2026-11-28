@@ -1,5 +1,5 @@
 import { useCopy } from '@shared/copy';
-import { Alert, AlertDescription, AlertTitle, CircleCheckIcon } from '@shared/design-system';
+import { Alert, AlertDescription, AlertTitle } from '@shared/design-system';
 
 /**
  * Over the sign-in once a reset completed in another tab of this browser (A1): the password was
@@ -9,7 +9,7 @@ export function ChangedNotice() {
   const words = useCopy().site.signInPrompt.changed;
 
   return (
-    <Alert icon={<CircleCheckIcon aria-hidden className="text-success" />}>
+    <Alert variant="success">
       <AlertTitle>{words.title}</AlertTitle>
       <AlertDescription>{words.text}</AlertDescription>
     </Alert>

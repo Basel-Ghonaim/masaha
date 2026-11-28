@@ -14,7 +14,7 @@ describe('Alert', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('The space could not be saved');
   });
 
-  it('is announced politely when informative or a warning', () => {
+  it('is announced politely when informative, a warning, or a success', () => {
     render(
       <>
         <Alert>
@@ -23,10 +23,13 @@ describe('Alert', () => {
         <Alert variant="warning">
           <AlertTitle>Opening hours may be outdated</AlertTitle>
         </Alert>
+        <Alert variant="success">
+          <AlertTitle>Changes saved</AlertTitle>
+        </Alert>
       </>,
     );
 
-    expect(screen.getAllByRole('status')).toHaveLength(2);
+    expect(screen.getAllByRole('status')).toHaveLength(3);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -44,6 +47,9 @@ describe('Alert', () => {
   it('shows its variant icon, a given one, or none', () => {
     const { container, rerender } = render(<Alert variant="warning">Outdated</Alert>);
     expect(container.querySelectorAll('svg')).toHaveLength(1);
+
+    rerender(<Alert variant="success">Changes saved</Alert>);
+    expect(container.querySelector('svg')).toHaveClass('lucide-circle-check');
 
     rerender(
       <Alert variant="warning" icon={<svg data-testid="own-icon" aria-hidden />}>
@@ -77,6 +83,10 @@ describe('Alert', () => {
         <Alert variant="destructive">
           <AlertTitle>The space could not be saved</AlertTitle>
           <AlertDescription>Check your connection and try again.</AlertDescription>
+        </Alert>
+        <Alert variant="success">
+          <AlertTitle>Changes saved</AlertTitle>
+          <AlertDescription>The new opening hours now show on the space's page.</AlertDescription>
         </Alert>
       </>,
     );

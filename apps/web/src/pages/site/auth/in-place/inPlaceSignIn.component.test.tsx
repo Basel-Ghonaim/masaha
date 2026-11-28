@@ -481,7 +481,9 @@ describe('the sign-in over the page', () => {
     expect(
       await within(dialog).findByRole('heading', { name: FAVORITE_TITLE }),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole('status')).toHaveTextContent('Your password was changed');
+    const changedNotice = within(dialog).getByRole('status');
+    expect(changedNotice).toHaveTextContent('Your password was changed');
+    expect(changedNotice).toHaveAttribute('data-variant', 'success');
     expect(within(dialog).getByLabelText('Email')).toHaveValue('sara@example.com');
     await waitFor(() => {
       expect(within(dialog).getByLabelText('Password')).toHaveFocus();

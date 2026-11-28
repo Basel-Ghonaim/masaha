@@ -446,7 +446,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Toast | shadcn (Sonner) | Success and error feedback |
-| Alert | shadcn | info, warning, destructive |
+| Alert | shadcn | info, warning, destructive, success |
 | Skeleton | shadcn | Loading states · its fill is the `skeleton` component token (§4), at least 1.2:1 on `card` and `background` (§5, *Verified*) |
 | EmptyState | hand-built | Icon + title + text + action |
 | Spinner | hand-built | |
